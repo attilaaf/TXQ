@@ -48,6 +48,7 @@ import "../services/use_cases/spends/GetBalanceByScriptHashes";
 import "../services/use_cases/spends/GetBalanceByGroup";
 import "../services/use_cases/events/ConnectChannelClientSSE";
 import "../services/use_cases/txoutgroup/GetTxoutgroupByName";
+import "../services/use_cases/txoutgroup/GetTxoutgroupListByScriptid";
 import "../services/use_cases/txoutgroup/AddGroupScriptIds";
 import "../services/use_cases/txoutgroup/DeleteGroupScriptIds";
 
