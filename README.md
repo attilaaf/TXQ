@@ -10,6 +10,7 @@
 
 ![TXQ](https://github.com/MatterPool/TXQ/blob/master/preview.png "Bitcoin Transaction Storage Queue Service")
 
+
 - [Motivation](#motivation)
 - [Installation & Getting Started](#installation---getting-started)
 - [Database](#database)
@@ -38,6 +39,7 @@
   * [Get Balance By Scripthash](#get-balance-by-scripthash)
   * [Add Address or Scripthash to Output Group](#add-address-or-scripthash-to-output-group)
   * [Get Output Group](#get-output-group)
+  * [Get Output Groups by Scriptid](#get-output-groups-by-scriptid)
   * [Delete Address or Scripthash from Output Group](#delete-address-or-scripthash-from-output-group)
   * [Get Outputs By Group](#get-outputs-by-group)
   * [Get Unspent Outputs By Group (UTXO)](#get-unspent-outputs-by-group--utxo-)
@@ -62,8 +64,6 @@
   * [Query by Index of Miner Merchant API](#query-by-index-of-miner-merchant-api)
 - [Database Schema and Design](#database-schema-and-design)
 - [Additional Resources](#additional-resources)
-
-
 
 ## Motivation
 
@@ -581,7 +581,7 @@ Retrieve spent status of a txoutput (txid + index)
 
 ### Get Outpoints Spend Status (Batch)
 
-`GET /api/v1/txout/txid/:txouts?pretty=1`
+`GET /api/v1/txout/outpoints/:txouts?pretty=1`
 
 Example: Use for `txouts` single outpoints like `dc7bed6c302c08b7bafd94bfb1086883a134861fe9f212fc8052fcaadcde2293_o0` or multiple: `dc7bed6c302c08b7bafd94bfb1086883a134861fe9f212fc8052fcaadcde2293_o0,dc7bed6c302c08b7bafd94bfb1086883a134861fe9f212fc8052fcaadcde2293_o0`
 
@@ -803,7 +803,6 @@ Retrieve the balance for scripthashes
 ```
 
 
-
 ### Add Address or Scripthash to Output Group
 
 `POST /api/v1/txoutgroup/:groupname`
@@ -851,6 +850,36 @@ Response Body
 
 ```
 Get all scriptids subscribed to the groupname. Scriptid can be an address or a scripthash to match outputs.
+
+### Get Output Groups by Scriptid
+
+`GET /api/v1/txoutgroup/scriptid/:scriptids`
+
+Reverse lookup get all output groups that have scriptids (address, scripthash, etc). Use comma seperated values for multiple.
+
+Response Body
+
+```javascript
+{
+    "status": 200,
+    "errors": [],
+    "result": [
+        {
+            "groupname": "mykey",
+            "scriptid": "131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW",
+            "created_at": 1594930920
+        },
+        {
+            "groupname": "mykey",
+            "scriptid": "13jbh6Ps6p4GEfNVbZpp6AwqWFrkWQmaWN",
+            "created_at": 1594921596
+        }
+    ]
+}
+
+```
+Get all output groups for the given identifiers such as address or scripthash that was registered.
+
 
 ### Delete Address or Scripthash from Output Group
 
