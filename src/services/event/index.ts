@@ -178,12 +178,16 @@ export default class EventService {
     this.logger.info('cleanExpiredFromMaps', {
       map: this.channelMapEvents
     });
-		const AGE_SECONDS = 3600;
+		const AGE_SECONDS = 3600 * 3; // 3 hours
 	  this.channelMapEvents.forEach((value, key, map) => {
 			if (value.time < (new Date()).getTime() - (1000 * AGE_SECONDS)) {
-				map.delete(key);
+        // Only delete channel if there are no sse handlers non-expired
+				if (!value.sseHandlers.length) {
+          map.delete(key);
+        }
 			}
-		});
+    });
+    // Delete only old/expired sse handlers
 		this.channelMapEvents.forEach((value, key, map) => {
       const cleanedHandlers = [];
 			for (const handler of value.sseHandlers) {
