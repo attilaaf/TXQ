@@ -1,5 +1,6 @@
 import { Service, Inject } from 'typedi';
 import { sql, DatabaseConnectionType } from 'slonik';
+import { IOutputGroupEntry } from '@interfaces/IOutputGroupEntry';
 
 @Service('txoutgroupModel')
 class TxoutgroupModel {
@@ -29,21 +30,22 @@ class TxoutgroupModel {
     return result.rows;
   }
 
-  public saveTxoutgroups(groupname: string, scriptids: string[]): Promise<any> {
-    let expandedInserts = scriptids.map((item) => {
-      return [ groupname, item, Math.round((new Date()).getTime() / 1000) ];
+  public saveTxoutgroups(groupname: string, items: IOutputGroupEntry[]): Promise<any> {
+    let expandedInserts = items.map((item) => {
+      return [ groupname, item.scriptid, item.metadata ? JSON.stringify(item.metadata) : null, Math.round((new Date()).getTime() / 1000) ];
     });
     const s = sql`
-    INSERT INTO txoutgroup(groupname, scriptid, created_at)
+    INSERT INTO txoutgroup(groupname, scriptid, metadata, created_at)
     SELECT *
     FROM ${sql.unnest(
       expandedInserts,
       [
         'varchar[]',
         'varchar[]',
+        'jsonb',
         'int4'
       ]
-    )} ON CONFLICT DO NOTHING`;
+    )} ON CONFLICT(groupname, scriptid) DO UPDATE SET metadata = excluded.metadata`;
     return this.db.query(s);
   }
 

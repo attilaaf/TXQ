@@ -65,7 +65,7 @@ export default [
           let uc = Container.get(AddGroupScriptIds);
           let data = await uc.run({
             groupname: Req.params.groupname,
-            scriptids: Req.body.scriptids
+            items: Req.body.items
           });
 
           sendResponseWrapper(Req, res, 200, data.result);

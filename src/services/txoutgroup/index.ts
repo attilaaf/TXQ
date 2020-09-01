@@ -1,4 +1,5 @@
 import { Service, Inject } from 'typedi';
+import { IOutputGroupEntry } from '@interfaces/IOutputGroupEntry';
 
 @Service('txoutgroupService')
 export default class TxoutgroupService {
@@ -16,8 +17,8 @@ export default class TxoutgroupService {
     return await this.txoutgroupModel.getTxoutgroupNamesByScriptIds(scriptIds);
   }
 
-  public async saveTxoutgroups(groupname: string, scriptids: string[]) {
-    return await this.txoutgroupModel.saveTxoutgroups(groupname, scriptids);
+  public async saveTxoutgroups(groupname: string, items: IOutputGroupEntry[]) {
+    return await this.txoutgroupModel.saveTxoutgroups(groupname, items);
   }
 
   public async deleteTxoutgroups(groupname: string, scriptids: string[]) {
