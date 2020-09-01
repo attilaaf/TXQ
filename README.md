@@ -807,16 +807,19 @@ Retrieve the balance for scripthashes
 
 `POST /api/v1/txoutgroup/:groupname`
 
+Optionally provide `metadata` to tag addresses and scripts with metadata (ex: track child derivation paths or anything)
+
 POST Request Body:
 
 ```javascript
 {
- "scriptids": [
-   "0012",
-   "address1",
-   "scripthash1"
+ "items": [
+   { "scriptid": "032132442", "metadata": { "foo": 1233 } },
+   { "scriptid": "13jbh6Ps6p4GEfNVbZpp6AwqWFrkWQmaWN" },
+   { "scriptid": "scripthash1", "metadata": { "something": "else" } }
  ]
 }
+
 ```
 Add the output script pattern tagged into the group.  Can be an address or scripthash. This allows you to group outputs by xpub, userid, or any category.
 
@@ -838,12 +841,14 @@ Response Body
         {
             "groupname": "mykey",
             "scriptid": "131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW",
-            "created_at": 1594930920
+            "created_at": 1594930920,
+            "metadata": null
         },
         {
             "groupname": "mykey",
             "scriptid": "13jbh6Ps6p4GEfNVbZpp6AwqWFrkWQmaWN",
-            "created_at": 1594921596
+            "created_at": 1594921596,
+            "metadata": { "something": "else" }
         }
     ]
 }
