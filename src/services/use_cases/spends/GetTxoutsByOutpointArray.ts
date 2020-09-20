@@ -2,6 +2,7 @@ import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
 import InvalidParamError from '../../error/InvalidParamError';
+import { TxFormatter } from '../../../services/helpers/TxFormatter';
 @Service('getTxoutsByOutpointArray')
 export default class GetTxoutsByOutpointArray extends UseCase {
 
@@ -30,7 +31,7 @@ export default class GetTxoutsByOutpointArray extends UseCase {
     let entities = await this.txoutService.getTxoutsByOutpointArray(outpoints, params.script);
     return {
       success: true,
-      result: entities
+      result: TxFormatter.formatTxoutsWithEmbeddedStatusHeight(entities)
     };
   }
 }

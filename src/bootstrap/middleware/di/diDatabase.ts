@@ -1,5 +1,5 @@
 import cfg from './../../../cfg';
-import { createPool, sql } from 'slonik';
+import { Pool } from 'pg';
 
 const config = {
   host: cfg.db.host,
@@ -11,35 +11,11 @@ const config = {
   idleTimeoutMillis: cfg.db.idleTimeoutMillis,
 };
 
-const interceptors = cfg.interceptors;
-
-let pool
-const url = `postgresql://${config.user}:${config.password}@${config.host}:${config.port}/${config.database}`;
+let pool;
 try {
-  pool = createPool(
-    url,
-    {
-      interceptors,
-    },
-  );
-
-  pool.stream(sql`SELECT version()`, (stream) => {
-    stream.on('data', (datum) => {
-      datum;
-      // {
-      //   fields: [
-      //     {
-      //       name: 'foo',
-      //       dataTypeId: 23,
-      //     }
-      //   ],
-      //   row: {
-      //     foo: 'bar'
-      //   }
-      // }
-    });
-  });
+  pool = new Pool(config);
 } catch (error) {
-  console.log('slonik', error);
+  console.log('pg', error);
 }
+console.log(pool);
 export default pool;

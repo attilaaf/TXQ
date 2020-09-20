@@ -144,9 +144,10 @@ const createExpressInstance = async () => {
     }
   };
 
-  if (Config.merchantapi.enableProxy) {
-    handleMapiProxy(app);
-  }
+  // Disable the built-in proxy since it was replaced now.
+  // if (Config.merchantapi.enableProxy) {
+  //   handleMapiProxy(app);
+  // }
 
   await middlewareLoader(app);
 

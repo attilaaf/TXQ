@@ -4,4 +4,5 @@ import TxoutRoute from './v1/txout/index';
 import TxoutgroupRoute from './v1/txoutgroup/index';
 import ChannelRoute from './v1/channel/index';
 import SSERoute from './v1/sse/index';
-export default [...TxRoute, ...QueueRoute, ...TxoutRoute, ...ChannelRoute, ...SSERoute, ...TxoutgroupRoute];
+import MapiRoute from './v1/mapi/index';
+export default [...TxRoute, ...QueueRoute, ...TxoutRoute, ...ChannelRoute, ...SSERoute, ...TxoutgroupRoute, ...MapiRoute];

@@ -15,6 +15,8 @@ export default class QueueService {
   tasks_dup;
   tasks_expired;
   tasks_completed;
+
+  counters = {};
   constructor(
     @Inject('updateTxDlq') private updateTxDlq,
     @Inject('incrementTxRetries') private incrementTxRetries,
@@ -46,9 +48,13 @@ export default class QueueService {
         tasks_enq: this.tasks_enq,
         tasks_dup: this.tasks_dup,
         tasks_expired: this.tasks_expired,
-        tasks_completed: this.tasks_completed
+        tasks_completed: this.tasks_completed,
+        counters: this.counters
       }
-    }
+    };
+  }
+  public incrementCounter(counterName: string) {
+    this.counters[counterName]++;
   }
 
   public async initialize(concurrency: number = 3) {

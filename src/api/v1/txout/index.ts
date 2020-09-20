@@ -288,5 +288,28 @@ export default [
         }
       },
     ],
-  }
+  },
+  {
+    path: `${path}/txout/:txOutpoints`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let getTxout = Container.get(GetTxoutsByOutpointArray);
+          let data = await getTxout.run({
+            txOutpoints: Req.params.txOutpoints,
+            script: Req.query.script === '0' ? false : true,
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
 ];
