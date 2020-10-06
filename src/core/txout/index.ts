@@ -26,14 +26,14 @@ class TxoutModel {
     } else {
       if (unspent) {
         result = await this.db.query(sql`
-        SELECT txid, index, address, scripthash, satoshis, spend_txid, spend_index FROM txout
+        SELECT txid, index, address, scripthash, script, satoshis, spend_txid, spend_index FROM txout
         WHERE scripthash = ANY(${sql.array(split, 'varchar')}) AND
         spend_txid IS NULL
         OFFSET ${offset}
         LIMIT ${limit}`);
       } else {
         result = await this.db.query(sql`
-        SELECT txid, index, address, scripthash, satoshis, spend_txid, spend_index FROM txout
+        SELECT txid, index, address, scripthash, script, satoshis, spend_txid, spend_index FROM txout
         WHERE scripthash = ANY(${sql.array(split, 'varchar')})
         OFFSET ${offset}
         LIMIT ${limit}`);
@@ -63,14 +63,14 @@ class TxoutModel {
     } else {
       if (unspent) {
         result = await this.db.query(sql`
-        SELECT txid, index, address, scripthash, satoshis, spend_txid, spend_index FROM txout
+        SELECT txid, index, address, scripthash, script, satoshis, spend_txid, spend_index FROM txout
         WHERE address = ANY(${sql.array(split, 'varchar')}) AND
         spend_txid IS NULL
         OFFSET ${offset}
         LIMIT ${limit}`);
       } else {
         result = await this.db.query(sql`
-        SELECT txid, index, address, scripthash, satoshis, spend_txid, spend_index FROM txout
+        SELECT txid, index, address, scripthash, script,satoshis, spend_txid, spend_index FROM txout
         WHERE address = ANY(${sql.array(split, 'varchar')})
         OFFSET ${offset}
         LIMIT ${limit}`);
@@ -88,7 +88,7 @@ class TxoutModel {
     if (params.script) {
       if (params.unspent) {
         q = sql`
-        SELECT txout.txid, index, address, scripthash, satoshis, spend_txid, spend_index, script FROM txout, txoutgroup
+        SELECT txout.txid, index, address, scripthash, script,satoshis, spend_txid, spend_index, script FROM txout, txoutgroup
         WHERE
         txoutgroup.groupname = ${params.groupname} AND
         (
@@ -100,7 +100,7 @@ class TxoutModel {
         LIMIT ${params.limit}`;
       } else {
         q = sql`
-        SELECT txout.txid, index, address, scripthash, satoshis, spend_txid, spend_index, script FROM txout, txoutgroup
+        SELECT txout.txid, index, address, scripthash, script,satoshis, spend_txid, spend_index, script FROM txout, txoutgroup
         WHERE
         txoutgroup.groupname = ${params.groupname} AND
         (
@@ -113,7 +113,7 @@ class TxoutModel {
     } else {
       if (params.unspent) {
         q = sql`
-        SELECT txout.txid, index, address, scripthash, satoshis, spend_txid, spend_index
+        SELECT txout.txid, index, address, scripthash, script, satoshis, spend_txid, spend_index
         FROM txout, txoutgroup
         WHERE
         txoutgroup.groupname = ${params.groupname} AND
@@ -126,7 +126,7 @@ class TxoutModel {
         LIMIT ${params.limit}`;
       } else {
         q = sql`
-        SELECT txout.txid, index, address, scripthash, satoshis, spend_txid, spend_index
+        SELECT txout.txid, index, address, scripthash, script, satoshis, spend_txid, spend_index
         FROM txout, txoutgroup
         WHERE
         txoutgroup.groupname = ${params.groupname} AND
@@ -261,7 +261,7 @@ class TxoutModel {
       return result.rows[0];
     } else {
       let result: any = await this.db.query(sql`
-      SELECT txid, index, address, scripthash, satoshis, spend_txid, spend_index FROM txout
+      SELECT txid, index, address, scripthash, script, satoshis, spend_txid, spend_index FROM txout
       WHERE txid = ${txid} AND
       index = ${index}`);
       return result.rows[0];
