@@ -10,7 +10,6 @@
 
 ![TXQ](https://github.com/MatterPool/TXQ/blob/master/preview.png "Bitcoin Transaction Storage Queue Service")
 
-
 - [Motivation](#motivation)
 - [Installation & Getting Started](#installation---getting-started)
 - [Database](#database)
@@ -46,6 +45,7 @@
   * [Get Balance By Group](#get-balance-by-group)
   * [Get Queue Stats](#get-queue-stats)
   * [Get Dead-Letter Transactions Queue](#get-dead-letter-transactions-queue)
+  * [Requeue Transactions in Dead-Letter Queue](#requeue-transactions-in-dead-letter-queue)
   * [Force Resync of Transaction](#force-resync-of-transaction)
   * [Get Queue Tasks by Sync Status](#get-queue-tasks-by-sync-status)
 - [Server Sent Events (SSE)](#server-sent-events--sse-)
@@ -64,6 +64,7 @@
   * [Query by Index of Miner Merchant API](#query-by-index-of-miner-merchant-api)
 - [Database Schema and Design](#database-schema-and-design)
 - [Additional Resources](#additional-resources)
+
 
 ## Motivation
 
