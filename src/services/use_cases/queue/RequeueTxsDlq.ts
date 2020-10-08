@@ -24,6 +24,7 @@ export default class RequeueTxsDlq extends UseCase {
       if (counter >= params.limit) {
         break;
       }
+      counter++;
     }
     return {
       success: true,

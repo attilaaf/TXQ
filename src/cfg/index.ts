@@ -25,7 +25,7 @@ const config: IConfig = {
   },
   queue: {
     // Max number of concurrent requests to sync tx status from merchantapi
-    taskRequestConcurrency: process.env.MERCHANT_API_CONCURRENCY ? parseInt(process.env.MERCHANT_API_CONCURRENCY) : 3,
+    taskRequestConcurrency: process.env.MERCHANT_API_CONCURRENCY ? parseInt(process.env.MERCHANT_API_CONCURRENCY) : 1,
     abandonedSyncTaskRescanSeconds: 60,       // How many seconds to rescan for missed tasks
     syncBackoff: {
       // 'full' or 'none'
@@ -61,9 +61,9 @@ const config: IConfig = {
         {
           name: 'merchantapi.taal.com',
           url: 'https://merchantapi.taal.com',
-          headers: {
+          headers: process.env.MERCHANTAPI_KEY_TAAL ? {
             Authorization: process.env.MERCHANTAPI_KEY_TAAL || null
-          }
+          } : {}
         },
         {
           name: 'mempool.io',
