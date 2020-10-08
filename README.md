@@ -1044,6 +1044,23 @@ A transaction that is expired, will not be retried unless it is forced to `resyn
 }
 ```
 
+### Requeue Transactions in Dead-Letter Queue
+
+`POST /api/v1/queue/requeue?limit=20`
+`POST /api/v1/queue/requeue/:dlq?limit=20`
+
+Retry up to `limit` dead letter queued transactions. Returns the array of txids that are requeued.
+The `limit` gives you the ability to slowly requeue insstead of all at once.
+
+```javascript
+{
+  "status": 200,
+  "errors": [],
+  "result": [ 'dc7bed6c302c08b7bafd94bfb1086883a134861fe9f212fc8052fcaadcde2293' ]
+}
+```
+
+
 ### Force Resync of Transaction
 
 `POST /api/v1/tx/dc7bed6c302c08b7bafd94bfb1086883a134861fe9f212fc8052fcaadcde2293/resync`

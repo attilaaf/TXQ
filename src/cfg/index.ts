@@ -34,10 +34,10 @@ const config: IConfig = {
       timeMultiple: process.env.SYNC_BACKOFF_MULTIPLE ? parseInt(process.env.SYNC_BACKOFF_MULTIPLE) : 2,
       // Initial start delay before first re-check
       startingDelay: process.env.SYNC_START_DELAY ? parseInt(process.env.SYNC_START_DELAY) : 1000 * 60,
-      // Max back off time. 10 Minutes is max
-      maxDelay: process.env.SYNC_MAX_DELAY ? parseInt(process.env.SYNC_MAX_DELAY) : 1000 * 60 * 10,
+      // Max back off time. 60 Minutes is max
+      maxDelay: process.env.SYNC_MAX_DELAY ? parseInt(process.env.SYNC_MAX_DELAY) : 1000 * 60 * 60,
       // Max attempts before being put into 'dlq'
-      numOfAttempts: process.env.SYNC_MAX_ATTEMPTS ? parseInt(process.env.SYNC_MAX_ATTEMPTS) : 40
+      numOfAttempts: process.env.SYNC_MAX_ATTEMPTS ? parseInt(process.env.SYNC_MAX_ATTEMPTS) : 72
     },
     // If 'nosync' is true, then the server process always places new transactions into txsync.state=0 (sync_none)
     // In other words, then TXQ behaves as a datastore and makes no attempts to broadcast transations or settle status.
@@ -55,19 +55,21 @@ const config: IConfig = {
           name: 'merchantapi.matterpool.io',
           url: 'https://merchantapi.matterpool.io',
           headers: {
+            api_key: process.env.MERCHANTAPI_KEY_MATTERPOOL || null
           }
         },
         {
           name: 'merchantapi.taal.com',
           url: 'https://merchantapi.taal.com',
           headers: {
+            Authorization: process.env.MERCHANTAPI_KEY_TAAL || null
           }
         },
         {
           name: 'mempool.io',
           url: 'https://www.ddpurse.com/openapi',
           headers: {
-            token: "561b756d12572020ea9a104c3441b71790acbbce95a6ddbf7e0630971af9424b"
+            token: process.env.MERCHANTAPI_KEY_MEMPOOL || "561b756d12572020ea9a104c3441b71790acbbce95a6ddbf7e0630971af9424b"
           }
         }
       ],
@@ -76,8 +78,16 @@ const config: IConfig = {
           name: 'merchantapi-testnet.mattercloud.io',
           url: 'https://merchantapi-testnet.mattercloud.io',
           headers: {
+            api_key: process.env.MERCHANTAPI_KEY_MATTERPOOL_TESTNET || null
           }
-        }
+        },
+        {
+          name: 'merchantapi2.taal.com',
+          url: 'https://merchantapi2.taal.com',
+          headers: {
+            Authorization: process.env.MERCHANTAPI_KEY_TAAL_TESTNET || null
+          }
+        },
       ]
     }
   },

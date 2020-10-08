@@ -6,6 +6,7 @@ import { sendResponseWrapper } from '../../../util/sendResponseWrapper';
 import GetTxsDlq from '../../../services/use_cases/queue/GetTxsDlq';
 import GetTxsPending from '../../../services/use_cases/queue/GetTxsPending';
 import GetTxsBySyncState from '../../../services/use_cases/queue/GetTxsBySyncState';
+import RequeueTxsDlq from '../../../services/use_cases/queue/RequeueTxsDlq';
 
 export default [
   {
@@ -46,6 +47,37 @@ export default [
         try {
           let getTxsDlq = Container.get(GetTxsDlq);
           const data = await getTxsDlq.run({dlq: Req.params.dlq});
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/queue/requeue`,
+    method: 'post',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(RequeueTxsDlq);
+          const data = await uc.run({dlq: null, limit: Req.query.limit ? Number(Req.query.limit) : 20});
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          console.log('err', error);
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/queue/requeue/:dlq`,
+    method: 'post',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(RequeueTxsDlq);
+          const data = await uc.run({dlq: Req.params.dlq, limit: Req.query.limit ? Number(Req.query.limit) : 20});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           next(error);

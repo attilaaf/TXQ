@@ -30,6 +30,7 @@ import "../services/use_cases/tx/IncrementTxRetries";
 import "../services/use_cases/tx/UpdateTxDlq";
 
 import "../services/use_cases/queue/GetTxsDlq";
+import "../services/use_cases/queue/RequeueTxsDlq";
 import "../services/use_cases/queue/ResyncTx";
 import "../services/use_cases/queue/GetQueueStats";
 import "../services/use_cases/queue/GetTxsPending";
@@ -51,6 +52,7 @@ import "../services/use_cases/txoutgroup/GetTxoutgroupByName";
 import "../services/use_cases/txoutgroup/GetTxoutgroupListByScriptid";
 import "../services/use_cases/txoutgroup/AddGroupScriptIds";
 import "../services/use_cases/txoutgroup/DeleteGroupScriptIds";
+
 
 SetTimeZone('UTC');
 
