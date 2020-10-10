@@ -95,6 +95,7 @@ const createExpressInstance = async () => {
             // use checkStatus: true to force tx to be cached if it's already known
             let proxyAndSaveRequestIfCheckStatus = Container.get(ProxyAndSaveRequestIfCheckStatus);
             proxyAndSaveRequestIfCheckStatus.run({ req: req, cb: function() {
+              req.headers['content-type'] = req.headers['content-type'] || 'application/json';
               const urlParts = url.parse(endpoint.url);
               let resolvedPathValue = urlJoin(urlParts.path, req.path);
               logger.info('mapi_proxy', { endpoint: endpoint, requestPath: resolvedPathValue });
@@ -118,6 +119,9 @@ const createExpressInstance = async () => {
          */
         userResDecorator: async (proxyRes, proxyResData, userReq, userRes) => {
           let saveProxyRequestResponse = Container.get(SaveProxyRequestResponse);
+          userRes.header("Access-Control-Allow-Origin", "*");
+          userRes.header('Access-Control-Allow-Headers', 'Content-Type, api_key');
+          userRes.header('Access-Control-Allow-Methods', 'POST,GET,HEAD,DELETE,OPTIONS');
           await saveProxyRequestResponse.run({
             userReq: userReq,
             proxyRes: proxyRes,

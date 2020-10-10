@@ -6,16 +6,17 @@ import { handleHelmet } from './helmetMiddleware';
 import { HandleLogger } from './logger';
 import * as pretty from 'express-prettify';
 const handleCors = (router: Router) => {
+  // For mapi proxy we must set it in express-factory
   router.use(cors({
     origin: true
   }));
-  router.options('*', cors());
-  router.get('*', cors());
-  router.post('*', cors());
 };
 
 function defaultContentTypeMiddleware (req, res, next) {
   req.headers['content-type'] = req.headers['content-type'] || 'application/json';
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header('Access-Control-Allow-Headers', 'Content-Type,api_key');
+  res.header('Access-Control-Allow-Methods', 'POST,GET,HEAD,DELETE,OPTIONS');
   next();
 }
 
@@ -24,7 +25,6 @@ const handleBodyRequestParsing = (router: Router) => {
   router.use(parser.urlencoded({ extended: true }));
   router.use(parser.json({limit: '50mb'}));
   router.use(pretty({ query: 'pretty' }));
-
 };
 
 
