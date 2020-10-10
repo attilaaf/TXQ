@@ -5,7 +5,11 @@ import * as compression from 'compression';
 import { handleHelmet } from './helmetMiddleware';
 import { HandleLogger } from './logger';
 import * as pretty from 'express-prettify';
-const handleCors = (router: Router) => router.use(cors());
+const handleCors = (router: Router) => router.use(cors(
+  {
+    origin: true
+  }
+));
 
 function defaultContentTypeMiddleware (req, res, next) {
   req.headers['content-type'] = req.headers['content-type'] || 'application/json';
