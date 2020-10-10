@@ -36,10 +36,7 @@ const handleServerError = (router: Router) => {
       stack: err.stack,
     });
 
-    res.api.errors.push({
-      field: 'endpoint',
-      message: err.message ? err.message : err,
-    });
+    res.api = res.api || { errors: [ { message: "Server error. Please contact support at mattercloud@protonmail.com" } ]};
     res.api.status = 500;
     res.status(res.api.status);
     res.json(res.api);
