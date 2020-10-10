@@ -61,7 +61,6 @@ export default class SaveProxyRequestResponse extends UseCase {
   }) {
     let eventType = this.getEventTypeFromPath(params.userReq.path,  params.userReq.method);
     const proxyResData = params.proxyResData.toString('utf8');
-    console.log('proxyResDatta', proxyResData);
 
     // There is no data, it could be this was an OPTIONS request.
     // Just return without doing anything.
