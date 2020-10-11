@@ -16,6 +16,9 @@ const handle404Error = (router: Router) => {
       field: 'endpoint',
       message: 'API endpoint does not exist',
     });
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header('Access-Control-Allow-Headers', 'Content-Type,api_key');
+    res.header('Access-Control-Allow-Methods', 'POST,GET,HEAD,DELETE,OPTIONS');
     res.api.status = 404;
     res.json(res.api);
   });
@@ -35,6 +38,10 @@ const handleServerError = (router: Router) => {
       error: err,
       stack: err.stack,
     });
+
+    res.header("Access-Control-Allow-Origin", "*");
+    res.header('Access-Control-Allow-Headers', 'Content-Type,api_key');
+    res.header('Access-Control-Allow-Methods', 'POST,GET,HEAD,DELETE,OPTIONS');
 
     res.api = res.api || { errors: [ { message: "Server error. Please contact support at mattercloud@protonmail.com" } ]};
     res.api.status = 500;
