@@ -37,7 +37,7 @@ const config: IConfig = {
       // Max back off time. 60 Minutes is max
       maxDelay: process.env.SYNC_MAX_DELAY ? parseInt(process.env.SYNC_MAX_DELAY) : 1000 * 60 * 60,
       // Max attempts before being put into 'dlq'
-      numOfAttempts: process.env.SYNC_MAX_ATTEMPTS ? parseInt(process.env.SYNC_MAX_ATTEMPTS) : 72
+      numOfAttempts: process.env.SYNC_MAX_ATTEMPTS ? parseInt(process.env.SYNC_MAX_ATTEMPTS) : 15
     },
     // If 'nosync' is true, then the server process always places new transactions into txsync.state=0 (sync_none)
     // In other words, then TXQ behaves as a datastore and makes no attempts to broadcast transations or settle status.
@@ -52,18 +52,25 @@ const config: IConfig = {
     endpoints: {
       livenet: [
         {
-          name: 'merchantapi.matterpool.io',
-          url: 'https://merchantapi.matterpool.io',
+          name: 'mapi.taal.com',
+          url: 'https://mapi.taal.com',
+          headers: process.env.MERCHANTAPI_KEY_TAAL ? {
+            Authorization: process.env.MERCHANTAPI_KEY_TAAL || null
+          } : {}
+        },
+        {
+          name: 'mapi2.mattercloud.io',
+          url: 'https://mapi2.mattercloud.io',
           headers: {
             api_key: process.env.MERCHANTAPI_KEY_MATTERPOOL || null
           }
         },
         {
-          name: 'merchantapi.taal.com',
-          url: 'https://merchantapi.taal.com',
-          headers: process.env.MERCHANTAPI_KEY_TAAL ? {
-            Authorization: process.env.MERCHANTAPI_KEY_TAAL || null
-          } : {}
+          name: 'merchantapi.matterpool.io',
+          url: 'https://merchantapi.matterpool.io',
+          headers: {
+            api_key: process.env.MERCHANTAPI_KEY_MATTERPOOL || null
+          }
         },
         {
           name: 'mempool.io',
