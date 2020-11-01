@@ -59,13 +59,6 @@ const config: IConfig = {
           } : {}
         },
         {
-          name: 'mapi2.mattercloud.io',
-          url: 'https://mapi2.mattercloud.io',
-          headers: {
-            api_key: process.env.MERCHANTAPI_KEY_MATTERPOOL || null
-          }
-        },
-        {
           name: 'merchantapi.matterpool.io',
           url: 'https://merchantapi.matterpool.io',
           headers: {
