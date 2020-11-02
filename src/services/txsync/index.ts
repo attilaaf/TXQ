@@ -2,13 +2,14 @@ import { Service, Inject } from 'typedi';
 import InvalidParamError from '../error/InvalidParamError';
 import { sync_state } from '../../core/txsync';
 import ResourceNotFoundError from '../../services/error/ResourceNotFoundError';
+import { IAccountContext } from '@interfaces/IAccountContext';
 
 @Service('txsyncService')
 export default class TxsyncService {
   constructor(@Inject('txsyncModel') private txsyncModel, @Inject('txModel') private txModel, @Inject('logger') private logger) {}
 
-  public async getTxsync(txid: string) {
-    let entity = await this.txsyncModel.getTxsync(txid);
+  public async getTxsync(accountContext: IAccountContext, txid: string) {
+    let entity = await this.txsyncModel.getTxsync(accountContext, txid);
 
     if (!entity) {
       throw new ResourceNotFoundError();
@@ -16,66 +17,72 @@ export default class TxsyncService {
     return entity;
   }
 
-  public async insertTxsync(txid: string, nosync?: boolean) {
-    await this.txsyncModel.insertTxsync(txid, nosync);
+  public async insertTxsync(accountContext: IAccountContext, txid: string, nosync?: boolean) {
+    await this.txsyncModel.insertTxsync(accountContext, txid, nosync);
   }
 
-  public async getTxsForSync() {
-    return await this.txsyncModel.getTxsForSync();
+  public async getTxsForSync(accountContext: IAccountContext) {
+    return await this.txsyncModel.getTxsForSync(accountContext);
   }
 
-  public async getTxsDlq(dlq?: string) {
-    return await this.txsyncModel.getTxsDlq(dlq);
+  public async getTxsDlq(accountContext: IAccountContext, dlq?: string) {
+    return await this.txsyncModel.getTxsDlq(accountContext, dlq);
   }
 
-  public async getTxsPending(offset: number, limit: number) {
-    return await this.txsyncModel.getTxsPending(offset, limit);
+  public async getTxsPending(accountContext: IAccountContext, offset: number, limit: number) {
+    return await this.txsyncModel.getTxsPending(accountContext, offset, limit);
   }
 
-  public async getTxsBySyncState(offset: number, limit: number, syncState: sync_state) {
-    return await this.txsyncModel.getTxsBySyncState(offset, limit, syncState);
+  public async getTxsBySyncState(accountContext: IAccountContext, offset: number, limit: number, syncState: sync_state) {
+    return await this.txsyncModel.getTxsBySyncState(accountContext, offset, limit, syncState);
   }
 
-  public async incrementRetries(txid: string) {
+  public async incrementRetries(accountContext: IAccountContext, txid: string) {
     if (!txid) {
       throw new InvalidParamError();
     }
 
     await this.txsyncModel.incrementRetries(
+      accountContext,
       txid
     );
   }
 
-  public async updateDlq(txid: string, dlq: string) {
+  public async updateDlq(accountContext: IAccountContext, txid: string, dlq: string) {
     if (!txid) {
       throw new InvalidParamError();
     }
 
     await this.txsyncModel.updateDlq(
+      accountContext,
       txid,
       dlq
     );
   }
 
-  public async setResync(txid: string) {
+  public async setResync(accountContext: IAccountContext, txid: string) {
     await this.txModel.updateCompleted(
+      accountContext,
       txid,
       false
     );
     await this.txsyncModel.setResync(
+      accountContext,
       txid
     );
   }
 
-  public async updateTxsync(txid: string, sync: sync_state) {
+  public async updateTxsync(accountContext: IAccountContext, txid: string, sync: sync_state) {
     await this.txsyncModel.updateTxsync(
+      accountContext,
       txid,
       sync
     );
   }
 
-  public async updateTxsyncAndClearDlq(txid: string, sync: sync_state) {
+  public async updateTxsyncAndClearDlq(accountContext: IAccountContext, txid: string, sync: sync_state) {
     await this.txsyncModel.updateTxsyncAndClearDlq(
+      accountContext,
       txid,
       sync
     );

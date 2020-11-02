@@ -1,3 +1,4 @@
+import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -11,8 +12,8 @@ export default class GetQueueStats extends UseCase {
     super();
   }
 
-  public async run(params?: {}): Promise<UseCaseOutcome> {
-    const stats = this.queueService.stats();
+  public async run(params?: {accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
+    const stats = this.queueService.stats(params.accountContext);
     return {
       success: true,
       result: stats

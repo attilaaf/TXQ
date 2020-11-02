@@ -2,6 +2,7 @@ import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
 import { Response, Request } from 'express';
+import { IAccountContext } from '@interfaces/IAccountContext';
 
 @Service('connectChannelClientSSE')
 export default class ConnectChannelClientSSE extends UseCase {
@@ -15,7 +16,8 @@ export default class ConnectChannelClientSSE extends UseCase {
   public async run(params: {
     channel: string,
     req: Request,
-    res: Response
+    res: Response,
+    accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
 
     const session = this.eventService.handleSSEChannelEvents(params.channel, params.req, params.res);

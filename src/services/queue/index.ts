@@ -7,27 +7,14 @@ import TransactionStillProcessing from '../../services/error/TransactionStillPro
 
 @Service('queueService')
 export default class QueueService {
-  tasks;
-  concurrency;
-  cqueue;
-  initialized;
-  tasks_enq;
-  tasks_dup;
-  tasks_expired;
-  tasks_completed;
-
-  counters = {};
+  tasks: any = {};
+  cqueue: any = {};
+  initialized: any = {};
   constructor(
     @Inject('updateTxDlq') private updateTxDlq,
     @Inject('incrementTxRetries') private incrementTxRetries,
     @Inject('syncTxStatus') private syncTxStatus,
     @Inject('logger') private logger) {
-    this.tasks = new Map();
-    this.tasks_enq = 0;
-    this.tasks_dup = 0;
-    this.tasks_expired = 0;
-    this.tasks_completed = 0;
-    this.initialize();
   }
 
   public stats() {
@@ -42,27 +29,17 @@ export default class QueueService {
           jitter: Config.queue.syncBackoff.jitter,
           timeMultiple: Config.queue.syncBackoff.timeMultiple,
         }
-      },
-      stats: {
-        tasks_pending: this.tasks.size,
-        tasks_enq: this.tasks_enq,
-        tasks_dup: this.tasks_dup,
-        tasks_expired: this.tasks_expired,
-        tasks_completed: this.tasks_completed,
-        counters: this.counters
       }
     };
   }
-  public incrementCounter(counterName: string) {
-    this.counters[counterName]++;
-  }
 
-  public async initialize(concurrency: number = 3) {
-    if (this.initialized) {
+  public async initialize(queueId: string | undefined, concurrency: number = 3) {
+    if (this.initialized.queueId) {
       return;
     }
-    this.concurrency = Config.queue.merchantapiRequestConcurrency || 2;
-    this.cqueue = cq().limit({ concurrency: concurrency }).process((task) => {
+    const cfgConcurrency = Config.queue.merchantapiRequestConcurrency || 3;
+    this.tasks[queueId] = new Map();
+    this.cqueue[queueId] = cq().limit({ concurrency: cfgConcurrency }).process((task) => {
       return new Promise(async (resolve) => {
           try {
             await task.invoke();
@@ -93,18 +70,18 @@ export default class QueueService {
           }
       });
     });
-    this.initialized = true;
+    this.initialized[queueId] = true;
   }
 
   /**
    *
    * @param task Task to be retried
    */
-  public async enqTxStatus(txid: string) {
-    return this.enq({
+  public async enqTxStatus(queueId: string, txid: string) {
+    return this.enq(queueId, {
       id: txid,
       invoke: async () => {
-        await this.syncTxStatus.run({txid: txid});
+        await this.syncTxStatus.run({txid});
       }
     });
   }
@@ -113,21 +90,19 @@ export default class QueueService {
    *
    * @param task Task to be retried
    */
-  public async enq(task: IRetryableTask) {
-    this.initialize();
-    const existingTask = this.tasks.get(task.id);
+  public async enq(queueId: string, task: IRetryableTask) {
+    this.initialize(queueId);
+    const existingTask = this.tasks[queueId].get(task.id);
     if (existingTask) {
-      this.tasks_dup++;
       return;
     }
-    this.tasks_enq++;
     /**
      * Logic for processing a task
      * @param resolve
      * @param reject
      */
     const taskFunc = (resolve, reject) => {
-      this.cqueue(task).then(function (self) {
+      this.cqueue[queueId](task).then(function (self) {
         if (self.success) {
           return resolve(self);
         } else {
@@ -144,7 +119,8 @@ export default class QueueService {
     const taskFuncWrapper = function () {
       return new Promise(taskFunc);
     }
-    this.tasks.set(task.id, true);
+
+    this.tasks[queueId].set(task.id, true);
 
     // Attempt initially the first time
     try {
@@ -174,17 +150,15 @@ export default class QueueService {
           }
         }
       );
-      this.tasks_completed++;
       this.logger.info('sync_complete', backoffResponse);
-      this.tasks.delete(task.id);
+      this.tasks[queueId].delete(task.id);
     } catch (e) {
-      this.tasks_expired++;
       this.logger.error('sync_expired', {
         txid: task.id,
         lasterror: e
       });
       this.updateTxDlq.run({txid: task.id, dlq: 'dead'});
-      this.tasks.delete(task.id);
+      this.tasks[queueId].delete(task.id);
     }
   }
 

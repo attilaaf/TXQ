@@ -168,20 +168,20 @@ See `cfg/index.ts` for available options.
     },
     enableUpdateLogging: true,                  // Whether to log every update entity to the database
     merchantapi: {
-      sendPolicy: 'ALL_FIRST_PRIORITY_SUCCESS', // 'SERIAL_BACKUP' | 'ALL_FIRST_PRIORITY_SUCCESS';
+      sendPolicy: 'SERIAL_BACKUP',              // 'SERIAL_BACKUP' | 'ALL_FIRST_PRIORITY_SUCCESS';
       statusPolicy: 'SERIAL_BACKUP',            // 'SERIAL_BACKUP'
       enableResponseLogging: true,              // Whether to log every request and response from merchantapi's to the database
-      enableProxy: true,                        // Exposes /merchantapi/<miner name>/mapi/tx endpoints...
+      enableProxy: false,                        // Exposes /merchantapi/<miner name>/mapi/tx endpoints...
       endpoints: [
         {
-          name: 'matterpool.io',
+          name: 'merchantapi.matterpool.io',
           url: 'https://merchantapi.matterpool.io',
           headers: {
           }
         },
         {
-          name: 'taal.com',
-          url: 'https://merchantapi.taal.com',
+          name: 'mapi.taal.com',
+          url: 'https://mapi.taal.com',
           headers: {
           }
         },

@@ -16,7 +16,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let getQueueStats = Container.get(GetQueueStats);
-          const data = await getQueueStats.run();
+          const data = await getQueueStats.run({});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           next(error);

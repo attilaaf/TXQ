@@ -6,21 +6,21 @@ export class StatusTxUtil {
         const isValid = statusObj && statusObj.payload &&
         statusObj.payload.returnResult === 'success' &&
         statusObj.payload.blockHeight >= 0 &&
-        statusObj.payload.confirmations >= 0 && statusObj.valid;
+        statusObj.payload.confirmations >= 0;
         return isValid;
     }
 
-    static isAcceptedPush(status: any): boolean {
+    static isAcceptedPush(statusObj: any): boolean {
         try {
-            const payload = JSON.parse(status.payload);
+            const payload = statusObj.payload;
             const txRegex = new RegExp(BitcoinRegex.TXID_REGEX);
-            return StatusTxUtil.isAcceptedBeforePush(status) || (
+            return StatusTxUtil.isAcceptedBeforePush(statusObj) || (
                 payload &&
                 payload.returnResult === 'success' &&
                 txRegex.test(payload.txid)
             );
         } catch (err) {
-            ;
+            console.log('isAcceptedPush', err);
         }
         return false;
     }

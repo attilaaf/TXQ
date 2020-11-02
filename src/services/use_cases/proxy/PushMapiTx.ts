@@ -8,41 +8,46 @@ import MapiServiceError from '../../error/MapiServiceError';
 import { StatusTxUtil } from '../../helpers/StatusTxUtil';
 import * as bsv from 'bsv';
 import { ChannelMetaUtil } from '../../helpers/ChannelMetaUtil';
+import { IAccountContext } from '@interfaces/IAccountContext';
 
 @Service('pushMapiTx')
 export default class PushMapiTx extends UseCase {
-  private merchantRequestor;
+
   constructor(
     @Inject('merchantapilogService') private merchantapilogService,
     @Inject('saveTxs') private saveTxs,
     @Inject('logger') private logger) {
       super();
-
-      const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
-        if (Config.merchantapi.enableResponseLogging) {
-          await this.merchantapilogService.save(miner, eventType, response, txid);
-        }
-        return true;
-      };
-
-      this.merchantRequestor = new MerchantRequestor(
-        { ... Config.merchantapi },
-        this.logger,
-        saveResponseTask
-      );
   }
 
   async run(params: {
     rawtx: string,
-    headers?: any
+    headers?: any,
+    accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
     try {
       const tx = new bsv.Transaction(params.rawtx);
-      console.log('params.rawtx', params.rawtx);
-      const status = await this.merchantRequestor.pushTx(params.rawtx);
-      console.log('status', status);
+      const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
+        if (Config.merchantapi.enableResponseLogging) {
+          await this.merchantapilogService.save(params.accountContext, miner, eventType, response, txid);
+        }
+        return true;
+      };
+
+      const merchantRequestor = new MerchantRequestor(
+        { ... Config.merchantapi },
+        this.logger,
+        saveResponseTask
+      );
+
+      const send = await merchantRequestor.pushTx(params.rawtx);
       setTimeout(async () => {
-        if (StatusTxUtil.isAcceptedPush(status)) {
+        let txStatus = null;
+        // If it's not accepted, check if it's because the miner already knows about the transaction
+        if (!StatusTxUtil.isAcceptedPush(send)) {
+          txStatus = await merchantRequestor.statusTx(tx.hash);
+        }
+        if (StatusTxUtil.isAcceptedPush(send) || StatusTxUtil.isAcceptedStatus(txStatus)) {
           const channelMeta = ChannelMetaUtil.getChannnelMetaData(params.headers);
           await this.saveTxs.run({
             channel: channelMeta.channel ? channelMeta.channel : null,
@@ -52,13 +57,18 @@ export default class PushMapiTx extends UseCase {
                 metadata: channelMeta.metadata,
                 tags: channelMeta.tags
               }
-            }
+            },
+            accountContext: params.accountContext
           });
         }
-      }, 0);
+      }, 50);
+      // Conform to mapi spec
+      if (send.payload) {
+        send.payload = JSON.stringify(send.payload);
+      }
       return {
         success: true,
-        result: status
+        result: send
       };
     } catch (error) {
       throw new MapiServiceError(error);

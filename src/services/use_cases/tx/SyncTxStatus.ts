@@ -7,10 +7,10 @@ import TransactionStillProcessing from '../../error/TransactionStillProcessing';
 import TransactionDataMissingError from '../../error/TransactionDataMissingError';
 import { sync_state } from '../../../core/txsync';
 import { MerchantRequestor } from '../../helpers/MerchantRequestor';
+import { IAccountContext } from '@interfaces/IAccountContext';
 
 @Service('syncTxStatus')
 export default class SyncTxStatus extends UseCase {
-  private merchantRequestor;
   constructor(
     @Inject('merchantapilogService') private merchantapilogService,
     @Inject('txService') private txService,
@@ -19,18 +19,7 @@ export default class SyncTxStatus extends UseCase {
   ) {
     super();
 
-    const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
-      if (Config.merchantapi.enableResponseLogging) {
-        await this.merchantapilogService.save(miner, eventType, response, txid);
-      }
-      return true;
-    };
 
-    this.merchantRequestor = new MerchantRequestor(
-      { ... Config.merchantapi },
-      this.logger,
-      saveResponseTask
-    )
   }
 
   /**
@@ -51,31 +40,32 @@ export default class SyncTxStatus extends UseCase {
    * @param txid txid to save status
    * @param status Merchant api status returned
    */
-  public async saveTxStatus(txid: string, status: any): Promise<any> {
+  public async saveTxStatus(accountContext: IAccountContext, txid: string, status: any): Promise<any> {
     let blockhash = null;
     let blockheight = null;
 
     if (status && status.payload.blockHash && status.payload.blockHeight && status.payload.returnResult === 'success') {
       blockhash = status.payload.blockHash;
       blockheight = status.payload.blockHeight;
-      await this.txService.saveTxStatus(txid, status, blockhash, blockheight);
-      await this.txService.setTxCompleted(txid);
+      await this.txService.saveTxStatus(accountContext, txid, status, blockhash, blockheight);
+      await this.txService.setTxCompleted(accountContext, txid);
     } else {
-      await this.txService.saveTxStatus(txid, status, blockhash, blockheight);
+      await this.txService.saveTxStatus(accountContext, txid, status, blockhash, blockheight);
     }
   }
 
   public async run(params: {
     txid: string,
-    forceRefresh?: boolean
+    forceRefresh?: boolean,
+    accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
     this.logger.debug('sync', {
       txid: params.txid,
       trace: 1
     });
 
-    let txsync = await this.txsyncService.getTxsync(params.txid);
-    let tx = await this.txService.getTx(params.txid, false);
+    let txsync = await this.txsyncService.getTxsync(params.accountContext, params.txid);
+    let tx = await this.txService.getTx(params.accountContext, params.txid, false);
 
     this.logger.debug('sync', {
       txid: params.txid,
@@ -98,16 +88,29 @@ export default class SyncTxStatus extends UseCase {
       });
       // It should be a 2 for sync_success
       if (txsync.sync !== 2) {
-        await this.txService.setTxCompleted(tx.txid);
+        await this.txService.setTxCompleted(params.accountContext, tx.txid);
       }
       return {
         success: true,
         result: tx.status
       };
     }
-    let status = await this.merchantRequestor.statusTx(params.txid);
 
-    await this.saveTxStatus(params.txid, status);
+    const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
+      if (Config.merchantapi.enableResponseLogging) {
+        await this.merchantapilogService.save(params.accountContext, miner, eventType, response, txid);
+      }
+      return true;
+    };
+
+    const merchantRequestor = new MerchantRequestor(
+      { ... Config.merchantapi },
+      this.logger,
+      saveResponseTask
+    );
+
+    let status = await merchantRequestor.statusTx(params.txid);
+    await this.saveTxStatus(params.accountContext, params.txid, status);
 
     if (this.isStatusSuccess(status)) {
       this.logger.debug('sync', {
@@ -115,7 +118,7 @@ export default class SyncTxStatus extends UseCase {
         info: 'status_success',
       });
       if (txsync.sync !== 2) {
-        await this.txService.setTxCompleted(tx.txid);
+        await this.txService.setTxCompleted(params.accountContext, tx.txid);
       }
       return {
         success: true,
@@ -134,7 +137,7 @@ export default class SyncTxStatus extends UseCase {
           trace: 4
         });
       // Now load rawtx
-      tx = await this.txService.getTx(params.txid, true);
+      tx = await this.txService.getTx(params.accountContext, params.txid, true);
       if (tx.rawtx) {
         this.logger.info('send', {
           txid: tx.txid
@@ -145,12 +148,7 @@ export default class SyncTxStatus extends UseCase {
           trace: 5
         });
         try {
-          response = await this.merchantRequestor.pushTx(tx.rawtx);
-          /*response = await miner.tx.push(tx.rawtx, {
-            verbose: true,
-            maxContentLength: 52428890,
-            maxBodyLength: 52428890
-          });*/
+          response = await merchantRequestor.pushTx(tx.rawtx);
           this.logger.info('sync', {
             txid: params.txid,
             trace: 6
@@ -164,7 +162,7 @@ export default class SyncTxStatus extends UseCase {
         this.logger.info('send_result', {
           response
         });
-        await this.txService.saveTxSend(params.txid, response);
+        await this.txService.saveTxSend(params.accountContext, params.txid, response);
 
         if (response.payload.returnResult === 'failure') {
           this.logger.error('send_error', {
@@ -172,10 +170,8 @@ export default class SyncTxStatus extends UseCase {
             sendPayload: response.payload
           });
           // Something bad, cannot recover
-          await this.txService.updateTxsync(params.txid, sync_state.sync_fail);
+          await this.txService.updateTxsync(params.accountContext, params.txid, sync_state.sync_fail);
 
-          // Todo: Should this throw an error instead?
-          // Under what condition will statuts be 'failure'? Can it be retried by another merchantapi?
           return {
             success: true,
             result: status
@@ -184,8 +180,8 @@ export default class SyncTxStatus extends UseCase {
         // Try to update status again since we just broadcasted
         // Update in the background
         setTimeout(async () => {
-          let retryStatus = await this.merchantRequestor.statusTx(params.txid);
-          await this.saveTxStatus(params.txid, retryStatus);
+          let retryStatus = await merchantRequestor.statusTx(params.txid);
+          await this.saveTxStatus(params.accountContext, params.txid, retryStatus);
         }, 1000);
       } else {
         // Note: Let this error out

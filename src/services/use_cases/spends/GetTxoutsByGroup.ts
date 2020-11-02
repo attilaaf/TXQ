@@ -1,3 +1,4 @@
+import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -10,8 +11,10 @@ export default class GetTxoutsByGroup extends UseCase {
     super();
   }
 
-  public async run(params: { groupname: string, script?: boolean, offset: any, limit: any, unspent?: boolean}): Promise<UseCaseOutcome> {
-    let entities = await this.txoutService.getTxoutsByGroup(params);
+  public async run(params: {
+      groupname: string, script?: boolean, offset: any, limit: any, unspent?: boolean, accountContext?: IAccountContext
+    }): Promise<UseCaseOutcome> {
+    let entities = await this.txoutService.getTxoutsByGroup(params.accountContext, params);
     return {
       success: true,
       result: entities

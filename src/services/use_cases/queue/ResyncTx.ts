@@ -1,3 +1,4 @@
+import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -12,9 +13,9 @@ export default class ResyncTx extends UseCase {
     super();
   }
 
-  public async run(params: { txid: string}): Promise<UseCaseOutcome> {
-    const data = this.txsyncService.setResync(params.txid);
-    this.queueService.enqTxStatus(params.txid);
+  public async run(params: { txid: string, accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
+    const data = this.txsyncService.setResync(params.accountContext, params.txid);
+    this.queueService.enqTxStatus(null, params.txid);
 
     return {
       success: true,

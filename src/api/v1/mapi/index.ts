@@ -54,7 +54,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let uc = Container.get(GetMapiTxFeeQuote);
-          let data = await uc.run();
+          let data = await uc.run({});
           sendMapiResponseWrapper(Req, res, data.result.mapiStatusCode ? data.result.mapiStatusCode : 200, data.result);
         } catch (error) {
           if (error instanceof MapiServiceError) {

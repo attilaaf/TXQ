@@ -26,7 +26,7 @@ const config: IConfig = {
   queue: {
     // Max number of concurrent requests to sync tx status from merchantapi
     taskRequestConcurrency: process.env.MERCHANT_API_CONCURRENCY ? parseInt(process.env.MERCHANT_API_CONCURRENCY, 10) : 1,
-    abandonedSyncTaskRescanSeconds: 60,       // How many seconds to rescan for missed tasks
+    abandonedSyncTaskRescanSeconds: 300,       // How many seconds to rescan for missed tasks
     syncBackoff: {
       // 'full' or 'none'
       jitter: process.env.SYNC_JITTER ? process.env.SYNC_JITTER : 'none',
@@ -45,10 +45,9 @@ const config: IConfig = {
   },
   enableUpdateLogging: true,                  // Whether to log every update entity to the database
   merchantapi: {
-    sendPolicy: 'SERIAL_BACKUP',              // 'SERIAL_BACKUP' | 'ALL_FIRST_PRIORITY_SUCCESS';
+    sendPolicy: 'ALL_FIRST_PRIORITY_SUCCESS', // 'SERIAL_BACKUP' | 'ALL_FIRST_PRIORITY_SUCCESS';
     statusPolicy: 'SERIAL_BACKUP',            // 'SERIAL_BACKUP'
     enableResponseLogging: true,              // Whether to log every request and response from merchantapi's to the database
-    enableProxy: false,                        // Exposes /merchantapi/<miner name>/mapi/tx endpoints...
     endpoints: {
       livenet: [
         {

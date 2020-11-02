@@ -1,3 +1,4 @@
+import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -11,8 +12,8 @@ export default class DeleteGroupScriptIds extends UseCase {
     super();
   }
 
-  public async run(params: { groupname: string, scriptids: string[]}): Promise<UseCaseOutcome> {
-    await this.txoutgroupService.deleteTxoutgroups(params.groupname, params.scriptids);
+  public async run(params: { groupname: string, scriptids: string[], accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
+    await this.txoutgroupService.deleteTxoutgroups(params.accountContext, params.groupname, params.scriptids);
     return {
       success: true,
       result: {}

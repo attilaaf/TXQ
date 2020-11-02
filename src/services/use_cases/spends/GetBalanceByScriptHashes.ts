@@ -1,3 +1,4 @@
+import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -10,8 +11,8 @@ export default class GetBalanceByScriptHashes extends UseCase {
     super();
   }
 
-  public async run(params: { scripthash: string }): Promise<UseCaseOutcome> {
-    let balance = await this.txoutService.getBalanceByScriptHashes(params.scripthash.split(','));
+  public async run(params: { scripthash: string, accountContext?: IAccountContext }): Promise<UseCaseOutcome> {
+    let balance = await this.txoutService.getBalanceByScriptHashes(params.accountContext, params.scripthash.split(','));
     return {
       success: true,
       result: balance

@@ -88,7 +88,7 @@ startServer();
  */
 async function startPendingTaskPoller() {
   let enqInitialTxsForSync = Container.get(EnqInitialTxsForSync);
-  enqInitialTxsForSync.run();
+  enqInitialTxsForSync.run({});
 }
 
 setInterval(() => {

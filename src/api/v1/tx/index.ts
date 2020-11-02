@@ -65,7 +65,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let getTxsForSync = Container.get(GetTxsForSync);
-          let data = await getTxsForSync.run();
+          let data = await getTxsForSync.run({});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           next(error);

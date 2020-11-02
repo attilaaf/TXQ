@@ -1,8 +1,8 @@
-import * as Minercraft from 'minercraft';
 import { IMerchantConfig, IMerchantApiEndpointConfig, IMerchantApiEndpointGroupConfig } from '@interfaces/IConfig';
 import * as bsv from 'bsv';
 import { MerchantapilogEventTypes } from '../merchantapilog';
 import { MerchantEndpointNetworkSelector } from './MerchantEndpointNetworkSelector';
+import * as axios from 'axios';
 
 /**
  * A policy interface for how to execute broadcasts against merchantapi endpoints
@@ -33,6 +33,133 @@ export class MerchantRequestorPolicy {
   }
 }
 
+const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
+  return new Promise(async (resolve, reject) => {
+    let responsePayloadList = [];
+    let responseSuccessPayload = null;
+    let responseWithPayload = null;
+    // tslint:disable-next-line: prefer-for-of
+    for (let i = 0; i < endpoints.length; i++) {
+      try {
+        let response = null;
+        if (httpVerb === 'get') {
+          response = await axios.default.get(`${endpoints[i].url}${url}`, {
+            headers: {
+            ...(endpoints[i].headers),
+            'content-type': 'application/json',
+          }});
+        }
+        if (httpVerb === 'post') {
+          response = await axios.default.post(`${endpoints[i].url}${url}`, payload, {
+            headers: {
+            ...(endpoints[i].headers),
+            'content-type': 'application/json',
+          }});
+        }
+        if (responseSaver) {
+          await responseSaver(endpoints[i].name, eventType, response.data);
+        }
+        if (typeof response.data.payload === 'string') {
+          response.data.payload = JSON.parse(response.data.payload);
+        }
+        if (response && response.data && response.data.payload && response.data.payload.returnResult === 'success') {
+          const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
+          responsePayloadList.push(toSave);
+          responseSuccessPayload = toSave;
+          // Do not break, this ensures all endpoints are sent to
+          // break;
+        } else if (response && response.data && response.data.payload) {
+          const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
+          responseWithPayload = toSave;
+          responsePayloadList.push(toSave);
+        } else {
+          const toSave = { error: JSON.stringify(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
+          responsePayloadList.push(toSave);
+        }
+      } catch (err) {
+        let code = err && err.response && err.response.status ? err.response.status : 500;
+        if (responseSaver) {
+          await responseSaver(endpoints[i].name, eventType, { error: err.toString(), stack: err.stack });
+        }
+        responsePayloadList.push({error: err.toString(), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: code});
+      }
+    }
+
+    const formattedResponse = {
+      ...(responseSuccessPayload || responseWithPayload || responsePayloadList[0]),
+      mapiResponses: responsePayloadList
+    };
+    if (responseSuccessPayload || responseWithPayload) {
+      return resolve(formattedResponse);
+    } else {
+      return reject(formattedResponse);
+    }
+  });
+};
+
+const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
+  return new Promise(async (resolve, reject) => {
+    let responsePayloadList = [];
+    let responseSuccessPayload = null;
+    let responseWithPayload = null;
+    // tslint:disable-next-line: prefer-for-of
+    for (let i = 0; i < endpoints.length; i++) {
+      try {
+        let response = null;
+        if (httpVerb === 'get') {
+          response = await axios.default.get(`${endpoints[i].url}${url}`, {
+            headers: {
+            ...(endpoints[i].headers),
+            'content-type': 'application/json',
+          }});
+        }
+        if (httpVerb === 'post') {
+          response = await axios.default.post(`${endpoints[i].url}${url}`, payload, {
+            headers: {
+            ...(endpoints[i].headers),
+            'content-type': 'application/json',
+          }});
+        }
+        if (responseSaver) {
+          await responseSaver(endpoints[i].name, eventType, response.data);
+        }
+        if (typeof response.data.payload === 'string') {
+          response.data.payload = JSON.parse(response.data.payload);
+        }
+        if (response && response.data && response.data.payload && response.data.payload.returnResult === 'success') {
+          const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
+          responsePayloadList.push(toSave);
+          responseSuccessPayload = toSave;
+          break;
+        } else if (response && response.data && response.data.payload) {
+          const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
+          responseWithPayload = toSave;
+          responsePayloadList.push(toSave);
+        } else {
+          const toSave = { error: JSON.stringify(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
+          responsePayloadList.push(toSave);
+        }
+      } catch (err) {
+        let code = err && err.response && err.response.status ? err.response.status : 500;
+        if (responseSaver) {
+          await responseSaver(endpoints[i].name, eventType, { error: err.toString(), stack: err.stack });
+        }
+        responsePayloadList.push({error: err.toString(), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: code});
+      }
+    }
+
+    const formattedResponse = {
+      ...(responseSuccessPayload || responseWithPayload || responsePayloadList[0]),
+      mapiResponses: responsePayloadList
+    };
+    if (responseSuccessPayload || responseWithPayload) {
+      return resolve(formattedResponse);
+    } else {
+      return reject(formattedResponse);
+    }
+  });
+};
+
 /**
  * Does a sequential loop over all merchantapi's until 1 is successful
  */
@@ -47,69 +174,8 @@ export class MerchantRequestorSendPolicySerialBackup extends MerchantRequestorPo
    * @param rawtx Tx to broadcast
    */
   execute(params: { txid: string, rawtx: string }): Promise<any> {
-    const errors = [];
-    return new Promise(async (resolve, reject) => {
-      let responsePayloadList = [];
-      let responseSuccessPayload = null;
-      let responseWithPayload = null;
-      // tslint:disable-next-line: prefer-for-of
-      for (let i = 0; i < this.endpoints.length; i++) {
-        try {
-          const miner = new Minercraft({
-            url: this.endpoints[i].url,
-            headers: this.endpoints[i].headers,
-          });
-          const response = await miner.tx.push(params.rawtx, {
-            verbose: true,
-            maxContentLength: 52428890,
-            maxBodyLength: 52428890
-          });
-          if (this.responseSaver) {
-            await this.responseSaver(this.endpoints[i].name, MerchantapilogEventTypes.PUSHTX, response, params.txid);
-          }
-          if (response && response.payload && response.payload.returnResult === 'success') {
-            const toSave = {...(response), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: 200};
-            responsePayloadList.push(toSave);
-            responseSuccessPayload = toSave;
-            break;
-          } else if (response && response.payload) {
-            const toSave = {...(response), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: 200};
-            responseWithPayload = toSave;
-            responsePayloadList.push(toSave);
-          } else {
-            const toSave = { error: JSON.stringify(response), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: 200};
-            responsePayloadList.push(toSave);
-            this.logInfo('MerchantRequestorSendPolicySerialBackup.NO_RESPONSE', { url: this.endpoints[i].url});
-          }
-        } catch (err) {
-          let code = err && err.response && err.response.status ? err.response.status : 500;
-          if (this.responseSaver) {
-            await this.responseSaver(this.endpoints[i].name, MerchantapilogEventTypes.PUSHTX, { error: err.toString(), stack: err.stack }, params.txid);
-          }
-          this.logError('MerchantRequestorSendPolicySerialBackup',{ error: err.toString(), stack: err.stack } );
-          responsePayloadList.push({error: JSON.stringify(err), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: code});
-        }
-      }
-
-      if (responseSuccessPayload) {
-        const formattedResponse = {
-          ...responseSuccessPayload,
-          mapiResponses: responsePayloadList
-        };
-        return resolve(formattedResponse);
-      } else if (responseWithPayload) {
-        const formattedResponse = {
-          ...(responseSuccessPayload || responsePayloadList[responsePayloadList.length - 1]),
-          mapiResponses: responsePayloadList
-        };
-        return resolve(formattedResponse);
-      } else {
-        const formattedResponse = {
-          ...(responsePayloadList[responsePayloadList.length - 1] ? responsePayloadList[responsePayloadList.length - 1] : {}),
-          mapiResponses: responsePayloadList
-        };
-        return reject(formattedResponse);
-      }
+    return backupMultiSender(`/mapi/tx`, 'post', MerchantapilogEventTypes.PUSHTX, this.endpoints, params, (miner, evt, res) => {
+        return this.responseSaver(miner, evt, res, params.txid);
     });
   }
 }
@@ -122,71 +188,9 @@ export class MerchantRequestorFeeQuotePolicySerialBackup extends MerchantRequest
   constructor(private endpointConfigGroup: IMerchantApiEndpointGroupConfig, logger: any, responseSaver?: Function) {
     super(endpointConfigGroup, logger, responseSaver);
   }
-  /**
-   * Execute this policy for broadcasting
-   * @param rawtx Tx to broadcast
-   */
-  execute(params: {txid: string}): Promise<any> {
-    const errors = [];
-    return new Promise(async (resolve, reject) => {
-      let responsePayloadList = [];
-      let responseSuccessPayload = null;
-      let responseWithPayload = null;
-      // tslint:disable-next-line: prefer-for-of
-      for (let i = 0; i < this.endpoints.length; i++) {
-        try {
-          const miner = new Minercraft({
-            url: this.endpoints[i].url,
-            headers: this.endpoints[i].headers,
-          });
-          const response = await miner.fee.rate({verbose: true});
-
-          if (this.responseSaver) {
-            await this.responseSaver(this.endpoints[i].name, MerchantapilogEventTypes.FEEQUOTE, response);
-          }
-          if (response && response.payload && response.payload.returnResult === 'success') {
-            const toSave = {...(response), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: 200};
-            responsePayloadList.push(toSave);
-            responseSuccessPayload = toSave;
-            break;
-          } else if (response && response.payload) {
-            const toSave = {...(response), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: 200};
-            responseWithPayload = toSave;
-            responsePayloadList.push(toSave);
-          } else {
-            const toSave = { error: JSON.stringify(response), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: 200};
-            responsePayloadList.push(toSave);
-            this.logInfo('MerchantRequestorFeeQuotePolicySerialBackup.NO_RESPONSE', { url: this.endpoints[i].url});
-          }
-        } catch (err) {
-          let code = err && err.response && err.response.status ? err.response.status : 500;
-          if (this.responseSaver) {
-            await this.responseSaver(this.endpoints[i].name, MerchantapilogEventTypes.FEEQUOTE, { error: err.toString(), stack: err.stack }, undefined);
-          }
-          this.logError('MerchantRequestorFeeQuotePolicySerialBackup',{ error: err.toString(), stack: err.stack } );
-          responsePayloadList.push({error: JSON.stringify(err), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: code});
-        }
-      }
-
-      if (responseSuccessPayload) {
-        const formattedResponse = {
-          ...responseSuccessPayload,
-          mapiResponses: responsePayloadList
-        };
-        return resolve(formattedResponse);
-      } else if (responseWithPayload) {
-        const formattedResponse = {
-          ...(responseSuccessPayload || responsePayloadList[responsePayloadList.length - 1]),
-          mapiResponses: responsePayloadList
-        };
-        return resolve(formattedResponse);
-      } else {
-        const formattedResponse = {
-          ...(responsePayloadList[responsePayloadList.length - 1] ? responsePayloadList[responsePayloadList.length - 1] : {}),
-          mapiResponses: responsePayloadList
-        };
-        return reject(formattedResponse);
-      }
+  execute(params: any): Promise<any> {
+    return backupMultiSender('/mapi/feeQuote', 'post', MerchantapilogEventTypes.FEEQUOTE, this.endpoints,params, (miner, evt, res) => {
+      return this.responseSaver(miner, evt, res);
     });
   }
 }
@@ -205,66 +209,8 @@ export class MerchantRequestorStatusPolicySerialBackup extends MerchantRequestor
    * @param rawtx Tx to broadcast
    */
   execute(params: {txid: string}): Promise<any> {
-    const errors = [];
-    return new Promise(async (resolve, reject) => {
-      let responsePayloadList = [];
-      let responseSuccessPayload = null;
-      let responseWithPayload = null;
-      // tslint:disable-next-line: prefer-for-of
-      for (let i = 0; i < this.endpoints.length; i++) {
-        try {
-          const miner = new Minercraft({
-            url: this.endpoints[i].url,
-            headers: this.endpoints[i].headers,
-          });
-          const response = await miner.tx.status(params.txid, {verbose: true});
-
-          if (this.responseSaver) {
-            await this.responseSaver(this.endpoints[i].name, MerchantapilogEventTypes.STATUSTX, response, params.txid);
-          }
-          if (response && response.payload && response.payload.returnResult === 'success') {
-            const toSave = {...(response), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: 200};
-            responsePayloadList.push(toSave);
-            responseSuccessPayload = toSave;
-            break;
-          } else if (response && response.payload) {
-            const toSave = {...(response), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: 200};
-            responseWithPayload = toSave;
-            responsePayloadList.push(toSave);
-          } else {
-            const toSave = { error: JSON.stringify(response), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: 200};
-            responsePayloadList.push(toSave);
-            this.logInfo('MerchantRequestorStatusPolicySerialBackup.NO_RESPONSE', { url: this.endpoints[i].url});
-          }
-        } catch (err) {
-          let code = err && err.response && err.response.status ? err.response.status : 500;
-          if (this.responseSaver) {
-            await this.responseSaver(this.endpoints[i].name, MerchantapilogEventTypes.STATUSTX, { error: err.toString(), stack: err.stack }, params.txid);
-          }
-          this.logError('MerchantRequestorFeeQuotePolicySerialBackup',{ error: err.toString(), stack: err.stack } );
-          responsePayloadList.push({error: JSON.stringify(err), mapiName: this.endpoints[i].name, mapiEndpoint: this.endpoints[i].url, mapiStatusCode: code});
-        }
-      }
-
-      if (responseSuccessPayload) {
-        const formattedResponse = {
-          ...responseSuccessPayload,
-          mapiResponses: responsePayloadList
-        };
-        return resolve(formattedResponse);
-      } else if (responseWithPayload) {
-        const formattedResponse = {
-          ...(responseSuccessPayload || responsePayloadList[responsePayloadList.length - 1]),
-          mapiResponses: responsePayloadList
-        };
-        return resolve(formattedResponse);
-      } else {
-        const formattedResponse = {
-          ...(responsePayloadList[responsePayloadList.length - 1] ? responsePayloadList[responsePayloadList.length - 1] : {}),
-          mapiResponses: responsePayloadList
-        };
-        return reject(formattedResponse);
-      }
+    return backupMultiSender(`/mapi/tx/${params.txid}`, 'get', MerchantapilogEventTypes.STATUSTX, this.endpoints,params, (miner, evt, res) => {
+      return this.responseSaver(miner, evt, res, params.txid);
     });
   }
 }
@@ -284,73 +230,8 @@ export class MerchantRequestorSendPolicySendAllTakeFirstPrioritySuccess extends 
    * @param rawtx Tx to broadcast
    */
   execute(params: { txid: string, rawtx: string }): Promise<any> {
-
-    return new Promise(async (resolve, reject) => {
-      const promises = [];
-      for (let i = 0; i < this.endpoints.length; i++) {
-        promises.push(new Promise(async (innerResolve, innerReject) => {
-          const errors = [];
-          try {
-            const miner = new Minercraft({
-              url: this.endpoints[i].url,
-              headers: this.endpoints[i].headers,
-            });
-            const response = await miner.tx.push(params.rawtx, {
-              verbose: true,
-              maxContentLength: 52428890,
-              maxBodyLength: 52428890
-            });
-            if (response && response.payload && response.payload.returnResult === 'success') {
-              return innerResolve(response);
-            } else if (response && response.payload) {
-              return innerResolve(response);
-            } else {
-              this.logInfo('MerchantRequestorSendPolicySendAllTakeFirstPrioritySuccess.NO_RESPONSE', { url: this.endpoints[i].url});
-            }
-          } catch (err) {
-            if (this.responseSaver) {
-              await this.responseSaver(this.endpoints[i].name, MerchantapilogEventTypes.STATUSTX, { error: err.toString(), stack: err.stack }, params.txid);
-            }
-            this.logError('MerchantRequestorSendPolicySerialBackup', { error: err.toString(), stack: err.stack });
-            errors.push(err.toString());
-          }
-          innerReject(errors);
-        }));
-      }
-      // Settle all promises then process them
-      const minerBroadcastResult = await Promise.all(promises.map(p => p.catch(e => e)));
-      let authoratativeSuccessResult;
-      let authoratativeFailureResult;
-      let errorList = [];
-      for (let i = 0; i < minerBroadcastResult.length; i++) {
-        this.logInfo('minerResult', {url: this.endpoints[i].url, result: minerBroadcastResult[i]});
-        // Save to database if logging enabled
-        if (this.responseSaver) {
-          await this.responseSaver(this.endpoints[i].name, MerchantapilogEventTypes.PUSHTX, minerBroadcastResult[i], params.txid);
-        }
-        // Get the authoratative success result
-        // Keep the first success always
-        if (!authoratativeSuccessResult &&
-            minerBroadcastResult[i] &&
-            minerBroadcastResult[i].payload &&
-            minerBroadcastResult[i].payload.returnResult === 'success') {
-            authoratativeSuccessResult = minerBroadcastResult[i];
-        }
-
-        if (!authoratativeFailureResult &&
-          minerBroadcastResult[i] &&
-          minerBroadcastResult[i].payload &&
-          minerBroadcastResult[i].payload.returnResult === 'failure') {
-            authoratativeFailureResult = minerBroadcastResult[i];
-        }
-      }
-
-      if (authoratativeSuccessResult) {
-        return resolve(authoratativeSuccessResult);
-      } else {
-        return reject(authoratativeFailureResult || { critical: 'ALL_FAILED', errors: errorList});
-      }
-
+    return serialMultiSender(`/mapi/tx`, 'post', MerchantapilogEventTypes.PUSHTX, this.endpoints, params, (miner, evt, res) => {
+      return this.responseSaver(miner, evt, res, params.txid);
     });
   }
 }

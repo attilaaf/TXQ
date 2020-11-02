@@ -1,3 +1,4 @@
+import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 
 export enum MerchantapilogEventTypes {
@@ -17,8 +18,8 @@ export default class MerchantapilogService {
     @Inject('eventService') private eventService,
     @Inject('logger') private logger) {}
 
-  public async save(miner: string, requestType: string, response: any, txid?: string) {
-    const savedId = await this.merchantapilogModel.save(
+  public async save(accountContext: IAccountContext, miner: string, requestType: string, response: any, txid?: string) {
+    const savedId = await this.merchantapilogModel.save(accountContext,
       miner, requestType, response, txid
     );
 

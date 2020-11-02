@@ -1,11 +1,12 @@
 import { Service, Inject } from 'typedi';
-import { Pool } from 'pg';
+import { IAccountContext } from '@interfaces/IAccountContext';
+import { PoolFactory } from '../../bootstrap/middleware/di/diDatabase';
 
 @Service('txoutModel')
 class TxoutModel {
-  constructor(@Inject('db') private db: Pool) {}
+  constructor(@Inject('db') private db: PoolFactory) {}
 
-  public async getTxoutByScriptHash(scripthash: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
+  public async getTxoutByScriptHash(accountContext: IAccountContext, scripthash: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
     let result: any;
     let split = scripthash.split(',');
     let q = `
@@ -17,11 +18,11 @@ class TxoutModel {
     AND txout.txid = tx.txid
     OFFSET $1
     LIMIT $2`;
-    result = await this.db.query(q, [ offset, limit ]);
+    result = await this.db.getClient(accountContext).query(q, [ offset, limit ]);
     return result.rows;
   }
 
-  public async getTxoutByAddress(address: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
+  public async getTxoutByAddress(accountContext: IAccountContext, address: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
     let result: any;
     let split = address.split(',');
     let q = `
@@ -33,14 +34,14 @@ class TxoutModel {
     AND txout.txid = tx.txid
     OFFSET $1
     LIMIT $2`;
-    result = await this.db.query(q, [ offset, limit ]);
+    result = await this.db.getClient(accountContext).query(q, [ offset, limit ]);
     return result.rows;
   }
 
   /**
    * Todo: Refactor to not repeat queries
    */
-  public async getTxoutsByGroup(params: { groupname: string, script?: boolean, limit: any, offset: any, unspent?: boolean}): Promise<any> {
+  public async getTxoutsByGroup(accountContext: IAccountContext, params: { groupname: string, script?: boolean, limit: any, offset: any, unspent?: boolean}): Promise<any> {
     let result: any;
     let q = `
     SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
@@ -57,11 +58,11 @@ class TxoutModel {
     OFFSET $2
     LIMIT $3`;
 
-    result = await this.db.query(q, [ params.groupname, params.offset, params.limit ]);
+    result = await this.db.getClient(accountContext).query(q, [ params.groupname, params.offset, params.limit ]);
     return result.rows;
   }
 
-  public async getUtxoBalanceByScriptHashes(scripthashes: string[]): Promise<any> {
+  public async getUtxoBalanceByScriptHashes(accountContext: IAccountContext, scripthashes: string[]): Promise<any> {
     let result: any;
     const str = `
       SELECT * FROM
@@ -86,7 +87,7 @@ class TxoutModel {
 
       ) AS q1
     `;
-    result = await this.db.query(str);
+    result = await this.db.getClient(accountContext).query(str);
     let balance = {
       confirmed: result.rows[0].balance ? Number(result.rows[0].balance) : 0,
       unconfirmed: result.rows[1] && result.rows[1].balance ? Number(result.rows[1].balance) : 0,
@@ -94,7 +95,7 @@ class TxoutModel {
     return balance;
   }
 
-  public async getUtxoBalanceByAddresses(addresses: string[]): Promise<any> {
+  public async getUtxoBalanceByAddresses(accountContext: IAccountContext, addresses: string[]): Promise<any> {
     let result: any;
     const str = `
       SELECT * FROM
@@ -119,7 +120,7 @@ class TxoutModel {
 
       ) AS q1
     `;
-    result = await this.db.query(str);
+    result = await this.db.getClient(accountContext).query(str);
     let balance = {
       confirmed: result.rows[0].balance ? Number(result.rows[0].balance) : 0,
       unconfirmed: result.rows[1] && result.rows[1].balance ? Number(result.rows[1].balance) : 0,
@@ -130,7 +131,7 @@ class TxoutModel {
   /**
    * Todo: Refactor to not repeat queries
    */
-  public async getUtxoBalanceByGroup(groupname: string): Promise<any> {
+  public async getUtxoBalanceByGroup(accountContext: IAccountContext, groupname: string): Promise<any> {
     let result: any;
     const str = `
       SELECT * FROM
@@ -163,7 +164,7 @@ class TxoutModel {
 
       ) AS q1
     `;
-    result = await this.db.query(str, [ groupname, groupname ]);
+    result = await this.db.getClient(accountContext).query(str, [ groupname, groupname ]);
     let balance = {
       confirmed: result.rows[0].balance ? Number(result.rows[0].balance) : 0,
       unconfirmed: result.rows[1] && result.rows[1].balance ? Number(result.rows[1].balance) : 0,
@@ -171,8 +172,8 @@ class TxoutModel {
     return balance;
   }
 
-  public async getTxout(txid: string, index: number, script?: boolean): Promise<string> {
-    let result: any = await this.db.query(`
+  public async getTxout(accountContext: IAccountContext, txid: string, index: number, script?: boolean): Promise<string> {
+    let result: any = await this.db.getClient(accountContext).query(`
     SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
     ${script ? ', txout.script ' : ''}
     FROM txout, tx
@@ -184,7 +185,7 @@ class TxoutModel {
     return result.rows[0];
   }
 
-  public async getTxoutsByOutpointArray(txOutpoints: Array<{ txid: string, index: string }>, script?: boolean): Promise<any[]> {
+  public async getTxoutsByOutpointArray(accountContext: IAccountContext, txOutpoints: Array<{ txid: string, index: string }>, script?: boolean): Promise<any[]> {
     const txidToIndexMap = {};
     const txidsOnly = [];
     // tslint:disable-next-line: prefer-for-of
@@ -193,7 +194,7 @@ class TxoutModel {
       txidToIndexMap[txOutpoints[index].txid][txOutpoints[index].index] = true;
       txidsOnly.push(txOutpoints[index].txid);
     }
-    let result = await this.db.query(`
+    let result = await this.db.getClient(accountContext).query(`
     SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
     ${script ? ', txout.script ' : ''}
     FROM txout, tx
@@ -211,8 +212,8 @@ class TxoutModel {
     return results;
   }
 
-  public async saveTxout(txid: string, index: number, address: string | null | undefined, scripthash: string, script: string, satoshis: number): Promise<string> {
-    let result: any = await this.db.query(
+  public async saveTxout(accountContext: IAccountContext, txid: string, index: number, address: string | null | undefined, scripthash: string, script: string, satoshis: number): Promise<string> {
+    let result: any = await this.db.getClient(accountContext).query(
       `INSERT INTO txout(txid, index, address, scripthash, script, satoshis)
       VALUES ($1, $2, $3, $4, $5, $6)
       ON CONFLICT DO NOTHING`, [
@@ -222,9 +223,10 @@ class TxoutModel {
   }
 
   public async updateSpendIndex(
+    accountContext: IAccountContext,
     txid: string, index: string, spendTxId: string, spendIndex: number
   ) {
-    let result: any = await this.db.query(
+    let result: any = await this.db.getClient(accountContext).query(
       `UPDATE txout
       SET spend_txid=$1, spend_index=$2
       WHERE txid=$3 AND index=$4`, [

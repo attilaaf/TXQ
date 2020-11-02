@@ -1,3 +1,4 @@
+import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -15,8 +16,9 @@ export default class GetTxoutsByScriptHash extends UseCase {
     offset: any,
     script?: boolean,
     limit: any,
+    accountContext?: IAccountContext,
     unspent?: boolean}): Promise<UseCaseOutcome> {
-    let entities = await this.txoutService.getTxoutByScriptHash(params.scripthash, params.offset, params.limit, params.script, params.unspent);
+    let entities = await this.txoutService.getTxoutByScriptHash(params.accountContext, params.scripthash, params.offset, params.limit, params.script, params.unspent);
     return {
       success: true,
       result: entities

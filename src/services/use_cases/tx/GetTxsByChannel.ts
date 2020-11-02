@@ -1,3 +1,4 @@
+import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -15,9 +16,10 @@ export default class GetTxsDlq extends UseCase {
     channel: string | undefined | null,
     id: any,
     limit: any,
-    rawtx: boolean
+    rawtx: boolean,
+    accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
-    let txs = await this.txmetaService.getTxsByChannel(params.channel, params.id, params.limit, params.rawtx);
+    let txs = await this.txmetaService.getTxsByChannel(params.accountContext, params.channel, params.id, params.limit, params.rawtx);
     return {
       success: true,
       result: txs

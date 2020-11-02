@@ -292,6 +292,7 @@ describe('tx', () => {
       .get(`${version.path}/tx/sync`)
       .expect(200)
       .end((err, res) => {
+        console.log('err', err, res);
         expect(res.body.status).toBe(200);
 
         expect(res.body).toEqual({

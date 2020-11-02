@@ -1,29 +1,30 @@
 import { Service, Inject } from 'typedi';
-import { Pool } from 'pg';
 import { DateUtil } from '../../services/helpers/DateUtil';
 import { ITransactionStatus } from '../../interfaces/ITransactionData';
+import { IAccountContext } from '@interfaces/IAccountContext';
+import { PoolFactory } from '../../bootstrap/middleware/di/diDatabase';
 
 @Service('txModel')
 class TxModel {
 
-  constructor(@Inject('db') private db: Pool) {}
+  constructor(@Inject('db') private db: PoolFactory) {}
 
-  public async isTxExist(txid: string): Promise<boolean> {
-    let result: any = await this.db.query(`SELECT txid FROM tx WHERE txid = $1`, [ txid ]);
+  public async isTxExist(accountContext: IAccountContext, txid: string): Promise<boolean> {
+    let result: any = await this.db.getClient(accountContext).query(`SELECT txid FROM tx WHERE txid = $1`, [ txid ]);
     return !!result.rows[0];
   }
 
-  public async getTx(txid: string, rawtx?: boolean): Promise<string> {
-    let result: any = await this.db.query(`
+  public async getTx(accountContext: IAccountContext, txid: string, rawtx?: boolean): Promise<string> {
+    let result: any = await this.db.getClient(accountContext).query(`
       SELECT txid, ${rawtx ? 'rawtx,' : '' } h, i, send, status, completed, updated_at, created_at
       FROM tx
       WHERE txid = $1`, [ txid ]);
     return result.rows[0];
   }
 
-  public async saveTxid(txid: string): Promise<string> {
+  public async saveTxid(accountContext: IAccountContext, txid: string): Promise<string> {
     const now = DateUtil.now();
-    let result: any = await this.db.query(`
+    let result: any = await this.db.getClient(accountContext).query(`
     INSERT INTO tx(txid, updated_at, created_at, completed)
     VALUES ($1, $2, $3, false)
     ON CONFLICT DO NOTHING
@@ -33,9 +34,9 @@ class TxModel {
     return result;
   }
 
-  public async saveTx(txid: string, rawtx?: string): Promise<string> {
+  public async saveTx(accountContext: IAccountContext, txid: string, rawtx?: string): Promise<string> {
     const now = DateUtil.now();
-    let result: any = await this.db.query(`
+    let result: any = await this.db.getClient(accountContext).query(`
     INSERT INTO tx(txid, rawtx, updated_at, created_at, completed)
     VALUES ($1, $2, $3, $4, false)
     ON CONFLICT(txid) DO UPDATE SET rawtx = EXCLUDED.rawtx, updated_at=EXCLUDED.updated_at
@@ -45,10 +46,10 @@ class TxModel {
     return result;
   }
 
-  public async saveTxStatus(txid: string, txStatus: ITransactionStatus, blockhash: string | null, blockheight: number | null): Promise<string> {
+  public async saveTxStatus(accountContext: IAccountContext, txid: string, txStatus: ITransactionStatus, blockhash: string | null, blockheight: number | null): Promise<string> {
     const now = DateUtil.now();
     if (blockhash && blockheight) {
-      let result: any = await this.db.query(`
+      let result: any = await this.db.getClient(accountContext).query(`
       UPDATE tx SET status = $1, h = $2, i = $3, updated_at = $4, completed = true
       WHERE txid = $5`, [
         JSON.stringify(txStatus),
@@ -59,19 +60,19 @@ class TxModel {
       ]);
       return result;
     }
-    let result: any = await this.db.query(`UPDATE tx SET status = $1, updated_at = $2 WHERE txid = $3`, [ JSON.stringify(txStatus), now, txid ]);
+    let result: any = await this.db.getClient(accountContext).query(`UPDATE tx SET status = $1, updated_at = $2 WHERE txid = $3`, [ JSON.stringify(txStatus), now, txid ]);
     return result;
   }
 
-  public async saveTxSend(txid: string, send: any): Promise<string> {
+  public async saveTxSend(accountContext: IAccountContext, txid: string, send: any): Promise<string> {
     const now = DateUtil.now();
-    let result: any = await this.db.query(`UPDATE tx SET send = $1, updated_at = $2 WHERE txid = $3`, [ JSON.stringify(send), now, txid ]);
+    let result: any = await this.db.getClient(accountContext).query(`UPDATE tx SET send = $1, updated_at = $2 WHERE txid = $3`, [ JSON.stringify(send), now, txid ]);
     return result;
   }
 
-  public async updateCompleted(txid: string, completed?: boolean): Promise<string> {
+  public async updateCompleted(accountContext: IAccountContext, txid: string, completed?: boolean): Promise<string> {
     const now = DateUtil.now();
-    let result: any = await this.db.query(`UPDATE tx SET updated_at = $1, completed = $2 WHERE txid = $3`, [ now, !!completed, txid ]);
+    let result: any = await this.db.getClient(accountContext).query(`UPDATE tx SET updated_at = $1, completed = $2 WHERE txid = $3`, [ now, !!completed, txid ]);
     return result;
   }
 }

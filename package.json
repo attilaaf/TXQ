@@ -1,6 +1,6 @@
 {
   "name": "txq",
-  "version": "1.4.35",
+  "version": "1.5.0",
   "description": "TXQ: Bitcoin Transaction Storage Queue",
   "main": "src/bootstrap/index",
   "license": "MIT",
@@ -51,6 +51,7 @@
     "typescript": "^3.9.5"
   },
   "dependencies": {
+    "axios": "^0.21.0",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
     "concurrent-queue": "^7.0.2",
@@ -66,9 +67,9 @@
     "minercraft": "file:./minercraft",
     "module-alias": "^2.2.0",
     "morgan": "^1.9.1",
+    "pg": "^8.3.0",
     "reflect-metadata": "^0.1.13",
     "set-tz": "^0.2.0",
-    "pg": "^8.3.0",
     "swagger-jsdoc": "^3.2.9",
     "swagger-ui-express": "^4.0.6",
     "typedi": "^0.8.0",

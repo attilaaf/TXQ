@@ -1,3 +1,5 @@
+
+deploy_public.sh
 # Logs
 logs
 *.log

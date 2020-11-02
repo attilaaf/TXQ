@@ -1,3 +1,4 @@
+import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -12,9 +13,11 @@ export default class IncrementTxRetries extends UseCase {
   }
 
   public async run(params: {
-    txid: string;
+    txid: string,
+    accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
     await this.txsyncService.incrementRetries(
+      params.accountContext,
       params.txid
     );
     return {

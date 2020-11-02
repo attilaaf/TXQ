@@ -1,3 +1,4 @@
+import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -10,8 +11,8 @@ export default class GetBalanceByAddresses extends UseCase {
     super();
   }
 
-  public async run(params: { address: string }): Promise<UseCaseOutcome> {
-    let balance = await this.txoutService.getBalanceByAddresses(params.address.split(','));
+  public async run(params: { address: string, accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
+    let balance = await this.txoutService.getBalanceByAddresses(params.accountContext, params.address.split(','));
     return {
       success: true,
       result: balance

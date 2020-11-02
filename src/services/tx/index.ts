@@ -4,45 +4,47 @@ import * as bsv from 'bsv';
 import InvalidParamError from '../error/InvalidParamError';
 import { ITransactionStatus } from '../../interfaces/ITransactionData';
 import { sync_state } from '../../core/txsync';
+import { IAccountContext } from '@interfaces/IAccountContext';
 
 @Service('txService')
 export default class TxService {
   constructor(@Inject('txModel') private txModel, @Inject('txsyncModel') private txsyncModel, @Inject('logger') private logger) {}
 
-  public async isTxExist(txid: string): Promise<boolean> {
-    return this.txModel.isTxExist(txid);
+  public async isTxExist(accountContext: IAccountContext, txid: string): Promise<boolean> {
+    return this.txModel.isTxExist(accountContext, txid);
   }
 
-  public async getTx(txid: string, rawtx?: boolean) {
-    let tx = await this.txModel.getTx(txid, rawtx);
+  public async getTx(accountContext: IAccountContext, txid: string, rawtx?: boolean) {
+    let tx = await this.txModel.getTx(accountContext, txid, rawtx);
     if (!tx) {
       throw new ResourceNotFoundError();
     }
     return tx;
   }
 
-  public async saveTxid(txid: string) {
+  public async saveTxid(accountContext: IAccountContext, txid: string) {
     if (!txid) {
       throw new InvalidParamError();
     }
-    return await this.txModel.saveTxid(
+    return this.txModel.saveTxid(accountContext,
       txid
     );
   }
 
-  public async saveTx(rawtx: string) {
+  public async saveTx(accountContext: IAccountContext, rawtx: string) {
     if (!rawtx) {
       throw new InvalidParamError();
     }
     const parsedTx = new bsv.Transaction(rawtx)
-    return await this.txModel.saveTx(
+    return this.txModel.saveTx(accountContext,
       parsedTx.hash,
       rawtx
     );
   }
 
-  public async saveTxStatus(txid: string, txStatus: ITransactionStatus, blockhash?: string, blockheight?: number) {
+  public async saveTxStatus(accountContext: IAccountContext, txid: string, txStatus: ITransactionStatus, blockhash?: string, blockheight?: number) {
     await this.txModel.saveTxStatus(
+      accountContext,
       txid,
       txStatus,
       blockhash,
@@ -50,23 +52,25 @@ export default class TxService {
     );
   }
 
-  public async saveTxSend(txid: string, send: any) {
+  public async saveTxSend(accountContext: IAccountContext, txid: string, send: any) {
     await this.txModel.saveTxSend(
+      accountContext,
       txid,
       send
     );
   }
 
-  public async setTxCompleted(txid: string) {
+  public async setTxCompleted(accountContext: IAccountContext, txid: string) {
     this.logger.info('setTxCompleted', {
-      txid: txid
+      txid
     });
 
-    await this.txModel.updateCompleted(
+    await this.txModel.updateCompleted(accountContext,
       txid,
       true
     );
     await this.txsyncModel.updateTxsyncAndClearDlq(
+      accountContext,
       txid,
       sync_state.sync_success
     );
