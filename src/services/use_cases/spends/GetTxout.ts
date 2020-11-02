@@ -2,6 +2,7 @@ import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
 import ResourceNotFoundError from '../../error/ResourceNotFoundError';
+import { TxFormatter } from '../../../services/helpers/TxFormatter';
 @Service('getTxout')
 export default class GetTxout extends UseCase {
 
@@ -20,7 +21,7 @@ export default class GetTxout extends UseCase {
       success: true,
       result: [
         {
-          ...entity
+          ...(TxFormatter.formatTxoutWithEmbeddedStatusHeight(entity))
         }
       ]
     };

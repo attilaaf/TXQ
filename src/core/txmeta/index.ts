@@ -1,32 +1,35 @@
 import { Service, Inject } from 'typedi';
-import { sql, DatabaseConnectionType } from 'slonik';
 import { DateUtil } from '../../services/helpers/DateUtil';
 import { ITransactionMeta } from '../../interfaces/ITransactionData';
+import { Pool } from 'pg';
 
 @Service('txmetaModel')
 class TxmetaModel {
-  constructor(@Inject('db') private db: DatabaseConnectionType) {}
+  constructor(@Inject('db') private db: Pool) {}
 
   public async isTxMetaExist(txid: string, channel: string): Promise<boolean> {
     let channelStr = channel ? channel : '';
-    let result: any = await this.db.query(sql`SELECT txid FROM txmeta WHERE channel = ${channelStr} AND txid = ${txid}`);
+    let result: any = await this.db.query(`SELECT txid FROM txmeta WHERE channel = $1 AND txid = $2`, [ channelStr, txid ]);
     return !!result.rows[0];
   }
 
   public async getTxmeta(txid: string, channel?: string): Promise<string> {
     let channelStr = channel ? channel : '';
-    let result: any = await this.db.query(sql`SELECT * FROM txmeta WHERE channel = ${channelStr} AND txid = ${txid}`);
+    let result: any = await this.db.query(`SELECT * FROM txmeta WHERE channel = $1 AND txid = $2`, [channelStr, txid]);
     return result.rows[0];
   }
 
   public async getTxsByChannel(channel: string | null | undefined, afterId: number, limit: number, rawtx?: boolean): Promise<string[]> {
     let result: any;
     let channelStr = channel ? channel : '';
-    if (rawtx) {
-      result = await this.db.query(sql`SELECT txmeta.id, tx.txid, i, h, rawtx, tx.send, status, completed, tx.updated_at, tx.created_at, channel, metadata, tags, extracted FROM tx, txmeta WHERE id >= ${afterId} AND channel = ${channelStr} AND tx.txid = txmeta.txid  ORDER BY txmeta.created_at DESC LIMIT ${limit}`);
-    } else {
-      result = await this.db.query(sql`SELECT txmeta.id, tx.txid, i, h, tx.send, status, completed, tx.updated_at, tx.created_at, channel, metadata, tags, extracted FROM tx, txmeta WHERE id >= ${afterId} AND channel = ${channelStr} AND tx.txid = txmeta.txid ORDER BY txmeta.created_at DESC LIMIT ${limit}`);
-    }
+    result = await this.db.query(`
+    SELECT txmeta.id, ${rawtx ? 'tx.rawtx,' : '' } tx.txid, i, h, tx.send, status, completed, tx.updated_at, tx.created_at,
+    channel, metadata, tags, extracted FROM tx, txmeta
+    WHERE id >= $1 AND channel = $2 AND tx.txid = txmeta.txid
+    ORDER BY txmeta.created_at DESC
+    LIMIT $3`, [
+      afterId, channelStr,limit
+    ]);
     return result.rows;
   }
 
@@ -36,7 +39,12 @@ class TxmetaModel {
     const datainsert = JSON.stringify(extracted || {});
     const now = DateUtil.now();
     let channelStr = channel ? channel : '';
-    let result: any = await this.db.query(sql`INSERT INTO txmeta(txid, channel, metadata, updated_at, created_at, tags, extracted) VALUES (${txid}, ${channelStr}, ${txmetainsert}, ${now}, ${now}, ${tagsinsert}, ${datainsert}) ON CONFLICT(txid, channel) DO UPDATE SET updated_at=EXCLUDED.updated_at, metadata=EXCLUDED.metadata, tags=EXCLUDED.tags, extracted=EXCLUDED.extracted`);
+    let result: any = await this.db.query(`
+    INSERT INTO txmeta(txid, channel, metadata, updated_at, created_at, tags, extracted)
+    VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT(txid, channel) DO UPDATE
+    SET updated_at = EXCLUDED.updated_at, metadata = EXCLUDED.metadata, tags = EXCLUDED.tags, extracted = EXCLUDED.extracted`,[
+      txid,channelStr, txmetainsert,now, now, tagsinsert,datainsert
+    ]);
     return result;
   }
 }

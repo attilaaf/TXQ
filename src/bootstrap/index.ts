@@ -20,6 +20,10 @@ import "../services/updatelog/index";
 
 import "../services/helpers/MerchantRequestor";
 
+import "../services/use_cases/proxy/GetMapiTxStatus";
+import "../services/use_cases/proxy/GetMapiTxFeeQuote";
+import "../services/use_cases/proxy/PushMapiTx";
+
 import "../services/use_cases/tx/GetTx";
 import "../services/use_cases/tx/SaveTxs";
 import "../services/use_cases/tx/SyncTxStatus";

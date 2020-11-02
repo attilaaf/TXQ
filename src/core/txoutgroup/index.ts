@@ -1,69 +1,65 @@
 import { Service, Inject } from 'typedi';
-import { sql, DatabaseConnectionType } from 'slonik';
 import { IOutputGroupEntry } from '@interfaces/IOutputGroupEntry';
-
+import { Pool } from 'pg';
 @Service('txoutgroupModel')
 class TxoutgroupModel {
-  constructor(@Inject('db') private db: DatabaseConnectionType) {}
+  constructor(@Inject('db') private db: Pool) {}
 
   public async getTxoutgroupByName(groupname: string, offset: number = 0, limit: number = 100000): Promise<any> {
-    const s = sql`
+    const s = `
     SELECT * FROM txoutgroup
-    WHERE groupname = ${groupname} ORDER BY created_at DESC OFFSET ${offset} LIMIT ${limit}`;
-    const result = await this.db.query(s);
+    WHERE groupname = $1 ORDER BY created_at DESC OFFSET $2 LIMIT $3`;
+    const result = await this.db.query(s, [ groupname, offset, limit] );
     return result.rows;
   }
 
   public async getTxoutgroupNamesByScriptId(scriptId: string): Promise<any> {
-    const s = sql`
+    const s = `
     SELECT * FROM txoutgroup
-    WHERE scriptid = ${scriptId}`;
-    const result = await this.db.query(s);
+    WHERE scriptid = $1`;
+    const result = await this.db.query(s, [ scriptId ]);
     return result.rows;
   }
 
   public async getTxoutgroupNamesByScriptIds(scriptIds: string[]): Promise<any> {
-    const str = sql`
+    const str = `
     SELECT * FROM txoutgroup
-    WHERE scriptid = ANY(${sql.array(scriptIds, 'varchar')})`;
+    WHERE scriptid IN (${this.joinQuote(scriptIds)})`;
     const result = await this.db.query(str);
     return result.rows;
   }
 
   public saveTxoutgroups(groupname: string, items: IOutputGroupEntry[]): Promise<any> {
     let expandedInserts = items.map((item) => {
-      return [ groupname, item.scriptid, item.metadata ? JSON.stringify(item.metadata) : null, Math.round((new Date()).getTime() / 1000) ];
+      return `( '${groupname}', '${item.scriptid}', '${item.metadata ? JSON.stringify(item.metadata) : null }', ${Math.round((new Date()).getTime() / 1000)} )`;
     });
-    const s = sql`
+    const s = `
     INSERT INTO txoutgroup(groupname, scriptid, metadata, created_at)
-    SELECT *
-    FROM ${sql.unnest(
-      expandedInserts,
-      [
-        'varchar[]',
-        'varchar[]',
-        'jsonb',
-        'int4'
-      ]
-    )} ON CONFLICT(groupname, scriptid) DO UPDATE SET metadata = excluded.metadata`;
+    VALUES
+    ${expandedInserts}
+    ON CONFLICT(groupname, scriptid) DO UPDATE SET metadata = excluded.metadata`;
     return this.db.query(s);
   }
 
   public async deleteTxoutgroupByName(groupname: string): Promise<any> {
-    const result = await this.db.query(sql`
+    const result = await this.db.query(`
     DELETE FROM txoutgroup
-    WHERE groupname = ${groupname}`);
+    WHERE groupname = $1`, [ groupname ]);
     return result.rows;
   }
 
   public async deleteTxoutgroupByGroupAndScriptids(groupname: string, scriptids: string[]): Promise<any> {
-    const result = await this.db.query(sql`
+    const result = await this.db.query(`
     DELETE FROM txoutgroup
-    WHERE groupname = ${groupname} AND
-    scriptid = ANY(${sql.array(scriptids, 'varchar')})`);
+    WHERE groupname = $1 AND
+    scriptid IN (${this.joinQuote(scriptids)})`, [ groupname ]);
     return result.rows;
   }
 
+
+  private joinQuote(arr: string[]): string {
+    return "'" + arr.join("','") + "'";
+  }
 }
 
 export default TxoutgroupModel;

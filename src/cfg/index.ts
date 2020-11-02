@@ -25,19 +25,19 @@ const config: IConfig = {
   },
   queue: {
     // Max number of concurrent requests to sync tx status from merchantapi
-    taskRequestConcurrency: process.env.MERCHANT_API_CONCURRENCY ? parseInt(process.env.MERCHANT_API_CONCURRENCY) : 1,
+    taskRequestConcurrency: process.env.MERCHANT_API_CONCURRENCY ? parseInt(process.env.MERCHANT_API_CONCURRENCY, 10) : 1,
     abandonedSyncTaskRescanSeconds: 60,       // How many seconds to rescan for missed tasks
     syncBackoff: {
       // 'full' or 'none'
       jitter: process.env.SYNC_JITTER ? process.env.SYNC_JITTER : 'none',
       // Exponential back off multiple
-      timeMultiple: process.env.SYNC_BACKOFF_MULTIPLE ? parseInt(process.env.SYNC_BACKOFF_MULTIPLE) : 2,
+      timeMultiple: process.env.SYNC_BACKOFF_MULTIPLE ? parseInt(process.env.SYNC_BACKOFF_MULTIPLE, 10) : 2,
       // Initial start delay before first re-check
-      startingDelay: process.env.SYNC_START_DELAY ? parseInt(process.env.SYNC_START_DELAY) : 1000 * 60,
+      startingDelay: process.env.SYNC_START_DELAY ? parseInt(process.env.SYNC_START_DELAY, 10) : 1000 * 60,
       // Max back off time. 60 Minutes is max
-      maxDelay: process.env.SYNC_MAX_DELAY ? parseInt(process.env.SYNC_MAX_DELAY) : 1000 * 60 * 60,
+      maxDelay: process.env.SYNC_MAX_DELAY ? parseInt(process.env.SYNC_MAX_DELAY, 10) : 1000 * 60 * 60,
       // Max attempts before being put into 'dlq'
-      numOfAttempts: process.env.SYNC_MAX_ATTEMPTS ? parseInt(process.env.SYNC_MAX_ATTEMPTS) : 15
+      numOfAttempts: process.env.SYNC_MAX_ATTEMPTS ? parseInt(process.env.SYNC_MAX_ATTEMPTS, 10) : 15
     },
     // If 'nosync' is true, then the server process always places new transactions into txsync.state=0 (sync_none)
     // In other words, then TXQ behaves as a datastore and makes no attempts to broadcast transations or settle status.
@@ -45,25 +45,25 @@ const config: IConfig = {
   },
   enableUpdateLogging: true,                  // Whether to log every update entity to the database
   merchantapi: {
-    sendPolicy: 'ALL_FIRST_PRIORITY_SUCCESS', // 'SERIAL_BACKUP' | 'ALL_FIRST_PRIORITY_SUCCESS';
+    sendPolicy: 'SERIAL_BACKUP',              // 'SERIAL_BACKUP' | 'ALL_FIRST_PRIORITY_SUCCESS';
     statusPolicy: 'SERIAL_BACKUP',            // 'SERIAL_BACKUP'
     enableResponseLogging: true,              // Whether to log every request and response from merchantapi's to the database
-    enableProxy: true,                        // Exposes /merchantapi/<miner name>/mapi/tx endpoints...
+    enableProxy: false,                        // Exposes /merchantapi/<miner name>/mapi/tx endpoints...
     endpoints: {
       livenet: [
-        {
-          name: 'mapi.taal.com',
-          url: 'https://mapi.taal.com',
-          headers: process.env.MERCHANTAPI_KEY_TAAL ? {
-            Authorization: process.env.MERCHANTAPI_KEY_TAAL || null
-          } : {}
-        },
         {
           name: 'merchantapi.matterpool.io',
           url: 'https://merchantapi.matterpool.io',
           headers: {
             api_key: process.env.MERCHANTAPI_KEY_MATTERPOOL || null
           }
+        },
+        {
+          name: 'mapi.taal.com',
+          url: 'https://mapi.taal.com',
+          headers: process.env.MERCHANTAPI_KEY_TAAL ? {
+            Authorization: process.env.MERCHANTAPI_KEY_TAAL || null
+          } : {}
         },
         {
           name: 'mempool.io',

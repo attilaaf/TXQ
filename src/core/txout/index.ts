@@ -1,81 +1,39 @@
 import { Service, Inject } from 'typedi';
-import { sql, DatabaseConnectionType } from 'slonik';
+import { Pool } from 'pg';
 
 @Service('txoutModel')
 class TxoutModel {
-  constructor(@Inject('db') private db: DatabaseConnectionType) {}
+  constructor(@Inject('db') private db: Pool) {}
 
   public async getTxoutByScriptHash(scripthash: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
     let result: any;
     let split = scripthash.split(',');
-    if (script) {
-      if (unspent) {
-        result = await this.db.query(sql`
-        SELECT * FROM txout
-        WHERE scripthash = ANY(${sql.array(split, 'varchar')}) AND
-        spend_txid IS NULL
-        OFFSET ${offset}
-        LIMIT ${limit}`);
-      } else {
-        result = await this.db.query(sql`
-        SELECT * FROM txout
-        WHERE scripthash = ANY(${sql.array(split, 'varchar')})
-        OFFSET ${offset}
-        LIMIT ${limit}`);
-      }
-    } else {
-      if (unspent) {
-        result = await this.db.query(sql`
-        SELECT txid, index, address, scripthash, script, satoshis, spend_txid, spend_index FROM txout
-        WHERE scripthash = ANY(${sql.array(split, 'varchar')}) AND
-        spend_txid IS NULL
-        OFFSET ${offset}
-        LIMIT ${limit}`);
-      } else {
-        result = await this.db.query(sql`
-        SELECT txid, index, address, scripthash, script, satoshis, spend_txid, spend_index FROM txout
-        WHERE scripthash = ANY(${sql.array(split, 'varchar')})
-        OFFSET ${offset}
-        LIMIT ${limit}`);
-      }
-    }
+    let q = `
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
+    ${script ? ', txout.script ' : ''}
+    FROM txout, tx
+    WHERE scripthash IN (${this.joinQuote(split)})
+    ${ unspent ? 'AND spend_txid IS NULL ' : '' }
+    AND txout.txid = tx.txid
+    OFFSET $1
+    LIMIT $2`;
+    result = await this.db.query(q, [ offset, limit ]);
     return result.rows;
   }
 
   public async getTxoutByAddress(address: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
     let result: any;
     let split = address.split(',');
-    if (script) {
-      if (unspent) {
-        result = await this.db.query(sql`
-        SELECT * FROM txout
-        WHERE address = ANY(${sql.array(split, 'varchar')}) AND
-        spend_txid IS NULL
-        OFFSET ${offset}
-        LIMIT ${limit}`);
-      } else {
-        result = await this.db.query(sql`
-        SELECT * FROM txout
-        WHERE address = ANY(${sql.array(split, 'varchar')})
-        OFFSET ${offset}
-        LIMIT ${limit}`);
-      }
-    } else {
-      if (unspent) {
-        result = await this.db.query(sql`
-        SELECT txid, index, address, scripthash, script, satoshis, spend_txid, spend_index FROM txout
-        WHERE address = ANY(${sql.array(split, 'varchar')}) AND
-        spend_txid IS NULL
-        OFFSET ${offset}
-        LIMIT ${limit}`);
-      } else {
-        result = await this.db.query(sql`
-        SELECT txid, index, address, scripthash, script,satoshis, spend_txid, spend_index FROM txout
-        WHERE address = ANY(${sql.array(split, 'varchar')})
-        OFFSET ${offset}
-        LIMIT ${limit}`);
-      }
-    }
+    let q = `
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
+    ${script ? ', txout.script ' : ''}
+    FROM txout, tx
+    WHERE address IN (${this.joinQuote(split)})
+    ${ unspent ? 'AND spend_txid IS NULL ' : '' }
+    AND txout.txid = tx.txid
+    OFFSET $1
+    LIMIT $2`;
+    result = await this.db.query(q, [ offset, limit ]);
     return result.rows;
   }
 
@@ -84,73 +42,34 @@ class TxoutModel {
    */
   public async getTxoutsByGroup(params: { groupname: string, script?: boolean, limit: any, offset: any, unspent?: boolean}): Promise<any> {
     let result: any;
-    let q;
-    if (params.script) {
-      if (params.unspent) {
-        q = sql`
-        SELECT txout.txid, index, address, scripthash, script,satoshis, spend_txid, spend_index, script FROM txout, txoutgroup
-        WHERE
-        txoutgroup.groupname = ${params.groupname} AND
-        (
-          txoutgroup.scriptid = txout.address OR
-          txoutgroup.scriptid = txout.scripthash
-        ) AND
-        spend_txid IS NULL
-        OFFSET ${params.offset}
-        LIMIT ${params.limit}`;
-      } else {
-        q = sql`
-        SELECT txout.txid, index, address, scripthash, script,satoshis, spend_txid, spend_index, script FROM txout, txoutgroup
-        WHERE
-        txoutgroup.groupname = ${params.groupname} AND
-        (
-          txoutgroup.scriptid = txout.address OR
-          txoutgroup.scriptid = txout.scripthash
-        )
-        OFFSET ${params.offset}
-        LIMIT ${params.limit}`;
-      }
-    } else {
-      if (params.unspent) {
-        q = sql`
-        SELECT txout.txid, index, address, scripthash, script, satoshis, spend_txid, spend_index
-        FROM txout, txoutgroup
-        WHERE
-        txoutgroup.groupname = ${params.groupname} AND
-        (
-          txoutgroup.scriptid = txout.address OR
-          txoutgroup.scriptid = txout.scripthash
-        ) AND
-        spend_txid IS NULL
-        OFFSET ${params.offset}
-        LIMIT ${params.limit}`;
-      } else {
-        q = sql`
-        SELECT txout.txid, index, address, scripthash, script, satoshis, spend_txid, spend_index
-        FROM txout, txoutgroup
-        WHERE
-        txoutgroup.groupname = ${params.groupname} AND
-        (
-          txoutgroup.scriptid = txout.address OR
-          txoutgroup.scriptid = txout.scripthash
-        )
-        OFFSET ${params.offset}
-        LIMIT ${params.limit}`;
-      }
-    }
-    result = await this.db.query(q);
+    let q = `
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
+    ${params.script ? ', txout.script ' : ''}
+    FROM txout, txoutgroup, tx
+    WHERE
+    txoutgroup.groupname = $1 AND
+    (
+      txoutgroup.scriptid = txout.address OR
+      txoutgroup.scriptid = txout.scripthash
+    ) AND
+    ${ params.unspent ? ' spend_txid IS NULL AND ' : '' }
+    tx.txid = txout.txid
+    OFFSET $2
+    LIMIT $3`;
+
+    result = await this.db.query(q, [ params.groupname, params.offset, params.limit ]);
     return result.rows;
   }
 
   public async getUtxoBalanceByScriptHashes(scripthashes: string[]): Promise<any> {
     let result: any;
-    const str = sql`
+    const str = `
       SELECT * FROM
       (
         SELECT sum(satoshis) as balance
         FROM txout, tx
         WHERE
-        txout.scripthash = ANY(${sql.array(scripthashes, 'varchar')}) AND
+        txout.scripthash IN (${this.joinQuote(scripthashes)}) AND
         spend_txid IS NULL AND
         txout.txid = tx.txid AND
         tx.completed IS TRUE
@@ -160,7 +79,7 @@ class TxoutModel {
         SELECT sum(satoshis) as balance
         FROM txout, tx
         WHERE
-        txout.scripthash = ANY(${sql.array(scripthashes, 'varchar')}) AND
+        txout.scripthash IN (${this.joinQuote(scripthashes)}) AND
         spend_txid IS NULL AND
         txout.txid = tx.txid AND
         tx.completed IS FALSE
@@ -169,21 +88,21 @@ class TxoutModel {
     `;
     result = await this.db.query(str);
     let balance = {
-      confirmed: result.rows[0].balance ? result.rows[0].balance : 0,
-      unconfirmed: result.rows[1] && result.rows[1].balance ? result.rows[1].balance : 0,
+      confirmed: result.rows[0].balance ? Number(result.rows[0].balance) : 0,
+      unconfirmed: result.rows[1] && result.rows[1].balance ? Number(result.rows[1].balance) : 0,
     }
     return balance;
   }
 
   public async getUtxoBalanceByAddresses(addresses: string[]): Promise<any> {
     let result: any;
-    const str = sql`
+    const str = `
       SELECT * FROM
       (
         SELECT sum(satoshis) as balance
         FROM txout, tx
         WHERE
-        txout.address = ANY(${sql.array(addresses, 'varchar')}) AND
+        txout.address IN (${this.joinQuote(addresses)}) AND
         spend_txid IS NULL AND
         txout.txid = tx.txid AND
         tx.completed IS TRUE
@@ -193,7 +112,7 @@ class TxoutModel {
         SELECT sum(satoshis) as balance
         FROM txout, tx
         WHERE
-        txout.address = ANY(${sql.array(addresses, 'varchar')}) AND
+        txout.address IN (${this.joinQuote(addresses)}) AND
         spend_txid IS NULL AND
         txout.txid = tx.txid AND
         tx.completed IS FALSE
@@ -202,8 +121,8 @@ class TxoutModel {
     `;
     result = await this.db.query(str);
     let balance = {
-      confirmed: result.rows[0].balance ? result.rows[0].balance : 0,
-      unconfirmed: result.rows[1] && result.rows[1].balance ? result.rows[1].balance : 0,
+      confirmed: result.rows[0].balance ? Number(result.rows[0].balance) : 0,
+      unconfirmed: result.rows[1] && result.rows[1].balance ? Number(result.rows[1].balance) : 0,
     }
     return balance;
   }
@@ -213,13 +132,13 @@ class TxoutModel {
    */
   public async getUtxoBalanceByGroup(groupname: string): Promise<any> {
     let result: any;
-    const str = sql`
+    const str = `
       SELECT * FROM
       (
         SELECT sum(satoshis) as balance
         FROM txout, txoutgroup, tx
         WHERE
-        txoutgroup.groupname = ${groupname} AND
+        txoutgroup.groupname = $1 AND
         (
           txoutgroup.scriptid = txout.address OR
           txoutgroup.scriptid = txout.scripthash
@@ -233,7 +152,7 @@ class TxoutModel {
         SELECT sum(satoshis) as balance
         FROM txout, txoutgroup, tx
         WHERE
-        txoutgroup.groupname = ${groupname} AND
+        txoutgroup.groupname = $2 AND
         (
           txoutgroup.scriptid = txout.address OR
           txoutgroup.scriptid = txout.scripthash
@@ -244,51 +163,42 @@ class TxoutModel {
 
       ) AS q1
     `;
-    result = await this.db.query(str);
+    result = await this.db.query(str, [ groupname, groupname ]);
     let balance = {
-      confirmed: result.rows[0].balance ? result.rows[0].balance : 0,
-      unconfirmed: result.rows[1] && result.rows[1].balance ? result.rows[1].balance : 0,
+      confirmed: result.rows[0].balance ? Number(result.rows[0].balance) : 0,
+      unconfirmed: result.rows[1] && result.rows[1].balance ? Number(result.rows[1].balance) : 0,
     }
     return balance;
   }
 
   public async getTxout(txid: string, index: number, script?: boolean): Promise<string> {
-    if (script) {
-      let result: any = await this.db.query(sql`
-      SELECT * FROM txout
-      WHERE txid = ${txid} AND
-      index = ${index}`);
-      return result.rows[0];
-    } else {
-      let result: any = await this.db.query(sql`
-      SELECT txid, index, address, scripthash, script, satoshis, spend_txid, spend_index FROM txout
-      WHERE txid = ${txid} AND
-      index = ${index}`);
-      return result.rows[0];
-    }
+    let result: any = await this.db.query(`
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
+    ${script ? ', txout.script ' : ''}
+    FROM txout, tx
+    WHERE txout.txid = $1 AND
+    txout.index = $2 AND
+    tx.txid = txout.txid`, [
+      txid, index
+    ]);
+    return result.rows[0];
   }
 
   public async getTxoutsByOutpointArray(txOutpoints: Array<{ txid: string, index: string }>, script?: boolean): Promise<any[]> {
-    // Hack until we figure out how to do slonik tuple = ANY
-    // See: https://github.com/gajus/slonik/issues/192
     const txidToIndexMap = {};
     const txidsOnly = [];
+    // tslint:disable-next-line: prefer-for-of
     for (let index = 0; index < txOutpoints.length; index++) {
       txidToIndexMap[txOutpoints[index].txid] = txidToIndexMap[txOutpoints[index].txid] || {};
       txidToIndexMap[txOutpoints[index].txid][txOutpoints[index].index] = true;
       txidsOnly.push(txOutpoints[index].txid);
     }
-    let result: any;
-    if (script) {
-      const i = sql`
-      SELECT * FROM txout
-      WHERE txid = ANY(${sql.array(txidsOnly, 'varchar')})`;
-      result = await this.db.query(i)
-    } else {
-      result = await this.db.query(sql`
-      SELECT txid, index, address, scripthash, satoshis, spend_txid, spend_index FROM txout
-      WHERE txid = ANY(${sql.array(txidsOnly, 'varchar')})`);
-    }
+    let result = await this.db.query(`
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
+    ${script ? ', txout.script ' : ''}
+    FROM txout, tx
+    WHERE txout.txid IN(${this.joinQuote(txidsOnly)}) AND tx.txid = txout.txid`);
+
     const results = [];
     // Walk the results and only keep the txouts that match txid+index
     for (const row of result.rows) {
@@ -302,16 +212,31 @@ class TxoutModel {
   }
 
   public async saveTxout(txid: string, index: number, address: string | null | undefined, scripthash: string, script: string, satoshis: number): Promise<string> {
-    let result: any = await this.db.query(sql`INSERT INTO txout(txid, index, address, scripthash, script, satoshis) VALUES (${txid}, ${index}, ${address}, ${scripthash}, ${script}, ${satoshis}) ON CONFLICT DO NOTHING`);
+    let result: any = await this.db.query(
+      `INSERT INTO txout(txid, index, address, scripthash, script, satoshis)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      ON CONFLICT DO NOTHING`, [
+        txid, index, address, scripthash, script, satoshis
+      ]);
     return result;
   }
 
   public async updateSpendIndex(
     txid: string, index: string, spendTxId: string, spendIndex: number
   ) {
-    let result: any = await this.db.query(sql`UPDATE txout SET spend_txid=${spendTxId}, spend_index=${spendIndex} WHERE txid=${txid} AND index=${index}`);
+    let result: any = await this.db.query(
+      `UPDATE txout
+      SET spend_txid=$1, spend_index=$2
+      WHERE txid=$3 AND index=$4`, [
+        spendTxId, spendIndex, txid, index
+      ]);
     return result;
   }
+
+  private joinQuote(arr: string[]): string {
+    return "'" + arr.join("','") + "'";
+  }
+
 }
 
 export default TxoutModel;

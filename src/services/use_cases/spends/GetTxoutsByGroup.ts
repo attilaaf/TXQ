@@ -1,7 +1,6 @@
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
-import InvalidParamError from '../../error/InvalidParamError';
 @Service('getTxoutsByGroup')
 export default class GetTxoutsByGroup extends UseCase {
 
