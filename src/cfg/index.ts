@@ -26,7 +26,7 @@ const config: IConfig = {
   queue: {
     // Max number of concurrent requests to sync tx status from merchantapi
     taskRequestConcurrency: process.env.MERCHANT_API_CONCURRENCY ? parseInt(process.env.MERCHANT_API_CONCURRENCY, 10) : 1,
-    abandonedSyncTaskRescanSeconds: 300,       // How many seconds to rescan for missed tasks
+    abandonedSyncTaskRescanSeconds: 3600,       // How many seconds to rescan for missed tasks
     syncBackoff: {
       // 'full' or 'none'
       jitter: process.env.SYNC_JITTER ? process.env.SYNC_JITTER : 'none',

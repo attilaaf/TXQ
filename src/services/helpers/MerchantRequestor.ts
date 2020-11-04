@@ -35,9 +35,9 @@ export class MerchantRequestorPolicy {
 
 const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
   return new Promise(async (resolve, reject) => {
-    let responsePayloadList = [];
-    let responseSuccessPayload = null;
-    let responseWithPayload = null;
+    let responseReturnList = [];
+    let validResponseWithSuccessPayload = null;
+    let firstValidResponseWithAnyPayload = null;
     // tslint:disable-next-line: prefer-for-of
     for (let i = 0; i < endpoints.length; i++) {
       try {
@@ -64,32 +64,37 @@ const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
         }
         if (response && response.data && response.data.payload && response.data.payload.returnResult === 'success') {
           const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
-          responsePayloadList.push(toSave);
-          responseSuccessPayload = toSave;
+          responseReturnList.push(toSave);
+          validResponseWithSuccessPayload = toSave;
+          if (!firstValidResponseWithAnyPayload) {
+            firstValidResponseWithAnyPayload = toSave;
+          }
           // Do not break, this ensures all endpoints are sent to
           // break;
         } else if (response && response.data && response.data.payload) {
           const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
-          responseWithPayload = toSave;
-          responsePayloadList.push(toSave);
+          responseReturnList.push(toSave);
+          if (!firstValidResponseWithAnyPayload) {
+            firstValidResponseWithAnyPayload = toSave;
+          }
         } else {
           const toSave = { error: JSON.stringify(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
-          responsePayloadList.push(toSave);
+          responseReturnList.push(toSave);
         }
       } catch (err) {
         let code = err && err.response && err.response.status ? err.response.status : 500;
         if (responseSaver) {
           await responseSaver(endpoints[i].name, eventType, { error: err.toString(), stack: err.stack });
         }
-        responsePayloadList.push({error: err.toString(), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: code});
+        responseReturnList.push({error: err.toString(), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: code});
       }
     }
 
     const formattedResponse = {
-      ...(responseSuccessPayload || responseWithPayload || responsePayloadList[0]),
-      mapiResponses: responsePayloadList
+      ...(validResponseWithSuccessPayload || firstValidResponseWithAnyPayload || responseReturnList[0]),
+      mapiResponses: responseReturnList
     };
-    if (responseSuccessPayload || responseWithPayload) {
+    if (validResponseWithSuccessPayload || firstValidResponseWithAnyPayload) {
       return resolve(formattedResponse);
     } else {
       return reject(formattedResponse);
@@ -99,9 +104,10 @@ const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
 
 const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
   return new Promise(async (resolve, reject) => {
-    let responsePayloadList = [];
-    let responseSuccessPayload = null;
-    let responseWithPayload = null;
+    let responseReturnList = [];
+    let validResponseWithSuccessPayload = null;
+    let validResponseWithAnyPayload = null;
+
     // tslint:disable-next-line: prefer-for-of
     for (let i = 0; i < endpoints.length; i++) {
       try {
@@ -128,31 +134,32 @@ const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
         }
         if (response && response.data && response.data.payload && response.data.payload.returnResult === 'success') {
           const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
-          responsePayloadList.push(toSave);
-          responseSuccessPayload = toSave;
+          responseReturnList.push(toSave);
+          validResponseWithSuccessPayload = toSave;
+
           break;
         } else if (response && response.data && response.data.payload) {
           const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
-          responseWithPayload = toSave;
-          responsePayloadList.push(toSave);
+          validResponseWithAnyPayload = toSave;
+          responseReturnList.push(toSave);
         } else {
           const toSave = { error: JSON.stringify(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
-          responsePayloadList.push(toSave);
+          responseReturnList.push(toSave);
         }
       } catch (err) {
         let code = err && err.response && err.response.status ? err.response.status : 500;
         if (responseSaver) {
           await responseSaver(endpoints[i].name, eventType, { error: err.toString(), stack: err.stack });
         }
-        responsePayloadList.push({error: err.toString(), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: code});
+        responseReturnList.push({error: err.toString(), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: code});
       }
     }
 
     const formattedResponse = {
-      ...(responseSuccessPayload || responseWithPayload || responsePayloadList[0]),
-      mapiResponses: responsePayloadList
+      ...(validResponseWithSuccessPayload || validResponseWithAnyPayload || responseReturnList[0]),
+      mapiResponses: responseReturnList
     };
-    if (responseSuccessPayload || responseWithPayload) {
+    if (validResponseWithSuccessPayload || validResponseWithAnyPayload) {
       return resolve(formattedResponse);
     } else {
       return reject(formattedResponse);

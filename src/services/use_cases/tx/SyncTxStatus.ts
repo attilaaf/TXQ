@@ -170,7 +170,7 @@ export default class SyncTxStatus extends UseCase {
             sendPayload: response.payload
           });
           // Something bad, cannot recover
-          await this.txService.updateTxsync(params.accountContext, params.txid, sync_state.sync_fail);
+          await this.txsyncService.updateTxsync(params.accountContext, params.txid, sync_state.sync_fail);
 
           return {
             success: true,
