@@ -47,6 +47,8 @@ const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
             headers: {
             ...(endpoints[i].headers),
             'content-type': 'application/json',
+            maxContentLength: 52428890,
+            maxBodyLength: 52428890
           }});
         }
         if (httpVerb === 'post') {
@@ -54,6 +56,8 @@ const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
             headers: {
             ...(endpoints[i].headers),
             'content-type': 'application/json',
+            maxContentLength: 52428890,
+            maxBodyLength: 52428890
           }});
         }
         if (responseSaver) {
@@ -117,6 +121,8 @@ const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
             headers: {
             ...(endpoints[i].headers),
             'content-type': 'application/json',
+            maxContentLength: 52428890,
+            maxBodyLength: 52428890
           }});
         }
         if (httpVerb === 'post') {
@@ -124,6 +130,8 @@ const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
             headers: {
             ...(endpoints[i].headers),
             'content-type': 'application/json',
+            maxContentLength: 52428890,
+            maxBodyLength: 52428890
           }});
         }
         if (responseSaver) {
