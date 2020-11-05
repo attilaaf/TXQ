@@ -1,16 +1,17 @@
 import { Service, Inject } from 'typedi';
 import { IAccountContext } from '@interfaces/IAccountContext';
-import { PoolFactory } from '../../bootstrap/middleware/di/diDatabase';
+import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
 
 @Service('updatelogModel')
 class UpdatelogModel {
-  constructor(@Inject('db') private db: PoolFactory) {}
+  constructor(@Inject('db') private db: ContextFactory) {}
 
   public async save(accountContext: IAccountContext, eventType: string, response: any, channel: string, txid: string): Promise<string> {
+    const client = await this.db.getClient(accountContext);
     const restext = JSON.stringify(response);
     let requestTypeStr = eventType ? eventType : '';
     let channelStr = channel ? channel : '';
-    let result: any = await this.db.getClient(accountContext).query(`
+    let result: any = await client.query(`
     INSERT INTO updatelog(txid, event_type, channel, response)
     VALUES ($1, $2, $3, $4)
     RETURNING id`, [

@@ -10,7 +10,6 @@ export default class TxsyncService {
 
   public async getTxsync(accountContext: IAccountContext, txid: string) {
     let entity = await this.txsyncModel.getTxsync(accountContext, txid);
-
     if (!entity) {
       throw new ResourceNotFoundError();
     }
@@ -22,19 +21,19 @@ export default class TxsyncService {
   }
 
   public async getTxsForSync(accountContext: IAccountContext) {
-    return await this.txsyncModel.getTxsForSync(accountContext);
+    return this.txsyncModel.getTxsForSync(accountContext);
   }
 
   public async getTxsDlq(accountContext: IAccountContext, dlq?: string) {
-    return await this.txsyncModel.getTxsDlq(accountContext, dlq);
+    return this.txsyncModel.getTxsDlq(accountContext, dlq);
   }
 
   public async getTxsPending(accountContext: IAccountContext, offset: number, limit: number) {
-    return await this.txsyncModel.getTxsPending(accountContext, offset, limit);
+    return this.txsyncModel.getTxsPending(accountContext, offset, limit);
   }
 
   public async getTxsBySyncState(accountContext: IAccountContext, offset: number, limit: number, syncState: sync_state) {
-    return await this.txsyncModel.getTxsBySyncState(accountContext, offset, limit, syncState);
+    return this.txsyncModel.getTxsBySyncState(accountContext, offset, limit, syncState);
   }
 
   public async incrementRetries(accountContext: IAccountContext, txid: string) {

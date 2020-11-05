@@ -1,6 +1,6 @@
 {
   "name": "txq",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "TXQ: Bitcoin Transaction Storage Queue",
   "main": "src/bootstrap/index",
   "license": "MIT",
@@ -64,7 +64,6 @@
     "express-sse": "^0.5.3",
     "helmet": "^3.23.1",
     "http": "^0.0.0",
-    "minercraft": "file:./minercraft",
     "module-alias": "^2.2.0",
     "morgan": "^1.9.1",
     "pg": "^8.3.0",

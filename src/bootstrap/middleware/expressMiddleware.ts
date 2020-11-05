@@ -22,11 +22,10 @@ function defaultContentTypeMiddleware (req, res, next) {
 
 const handleBodyRequestParsing = (router: Router) => {
   router.use(defaultContentTypeMiddleware);
-  router.use(parser.urlencoded({ extended: true }));
+  router.use(parser.urlencoded({ extended: true, limit: '50mb'}));
   router.use(parser.json({limit: '50mb'}));
   router.use(pretty({ query: 'pretty' }));
 };
-
 
 const handleCompression = (router: Router) => {
   router.use(compression());

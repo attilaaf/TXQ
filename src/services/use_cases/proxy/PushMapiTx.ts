@@ -9,6 +9,7 @@ import { StatusTxUtil } from '../../helpers/StatusTxUtil';
 import * as bsv from 'bsv';
 import { ChannelMetaUtil } from '../../helpers/ChannelMetaUtil';
 import { IAccountContext } from '@interfaces/IAccountContext';
+import contextFactory from '../../../bootstrap/middleware/di/diContextFactory';
 
 @Service('pushMapiTx')
 export default class PushMapiTx extends UseCase {
@@ -28,14 +29,12 @@ export default class PushMapiTx extends UseCase {
     try {
       const tx = new bsv.Transaction(params.rawtx);
       const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
-        if (Config.merchantapi.enableResponseLogging) {
-          await this.merchantapilogService.save(params.accountContext, miner, eventType, response, txid);
-        }
+        await this.merchantapilogService.saveNoError(params.accountContext, miner, eventType, response, txid)
         return true;
       };
 
       const merchantRequestor = new MerchantRequestor(
-        { ... Config.merchantapi },
+        contextFactory.getMapiEndpoints(params.accountContext),
         this.logger,
         saveResponseTask
       );

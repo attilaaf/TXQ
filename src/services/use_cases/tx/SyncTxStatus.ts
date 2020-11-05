@@ -8,7 +8,7 @@ import TransactionDataMissingError from '../../error/TransactionDataMissingError
 import { sync_state } from '../../../core/txsync';
 import { MerchantRequestor } from '../../helpers/MerchantRequestor';
 import { IAccountContext } from '@interfaces/IAccountContext';
-
+import contextFactory from '../../../bootstrap/middleware/di/diContextFactory';
 @Service('syncTxStatus')
 export default class SyncTxStatus extends UseCase {
   constructor(
@@ -22,9 +22,9 @@ export default class SyncTxStatus extends UseCase {
 
   }
 
-  /**
+ /**
   * Whether this is a valid synced statuts
-  * @param status merchant api tx status
+  * @param status
   */
   public isStatusSuccess(status: any): boolean {
     if (status && status.payload && (status.payload.blockHash && status.payload.blockHash.trim() !== '') &&
@@ -63,7 +63,6 @@ export default class SyncTxStatus extends UseCase {
       txid: params.txid,
       trace: 1
     });
-
     let txsync = await this.txsyncService.getTxsync(params.accountContext, params.txid);
     let tx = await this.txService.getTx(params.accountContext, params.txid, false);
 
@@ -97,14 +96,12 @@ export default class SyncTxStatus extends UseCase {
     }
 
     const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
-      if (Config.merchantapi.enableResponseLogging) {
-        await this.merchantapilogService.save(params.accountContext, miner, eventType, response, txid);
-      }
+      await this.merchantapilogService.saveNoError(params.accountContext, miner, eventType, response, txid);
       return true;
     };
 
     const merchantRequestor = new MerchantRequestor(
-      { ... Config.merchantapi },
+      contextFactory.getMapiEndpoints(params.accountContext),
       this.logger,
       saveResponseTask
     );

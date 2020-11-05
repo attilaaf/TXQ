@@ -34,4 +34,11 @@ export default class MerchantapilogService {
       }, savedId);
     }
   }
+  public async saveNoError(accountContext: IAccountContext, miner: string, requestType: string, response: any, txid?: string) {
+    try {
+      return await this.save(accountContext, miner, requestType, response, txid);
+    } catch (err) {
+      return err;
+    }
+  }
 }

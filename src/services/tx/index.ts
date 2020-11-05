@@ -62,7 +62,8 @@ export default class TxService {
 
   public async setTxCompleted(accountContext: IAccountContext, txid: string) {
     this.logger.info('setTxCompleted', {
-      txid
+      txid,
+      projectId: accountContext.projectId
     });
 
     await this.txModel.updateCompleted(accountContext,

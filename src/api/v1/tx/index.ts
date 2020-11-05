@@ -13,6 +13,8 @@ import GetTxsForSync from '../../../services/use_cases/tx/GetTxsForSync';
 import { sendResponseWrapper } from '../../../util/sendResponseWrapper';
 import { sendErrorWrapper } from '../../../util/sendErrorWrapper';
 import ResyncTx from '../../../services/use_cases/queue/ResyncTx';
+import { AccountContextHelper } from '../../account-context-helper';
+import AccountContextForbiddenError from '../../../services/error/AccountContextForbiddenError';
 
 export default [
 
@@ -23,9 +25,13 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let resyncTx = Container.get(ResyncTx);
-          const data = await resyncTx.run({txid: Req.params.txid});
+          const data = await resyncTx.run({txid: Req.params.txid, accountContext: AccountContextHelper.getContext(Req)});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
           next(error);
         }
       },
@@ -38,7 +44,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let syncTxStatus = Container.get(SyncTxStatus);
-          let data = await syncTxStatus.run({ txid: Req.params.txid });
+          let data = await syncTxStatus.run({ txid: Req.params.txid, accountContext: AccountContextHelper.getContext(Req)});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           if (error instanceof TransactionStillProcessingError) {
@@ -53,6 +59,10 @@ export default [
             sendErrorWrapper(res, 422, error.toString());
             return;
           }
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
           next(error);
         }
       },
@@ -65,9 +75,13 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let getTxsForSync = Container.get(GetTxsForSync);
-          let data = await getTxsForSync.run({});
+          let data = await getTxsForSync.run({accountContext: AccountContextHelper.getContext(Req)});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
           next(error);
         }
       },
@@ -80,11 +94,15 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let getTx = Container.get(GetTx);
-          let data = await getTx.run({ txid: Req.params.txid, channel: null, rawtx: Req.query.rawtx === '0' ? false : true });
+          let data = await getTx.run({ txid: Req.params.txid, channel: null, rawtx: Req.query.rawtx === '0' ? false : true, accountContext: AccountContextHelper.getContext(Req)});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
             return;
           }
           next(error);
@@ -99,11 +117,20 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let getTx = Container.get(GetTx);
-          let data = await getTx.run({ txid: Req.params.txid, channel: Req.params.channel, rawtx: Req.query.rawtx === '0' ? false : true });
+          let data = await getTx.run({
+            txid: Req.params.txid,
+            channel: Req.params.channel,
+            rawtx: Req.query.rawtx === '0' ? false : true,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
             return;
           }
           next(error);
@@ -118,11 +145,19 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let getTx = Container.get(GetTx);
-          let data = await getTx.run({ txid: Req.params.txid, rawtx: Req.query.rawtx === '0' ? false : true });
+          let data = await getTx.run({
+            txid: Req.params.txid,
+            rawtx: Req.query.rawtx === '0' ? false : true,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
             return;
           }
           next(error);
@@ -139,12 +174,17 @@ export default [
           let saveTxs = Container.get(SaveTxs);
           let data = await saveTxs.run({
             channel: Req.body.channel,
-            set: Req.body.set
+            set: Req.body.set,
+            accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           if (error instanceof TxhashMismatchError || error instanceof InvalidParamError) {
             sendErrorWrapper(res, 422, error.toString());
+            return;
+          }
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
             return;
           }
           next(error);

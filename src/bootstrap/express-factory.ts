@@ -3,14 +3,6 @@ import 'reflect-metadata';
 import * as express from 'express';
 import * as SetTimeZone from 'set-tz';
 import { middlewareLoader } from './middleware';
-import { Container } from 'typedi';
-import Config from '../cfg';
-import { logger } from './middleware/logger';
-import * as proxy from 'express-http-proxy';
-import * as urlJoin from 'url-join';
-import * as url from 'url';
-import * as parser from 'body-parser';
-
 import "../services/tx/index";
 import "../services/txsync/index";
 import "../services/txout/index";

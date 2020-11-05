@@ -57,7 +57,7 @@ describe('tx', () => {
         // So we process the tx
         setTimeout(function (e) {
           done();
-        }, 0)
+        }, 0);
       });
   });
 
@@ -292,7 +292,6 @@ describe('tx', () => {
       .get(`${version.path}/tx/sync`)
       .expect(200)
       .end((err, res) => {
-        console.log('err', err, res);
         expect(res.body.status).toBe(200);
 
         expect(res.body).toEqual({
@@ -301,7 +300,7 @@ describe('tx', () => {
 
           ],
           "result":  [
-            // '7895bfd75e0db3c0305d3edc098e3edbe326c451f155305f4c8f5fd76096161f',
+            '7895bfd75e0db3c0305d3edc098e3edbe326c451f155305f4c8f5fd76096161f',
             '3191c8f14fd1171d974f965963924966de49d15bad910a38e33dc44af14929e6'
           ]
         })

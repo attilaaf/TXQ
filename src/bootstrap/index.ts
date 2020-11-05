@@ -60,7 +60,7 @@ import "../services/use_cases/txoutgroup/DeleteGroupScriptIds";
 
 SetTimeZone('UTC');
 
-import EnqInitialTxsForSync from '../services/use_cases/tx/EnqInitialTxsForSync';
+import EnqInitialTxsForSyncAllProjects from '../services/use_cases/tx/EnqInitialTxsForSyncAllProjects';
 import { createExpress } from './express-factory';
 
 async function startServer() {
@@ -87,13 +87,13 @@ startServer();
  * Check ever N minutes for jobs that are in DB in 'pending' that may need to be enqueued
  */
 async function startPendingTaskPoller() {
-  let enqInitialTxsForSync = Container.get(EnqInitialTxsForSync);
-  enqInitialTxsForSync.run({});
+  let enqInitialTxsForSync = Container.get(EnqInitialTxsForSyncAllProjects);
+  enqInitialTxsForSync.run();
 }
 
 setInterval(() => {
   startPendingTaskPoller();
-}, Config.queue.abandonedSyncTaskRescanSeconds * 1000);
+}, 10 * 60 * 1000);
 
 startPendingTaskPoller();
 

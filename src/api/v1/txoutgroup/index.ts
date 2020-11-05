@@ -8,6 +8,8 @@ import GetTxoutgroupByName from '../../../services/use_cases/txoutgroup/GetTxout
 import AddGroupScriptIds from '../../../services/use_cases/txoutgroup/AddGroupScriptIds';
 import DeleteGroupScriptIds from '../../../services/use_cases/txoutgroup/DeleteGroupScriptIds';
 import GetTxoutgroupListByScriptid from '../../../services/use_cases/txoutgroup/GetTxoutgroupListByScriptid';
+import { AccountContextHelper } from '../../account-context-helper';
+import AccountContextForbiddenError from '../../../services/error/AccountContextForbiddenError';
 
 export default [
   {
@@ -18,13 +20,18 @@ export default [
         try {
           let uc = Container.get(GetTxoutgroupListByScriptid);
           let data = await uc.run({
-            scriptid: Req.params.scriptid
+            scriptid: Req.params.scriptid,
+            accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
 
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
             return;
           }
           next(error);
@@ -43,12 +50,17 @@ export default [
             groupname: Req.params.groupname,
             offset: Req.params.offset ? Req.params.offset : 0,
             limit: Req.params.limit ? Req.params.limit : 10000,
+            accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
 
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
             return;
           }
           next(error);
@@ -65,7 +77,8 @@ export default [
           let uc = Container.get(AddGroupScriptIds);
           let data = await uc.run({
             groupname: Req.params.groupname,
-            items: Req.body.items
+            items: Req.body.items,
+            accountContext: AccountContextHelper.getContext(Req)
           });
 
           sendResponseWrapper(Req, res, 200, data.result);
@@ -73,6 +86,10 @@ export default [
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
             return;
           }
           next(error);
@@ -89,7 +106,8 @@ export default [
           let uc = Container.get(DeleteGroupScriptIds);
           let data = await uc.run({
             groupname: Req.params.groupname,
-            scriptids: Req.body.scriptids
+            scriptids: Req.body.scriptids,
+            accountContext: AccountContextHelper.getContext(Req)
           });
 
           sendResponseWrapper(Req, res, 200, data.result);
@@ -97,6 +115,10 @@ export default [
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof AccountContextForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
             return;
           }
           next(error);

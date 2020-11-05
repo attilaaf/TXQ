@@ -1,5 +1,7 @@
 
 deploy_public.sh
+config.js
+config.test.js
 # Logs
 logs
 *.log

@@ -2,10 +2,10 @@
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
-import Config from '../../../cfg';
 import { MerchantRequestor } from '../../helpers/MerchantRequestor';
 import MapiServiceError from '../../error/MapiServiceError';
 import { IAccountContext } from '@interfaces/IAccountContext';
+import contextFactory from '../../../bootstrap/middleware/di/diContextFactory';
 
 @Service('getMapiTxFeeQuote')
 export default class GetMapiTxFeeQuote extends UseCase {
@@ -18,14 +18,12 @@ export default class GetMapiTxFeeQuote extends UseCase {
   async run(params: { accountContext?: IAccountContext }): Promise<UseCaseOutcome> {
 
     const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
-      if (Config.merchantapi.enableResponseLogging) {
-        await this.merchantapilogService.save(params.accountContext, miner, eventType, response, txid);
-      }
+      await this.merchantapilogService.saveNoError(params.accountContext, miner, eventType, response, txid);
       return true;
     };
 
     const merchantRequestor = new MerchantRequestor(
-      { ... Config.merchantapi },
+      contextFactory.getMapiEndpoints(params.accountContext),
       this.logger,
       saveResponseTask
     );

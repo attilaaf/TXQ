@@ -7,6 +7,7 @@ import { MerchantRequestor } from '../../helpers/MerchantRequestor';
 import { BitcoinRegex } from '../../helpers/BitcoinRegex';
 import MapiServiceError from '../../error/MapiServiceError';
 import { IAccountContext } from '@interfaces/IAccountContext';
+import contextFactory from '../../../bootstrap/middleware/di/diContextFactory';
 
 @Service('getMapiTxStatus')
 export default class GetMapiTxStatus extends UseCase {
@@ -16,19 +17,6 @@ export default class GetMapiTxStatus extends UseCase {
     @Inject('queueService') private queueService,
     @Inject('logger') private logger) {
       super();
-
-      const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
-        if (Config.merchantapi.enableResponseLogging) {
-          await this.merchantapilogService.save(miner, eventType, response, txid);
-        }
-        return true;
-      };
-
-      this.merchantRequestor = new MerchantRequestor(
-        { ... Config.merchantapi },
-        this.logger,
-        saveResponseTask
-      );
   }
 
   async run(params: {
@@ -39,6 +27,18 @@ export default class GetMapiTxStatus extends UseCase {
     if (!txRegex.test(params.txid)) {
       return;
     }
+
+    const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
+      await this.merchantapilogService.saveNoError(miner, eventType, response, txid);
+      return true;
+    };
+
+    this.merchantRequestor = new MerchantRequestor(
+      contextFactory.getMapiEndpoints(params.accountContext),
+      this.logger,
+      saveResponseTask
+    );
+
     try {
       const status = await this.merchantRequestor.statusTx(params.txid);
 

@@ -10,6 +10,7 @@ import { EventTypes } from '../../../services/event';
 import { txDataExtractor } from '../../../util/txdataextractor';
 import Config from './../../../cfg';
 import { IAccountContext } from '@interfaces/IAccountContext';
+import contextFactory from '../../../bootstrap/middleware/di/diContextFactory';
 
 @Service('saveTxs')
 export default class SaveTxs extends UseCase {
@@ -38,6 +39,7 @@ export default class SaveTxs extends UseCase {
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
     try {
+      const queueSettings = contextFactory.getQueueSettings(params.accountContext);
       let cleanedChannel = params.channel ? params.channel : '';
       const savedTxs = [];
       for (const txid in params.set) {
@@ -45,12 +47,12 @@ export default class SaveTxs extends UseCase {
           continue;
         }
         this.logger.info('SaveTxs', {
-          txid: txid
+          projectId: params.accountContext.projectId,
+          txid
         });
         let expectedTxid = txid;
         let didExistBefore = await this.txmetaService.isTxMetaExist(params.accountContext, txid, cleanedChannel);
-        // Do not sync if set globally
-        const nosync = Config.queue.nosync ? Config.queue.nosync : !!params.set[txid].nosync;
+        const nosync = queueSettings.nosync || !!params.set[txid].nosync;
         const rawtx = params.set[txid].rawtx;
         const metadata = params.set[txid].metadata;
         const tags = params.set[txid].tags;
@@ -166,11 +168,11 @@ export default class SaveTxs extends UseCase {
         );
 
         if (!nosync) {
-          this.queueService.enqTxStatus(null, txid);
+          this.queueService.enqTxStatus(params.accountContext, txid);
         }
 
         savedTxs.push(expectedTxid);
-        let useCaseOutcome = await this.getTx.run({ txid: expectedTxid, channel: cleanedChannel, rawtx: true});
+        let useCaseOutcome = await this.getTx.run({ accountContext: params.accountContext, txid: expectedTxid, channel: cleanedChannel, rawtx: true });
         for (const item of notifyWithEntities) {
           const scriptIds = [];
           if (item.address) {

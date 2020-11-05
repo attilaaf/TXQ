@@ -7,7 +7,7 @@ import { statusDI } from './di/diModel';
 import dependencyInjectorLoader from './dependencyInjector';
 import { applyMiddleware, applyRoutes } from './../../util';
 import { logger } from './logger';
-import db from './di/diDatabase';
+import db from './di/diContextFactory';
 import Routes from './../../api/index';
 
 export const middlewareLoader = async (app: Router) => {
@@ -15,7 +15,6 @@ export const middlewareLoader = async (app: Router) => {
   console.log(`Data handlers loaded`);
 
   await dependencyInjectorLoader({
-    //mongoConnection, add postgre
     models: [statusDI],
     logger,
     db,
