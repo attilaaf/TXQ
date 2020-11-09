@@ -19,6 +19,9 @@ export default class EnqInitialTxsForSyncAllProjects extends UseCase {
       if (!contexts.hasOwnProperty(projectId)) {
         continue;
       }
+      if (!contexts[projectId].enabled) {
+        continue;
+      }
       if (contexts[projectId].queue.nosync) {
         continue;
       }

@@ -70,6 +70,7 @@ export interface IDBMappings {
 }
 
 export interface IAccountContextConfig {
+  enabled?: boolean;
   keysRequired: boolean;
   apiKeys: string[];
   serviceKeys: string[];

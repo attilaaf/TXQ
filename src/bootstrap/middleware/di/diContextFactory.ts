@@ -39,8 +39,8 @@ export class ContextFactory {
       return this.dbPoolMap.default;
     }
     if (cfg.enableDefault) {
-      if (!this.contextsConfig.default) {
-        throw new Error('No default config');
+      if (!this.contextsConfig.default || !this.contextsConfig.default.enabled) {
+        throw new Error('No enabled default config');
       }
       this.dbPoolMap.default = new Pool(this.contextsConfig.default.dbConnection);
       return this.dbPoolMap.default;
@@ -75,7 +75,7 @@ export class ContextFactory {
         await pool.query('SELECT 1');
         this.dbPoolMap[accountContext.projectId] = pool;
       } catch (err) {
-        throw new Error('DB connect fail');
+        throw new Error('DB connect fail: ' + JSON.stringify(ctx) + ' , ' + JSON.stringify(accountContext));
       }
     }
 
@@ -92,7 +92,7 @@ export class ContextFactory {
     }
     const entry = this.contextsConfig[accountContext.projectId];
     // If there is a context then try to lookup the connection pool by mapping
-    if (accountContext && accountContext.projectId && entry) {
+    if (accountContext && accountContext.projectId && entry && entry.enabled) {
       // Check for wildcard or restrict to allowed hosts
       if (accountContext.host !== '*' && -1 === entry.hosts.indexOf('*') &&
           -1 === entry.hosts.indexOf(accountContext.host)) {
