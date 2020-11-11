@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { Container } from 'typedi';
 import { ssePath } from './../index';
 import ConnectChannelClientSSE from '../../../services/use_cases/events/ConnectChannelClientSSE';
+import { AccountContextHelper } from '../../account-context-helper';
 
 export default [
   {
@@ -11,7 +12,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let connectChannelClientSSE = Container.get(ConnectChannelClientSSE);
-          connectChannelClientSSE.run({ channel: 'merchantapilogs', req: Req, res: res});
+          connectChannelClientSSE.run({ channel: 'merchantapilogs', req: Req, res, accountContext: AccountContextHelper.getContext(Req)});
         } catch (error) {
           next(error);
         }
@@ -25,7 +26,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let connectChannelClientSSE = Container.get(ConnectChannelClientSSE);
-          connectChannelClientSSE.run({ channel: '', req: Req, res: res});
+          connectChannelClientSSE.run({ channel: '', req: Req, res, accountContext: AccountContextHelper.getContext(Req)});
         } catch (error) {
           next(error);
         }
@@ -39,7 +40,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let connectChannelClientSSE = Container.get(ConnectChannelClientSSE);
-          connectChannelClientSSE.run({ channel: Req.params.channel, req: Req, res: res});
+          connectChannelClientSSE.run({ channel: Req.params.channel, req: Req, res, accountContext: AccountContextHelper.getContext(Req)});
         } catch (error) {
           next(error);
         }
@@ -53,7 +54,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let connectChannelClientSSE = Container.get(ConnectChannelClientSSE);
-          connectChannelClientSSE.run({ channel: 'updatelogs-', req: Req, res: res});
+          connectChannelClientSSE.run({ channel: 'updatelogs-', req: Req, res, accountContext: AccountContextHelper.getContext(Req)});
         } catch (error) {
           next(error);
         }
@@ -67,7 +68,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let connectChannelClientSSE = Container.get(ConnectChannelClientSSE);
-          connectChannelClientSSE.run({ channel: 'updatelogs-' + Req.params.channel, req: Req, res: res});
+          connectChannelClientSSE.run({ channel: 'updatelogs-' + Req.params.channel, req: Req, res, accountContext: AccountContextHelper.getContext(Req)});
         } catch (error) {
           next(error);
         }
@@ -81,7 +82,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let connectChannelClientSSE = Container.get(ConnectChannelClientSSE);
-          connectChannelClientSSE.run({ channel: 'address-' + Req.params.address, req: Req, res: res});
+          connectChannelClientSSE.run({ channel: 'address-' + Req.params.address, req: Req, res, accountContext: AccountContextHelper.getContext(Req)});
         } catch (error) {
           next(error);
         }
@@ -95,7 +96,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let connectChannelClientSSE = Container.get(ConnectChannelClientSSE);
-          connectChannelClientSSE.run({ channel: 'scripthash-' + Req.params.scripthash, req: Req, res: res});
+          connectChannelClientSSE.run({ channel: 'scripthash-' + Req.params.scripthash, req: Req, res, accountContext: AccountContextHelper.getContext(Req)});
         } catch (error) {
           next(error);
         }
@@ -109,7 +110,7 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let connectChannelClientSSE = Container.get(ConnectChannelClientSSE);
-          connectChannelClientSSE.run({ channel: 'groupby-' + Req.params.groupname, req: Req, res: res});
+          connectChannelClientSSE.run({ channel: 'groupby-' + Req.params.groupname, req: Req, res, accountContext: AccountContextHelper.getContext(Req)});
         } catch (error) {
           next(error);
         }

@@ -1,6 +1,7 @@
 
 deploy_public.sh
 config.js
+config.prod.js
 config.test.js
 # Logs
 logs

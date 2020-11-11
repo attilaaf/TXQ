@@ -86,6 +86,12 @@ export class ContextFactory {
     return this.contextsConfig;
   }
 
+  public getValidatedProjectId(accountContext?: IAccountContext): any {
+    // Throw if not found
+    this.getAccountContextConfig(accountContext);
+    return accountContext.projectId;
+  }
+
   private getAccountContextConfig(accountContext?: IAccountContext): any {
     if (!accountContext || !accountContext.projectId || accountContext.projectId === ''){
       throw new AccountContextForbiddenError();

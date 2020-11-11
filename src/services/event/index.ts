@@ -1,45 +1,39 @@
 import { Service, Inject } from 'typedi';
 import { Response, Request } from 'express';
 import { SSEHandler } from '../../services/helpers/SSEHandler';
+import { IAccountContext } from '@interfaces/IAccountContext';
+import contextFactory from '../../bootstrap/middleware/di/diContextFactory';
 
 export enum EventTypes {
   updatetx = 'updatetx',
   newtx = 'newtx',
 }
 
-export interface SessionSSEPayload {
-  id: number,
-  data: any,
-};
+export interface ISessionSSEPayload {
+  id: number;
+  data: any;
+}
 
-export interface SessionSSEHandler {
+export interface ISessionSSEHandler {
   time: number,
   handler: any,
-};
+}
 
-export interface SessionSSEData {
+export interface ISessionSSEData {
     largestId: number;  // track the most recent event id
     time: number; // Track last used time (to be used to delete sseHandlers when expired)
-    sseHandlers: SessionSSEHandler[]; // All SSE sessions for this channel
-    events: Array<SessionSSEPayload> // Events buffered to serve for last-event-id and history
-};
+    sseHandlers: ISessionSSEHandler[]; // All SSE sessions for this channel
+    events: ISessionSSEPayload[]; // Events buffered to serve for last-event-id and history
+}
 
 @Service('eventService')
 export default class EventService {
   private initialized;
-  private channelMapEvents: Map<string, SessionSSEData> = new Map();
+  private channelMapEvents: Map<string, ISessionSSEData> = new Map();
   constructor(
     @Inject('logger') private logger) {
 
     this.initialize();
-  }
-
-  public initialize() {
-    if (this.initialized) {
-      return;
-    }
-    this.garbageCollector();
-    this.initialized = true;
   }
 
   /**
@@ -47,9 +41,10 @@ export default class EventService {
    * @param channel Channel to push event to
    * @param event Event must be an object with property 'id'. 'id' is used in the `last-event-id` and `id` field
    */
-  public pushChannelEvent(channel: string, event: { eventType: string, entity: any }, id = -1) {
-    let channelStr = this.initChannel(channel);
-    const channelData = this.getChannelData(channel);
+  public pushChannelEvent(accountContext: IAccountContext, channel: string, event: { eventType: string, entity: any }, id = -1) {
+    const projectId = contextFactory.getValidatedProjectId(accountContext);
+    this.initChannel(projectId, channel);
+    const channelData = this.getChannelData(projectId, channel);
     const nextChannelStreamId = id !== -1 ? id : channelData.largestId + 1;
     channelData.events.push({
         id: nextChannelStreamId, // Take the id of the underlying stream, not the object
@@ -59,31 +54,63 @@ export default class EventService {
     for (const sseHandler of channelData.sseHandlers) {
       sseHandler.handler.send(event, nextChannelStreamId);
     }
-    this.removeOldChannelEvents(channelStr);
+    this.removeOldChannelEvents(projectId, channel);
   }
 
   /**
-   * Remove old events. If a client wants old events they can query with the API for anything else.
-   * @param channel Channel to prune old events
+   * Connect SSE socket to listen for queue channel events
    */
-  public removeOldChannelEvents(channel: string) {
-    const channelData = this.getChannelData(channel);
-    // start truncating once in a while only
-    const checkLimit = 15000;
-    const truncateMax = 10000;
-    if (channelData.events.length > checkLimit) {
-      channelData.events = channelData.events.slice(truncateMax)
+  public async handleSSEChannelEvents(accountContext: IAccountContext, channel: string, req: Request, res: Response) {
+    const projectId = contextFactory.getValidatedProjectId(accountContext);
+    const sseHandler = new SSEHandler(['connected'], {});
+    this.logger.info('handleSSEChannelEvents', {
+      projectId,
+      message: 'new_sse_channel_session',
+      channel,
+    });
+    const largestId = this.getChannelEventLargestId(projectId, channel);
+    await sseHandler.init(req, res, largestId, async (lastEventId: number, largestChannelEventId, cb?: Function) => {
+      this.logger.info('handleSSEChannelEvents', {
+        projectId,
+        lastEventId,
+        largestChannelEventId,
+      });
+      if (cb) {
+        cb(this.getChannelMissedMessages(projectId, channel, lastEventId, largestChannelEventId));
+      }
+    });
+    this.getChannelData(projectId, channel);
+
+    let channelStr = channel;
+    if (!channel) {
+      channelStr = '';
     }
+    channelStr = projectId + channelStr;
+
+    this.getChannelMapEvents(projectId, channel).sseHandlers.push({
+      time: (new Date()).getTime(),
+      handler: sseHandler
+    });
   }
 
-  public getChannelEventLargestId(channel: string) {
-    const channelData = this.getChannelData(channel);
+  private getChannelMapEvents(projectId: string, channel: string) {
+    let channelStr = projectId + channel;
+    return this.channelMapEvents.get(channelStr);
+  }
+
+  private setChannelMapEvents(projectId: string, channel: string, payload: any) {
+    let channelStr = projectId + channel;
+    this.channelMapEvents.set(channelStr, payload);
+  }
+
+  private getChannelEventLargestId(projectId: string, channel: string) {
+    const channelData = this.getChannelData(projectId, channel);
     return channelData.largestId;
   }
 
-  public getChannelMissedMessages(channel: string, lastEventId: number, largestChannelEventId: number) {
+  private getChannelMissedMessages(projectId: string, channel: string, lastEventId: number, largestChannelEventId: number) {
     const missedMessages = [];
-    const channelData = this.getChannelData(channel);
+    const channelData = this.getChannelData(projectId, channel);
     if (lastEventId !== 0 && lastEventId <= largestChannelEventId && channelData.events.length) {
       for (let i = 0; i < channelData.events.length; i++) {
           if (channelData[i].id && channelData[i].id >= lastEventId) {
@@ -98,63 +125,52 @@ export default class EventService {
     return missedMessages;
   }
 
+  private initChannel(projectId: string, channel: string) {
+    const channelData = this.getChannelMapEvents(projectId, channel);
+    if (!channelData) {
+      this.setChannelMapEvents(projectId, channel, {
+          largestId: 0,
+          time: (new Date()).getTime(),
+          sseHandlers: [],
+          events: [],
+        });
+    }
+  }
+
   /**
-   * Connect SSE socket to listen for queue channel events
+   * Remove old events. If a client wants old events they can query with the API for anything else.
+   * @param channel Channel to prune old events
    */
-  public async handleSSEChannelEvents(channel: string, req: Request, res: Response) {
-    const sseHandler = new SSEHandler(['connected'], {});
-    this.logger.info('handleSSEChannelEvents', {
-      message: 'new_sse_channel_session',
-      channel: channel,
-    });
-    const largestId = this.getChannelEventLargestId(channel);
-    await sseHandler.init(req, res, largestId, async (lastEventId: number, largestChannelEventId, cb?: Function) => {
-      this.logger.info('handleSSEChannelEvents', {
-        lastEventId: lastEventId,
-        largestChannelEventId: largestChannelEventId,
-      });
-      cb && cb(this.getChannelMissedMessages(channel, lastEventId, largestChannelEventId));
-    });
-    this.getChannelData(channel);
-    this.channelMapEvents.get(channel).sseHandlers.push({
-      time: (new Date()).getTime(),
-      handler: sseHandler
-    });
+  private removeOldChannelEvents(projectId: string, channel: string) {
+    const channelData = this.getChannelData(projectId, channel);
+    // start truncating once in a while only
+    const checkLimit = 15000;
+    const truncateMax = 10000;
+    if (channelData.events.length > checkLimit) {
+      channelData.events = channelData.events.slice(truncateMax);
+    }
   }
 
-  private initChannel(channel: string): string {
-    let channelStr = channel;
-    if (!channel) {
-      channelStr = '';
-    }
-    const channelData = this.channelMapEvents.get(channelStr);
+  private getChannelData(projectId: string, channel: string): ISessionSSEData {
+    let channelData = this.getChannelMapEvents(projectId, channel);
     if (!channelData) {
-        this.channelMapEvents.set(channelStr, {
+        this.setChannelMapEvents(projectId, channel, {
           largestId: 0,
           time: (new Date()).getTime(),
           sseHandlers: [],
           events: [],
         });
-    }
-    return channelStr;
-  }
-
-  private getChannelData(channel: string): SessionSSEData {
-    let channelStr = channel;
-    if (!channel) {
-      channelStr = '';
-    }
-    let channelData = this.channelMapEvents.get(channelStr);
-    if (!channelData) {
-        this.channelMapEvents.set(channelStr, {
-          largestId: 0,
-          time: (new Date()).getTime(),
-          sseHandlers: [],
-          events: [],
-        });
-        channelData = this.channelMapEvents.get(channelStr);
+        channelData = this.getChannelMapEvents(projectId, channel);
     }
     return channelData;
+  }
+
+  private initialize() {
+    if (this.initialized) {
+      return;
+    }
+    this.garbageCollector();
+    this.initialized = true;
   }
 
   /**
@@ -168,7 +184,7 @@ export default class EventService {
 			} finally {
 				this.garbageCollector();
 			}
-		}, 1000 * GARBAGE_CYCLE_TIME_SECONDS)
+		}, 1000 * GARBAGE_CYCLE_TIME_SECONDS);
   }
 
   /**

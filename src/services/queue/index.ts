@@ -127,8 +127,9 @@ export default class QueueService {
           retry: (lastError: any, attemptNumber: number) => {
             this.logger.info('sync_retry', {
               txid: task.id,
-              attemptNumber: attemptNumber,
-              lastError: lastError
+              attemptNumber,
+              lastError,
+              projectId: accountContext.projectId
             });
             this.incrementTxRetries.run({accountContext, txid: task.id});
             return true;

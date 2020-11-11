@@ -16,7 +16,7 @@ export default class UpdatelogService {
     if (channel !== response.channel) {
       throw new Error('Logic Error');
     }
-    this.eventService.pushChannelEvent('updatelogs-' + channel, {
+    this.eventService.pushChannelEvent(accountContext, 'updatelogs-' + channel, {
       eventType: requestType,
       entity: {
         txid,

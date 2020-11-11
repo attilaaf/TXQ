@@ -29,7 +29,7 @@ export default class GetMapiTxStatus extends UseCase {
     }
 
     const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
-      await this.merchantapilogService.saveNoError(miner, eventType, response, txid);
+      await this.merchantapilogService.saveNoError(params.accountContext, miner, eventType, response, txid);
       return true;
     };
 

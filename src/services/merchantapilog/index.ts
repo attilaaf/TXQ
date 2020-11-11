@@ -24,7 +24,7 @@ export default class MerchantapilogService {
     );
 
     if (txid) {
-      this.eventService.pushChannelEvent('merchantapilogs', {
+      this.eventService.pushChannelEvent(accountContext, 'merchantapilogs', {
         miner,
         eventType: requestType,
         entity: {

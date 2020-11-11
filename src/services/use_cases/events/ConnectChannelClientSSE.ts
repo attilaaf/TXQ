@@ -20,7 +20,7 @@ export default class ConnectChannelClientSSE extends UseCase {
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
 
-    const session = this.eventService.handleSSEChannelEvents(params.channel, params.req, params.res);
+    const session = this.eventService.handleSSEChannelEvents(params.accountContext, params.channel, params.req, params.res);
 
     return {
       success: true,

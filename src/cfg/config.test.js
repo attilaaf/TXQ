@@ -1,6 +1,7 @@
 
 var cfg = {
   default: {
+    enabled: true,
     keysRequired: false,
     apiKeys: ["key1", "key2"],
     serviceKeys: ["skey1"],
@@ -82,6 +83,7 @@ var cfg = {
     }
   },
   kronoverse: {
+    enabled: true,
     keysRequired: true,
     apiKeys: ["k1"],
     serviceKeys: ["s1"],

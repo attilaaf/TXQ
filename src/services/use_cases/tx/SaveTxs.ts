@@ -177,37 +177,33 @@ export default class SaveTxs extends UseCase {
           const scriptIds = [];
           if (item.address) {
             scriptIds.push(item.address);
-            this.eventService.pushChannelEvent('address-' + item.address, item.wrappedEntity, -1);
+            this.eventService.pushChannelEvent(params.accountContext, 'address-' + item.address, item.wrappedEntity, -1);
           }
           if (item.scripthash) {
             scriptIds.push(item.scripthash);
-            this.eventService.pushChannelEvent('scripthash-' + item.scripthash, item.wrappedEntity, -1);
+            this.eventService.pushChannelEvent(params.accountContext, 'scripthash-' + item.scripthash, item.wrappedEntity, -1);
           }
           // Now get all the groups to be notified
           const txoutgroups = await this.txoutgroupService.getTxoutgroupNamesByScriptIds(params.accountContext, scriptIds);
           for (const txoutgroup of txoutgroups) {
-            this.eventService.pushChannelEvent('groupby-' + txoutgroup.groupname, item.wrappedEntity, -1);
+            this.eventService.pushChannelEvent(params.accountContext, 'groupby-' + txoutgroup.groupname, item.wrappedEntity, -1);
           }
         }
 
         const entityNotif = { entity: useCaseOutcome.result, eventType: EventTypes.newtx};
         if (!didExistBefore) {
-          this.eventService.pushChannelEvent(cleanedChannel, entityNotif, useCaseOutcome.result.id);
-          if (Config.enableUpdateLogging) {
-            await this.updatelogService.save(params.accountContext, EventTypes.newtx, cleanedChannel, useCaseOutcome.result, expectedTxid);
-          }
+          this.eventService.pushChannelEvent(params.accountContext, cleanedChannel, entityNotif, useCaseOutcome.result.id);
+          await this.updatelogService.save(params.accountContext, EventTypes.newtx, cleanedChannel, useCaseOutcome.result, expectedTxid);
         } else {
           entityNotif.eventType = EventTypes.updatetx;
-          this.eventService.pushChannelEvent(cleanedChannel, entityNotif, useCaseOutcome.result.id);
-          if (Config.enableUpdateLogging) {
-            await this.updatelogService.save(params.accountContext, EventTypes.updatetx, cleanedChannel, useCaseOutcome.result, expectedTxid);
-          }
+          this.eventService.pushChannelEvent(params.accountContext, cleanedChannel, entityNotif, useCaseOutcome.result.id);
+          await this.updatelogService.save(params.accountContext, EventTypes.updatetx, cleanedChannel, useCaseOutcome.result, expectedTxid);
         }
 
         this.logger.info('SaveTxs', {
-          txid: txid,
+          txid,
           status: 'Complete',
-          didExistBefore: didExistBefore
+          didExistBefore,
         });
       }
       return {
@@ -216,7 +212,7 @@ export default class SaveTxs extends UseCase {
       };
     } catch (exception) {
       this.logger.info('SaveTxs', {
-        exception: exception,
+        exception,
         stack: exception.stack,
         channel: params.channel
       });

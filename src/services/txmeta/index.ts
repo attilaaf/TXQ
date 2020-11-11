@@ -16,7 +16,7 @@ export default class TxmetaService {
   }
 
   public async getTxsByChannel(accountContext: IAccountContext, channel: string, afterId: number, limit: number, rawtx?: boolean) {
-    return await this.txmetaModel.getTxsByChannel(accountContext, channel, afterId, limit, rawtx);
+    return this.txmetaModel.getTxsByChannel(accountContext, channel, afterId, limit, rawtx);
   }
 
   public async saveTxmeta(accountContext: IAccountContext, txid: string, channel: string | undefined | null, txmeta: ITransactionMeta, tags: any, extracted: any) {

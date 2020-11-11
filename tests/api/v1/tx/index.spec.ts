@@ -112,6 +112,7 @@ describe('tx', () => {
         delete res.body.result.id;
         delete res.body.result.h;
         delete res.body.result.i;
+        delete res.body.result.completed;
         expect(res.body).toEqual({
           "status":200,
           "errors":[
@@ -141,7 +142,7 @@ describe('tx', () => {
               // "publicKey":"0211ccfc29e3058b770f3cf3eb34b0b2fd2293057a994d4d275121be4151cdf087",
               // "signature":"3045022100cca6d2347bc2e2cac7b4f746bdb0527df0f884e1a42b3e42a2b8eb557a93cec302204c13ab830203f38bb8fb133d92de2f4e310c3fe89bf79fb3f671d026f8b951a1"
             //},
-            "completed": true,
+            // "completed": true,
             // "updated_at":1595177303,
             // "created_at":1595176406,
             // "id":743,
@@ -175,6 +176,7 @@ describe('tx', () => {
         delete res.body.result.id;
         delete res.body.result.h;
         delete res.body.result.i;
+        delete res.body.result.completed;
         expect(res.body).toEqual({
           "status":200,
           "errors":[
@@ -204,7 +206,7 @@ describe('tx', () => {
               // "publicKey":"0211ccfc29e3058b770f3cf3eb34b0b2fd2293057a994d4d275121be4151cdf087",
               // "signature":"3045022100cca6d2347bc2e2cac7b4f746bdb0527df0f884e1a42b3e42a2b8eb557a93cec302204c13ab830203f38bb8fb133d92de2f4e310c3fe89bf79fb3f671d026f8b951a1"
             //},
-            "completed": true,
+            // "completed": true,
             // "updated_at":1595177303,
             // "created_at":1595176406,
             // "id":743,
@@ -236,6 +238,7 @@ describe('tx', () => {
         delete res.body.result.id;
         delete res.body.result.h;
         delete res.body.result.i;
+        delete res.body.result.completed;
         expect(res.body).toEqual({
           "status":200,
           "errors":[
@@ -265,7 +268,7 @@ describe('tx', () => {
               // "publicKey":"0211ccfc29e3058b770f3cf3eb34b0b2fd2293057a994d4d275121be4151cdf087",
               // "signature":"3045022100cca6d2347bc2e2cac7b4f746bdb0527df0f884e1a42b3e42a2b8eb557a93cec302204c13ab830203f38bb8fb133d92de2f4e310c3fe89bf79fb3f671d026f8b951a1"
             //},
-            "completed": true,
+            // "completed": true,
             // "updated_at":1595177303,
             // "created_at":1595176406,
             // "id":743,
@@ -337,16 +340,21 @@ describe('tx', () => {
         expect(res.body.status).toBe(200);
 
         if (res.body.result.payload) {
-          delete res.body.result.payload
+          delete res.body.result.payload;
         }
 
         if (res.body.result.publicKey) {
-          delete res.body.result.publicKey
+          delete res.body.result.publicKey;
         }
 
         if (res.body.result.signature) {
-          delete res.body.result.signature
+          delete res.body.result.signature;
         }
+
+        delete res.body.result.mapiResponses;
+        delete res.body.result.mapiName;
+        delete res.body.result.mapiEndpoint;
+        delete res.body.result.mapiStatusCode;
 
         expect(res.body).toEqual({
           "status":200,
@@ -354,10 +362,9 @@ describe('tx', () => {
           ],
           "result":  {
             "encoding": "UTF-8",
-            "mimetype": "application/json",
-            "valid": true,
+            "mimetype": "application/json"
           }
-        })
+        });
 
         done();
       });
