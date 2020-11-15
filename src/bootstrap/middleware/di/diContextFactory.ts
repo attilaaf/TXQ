@@ -24,6 +24,7 @@ export class ContextFactory {
   // Store the database pools by projectId+apiKey
   // tslint:disable-next-line: member-ordering
   private dbPoolMap: any = {};
+  private hostsMap: any = {};
   private contextsConfig: any;
   /**
    * The Singleton's constructor should always be private to prevent direct
@@ -31,10 +32,25 @@ export class ContextFactory {
    */
   private constructor() {
     this.contextsConfig = process.env.NODE_ENV !== 'test' ? contextsConfig : contextsConfigTest;
+
+    // Populate map of which projects are mapped to which hosts
+    // Note that the newest (latest appeariing in config) takes precedence.
+    for (const entry in this.contextsConfig) {
+      if (!this.contextsConfig.hasOwnProperty(entry)) {
+        continue;
+      }
+      if (!this.contextsConfig[entry].enabled) {
+        continue;
+      }
+      for (const host of this.contextsConfig[entry].hosts) {
+        if (!this.hostsMap[host]) {
+          this.hostsMap[host] = entry;
+        }
+      }
+    }
   }
 
   public getDefaultPoolClient() {
-
     if (this.dbPoolMap.default) {
       return this.dbPoolMap.default;
     }
@@ -90,6 +106,10 @@ export class ContextFactory {
     // Throw if not found
     this.getAccountContextConfig(accountContext);
     return accountContext.projectId;
+  }
+
+  public getMatchedHost(host?: string): any {
+    return host ? this.hostsMap[host] : null;
   }
 
   private getAccountContextConfig(accountContext?: IAccountContext): any {
