@@ -3,7 +3,6 @@ import { createExpress } from '../../../../src/bootstrap/express-factory';
 let config = require(__dirname + '/../../../../src/cfg/index.ts').default;
 let version = require(__dirname + '/../../../../src/api/v1/index.ts');
 let url = config.baseurl + ':' + config.api.port;
-//api = supertest(url + '' + version.path);
 let api;
 
 describe('channel', () => {
@@ -176,15 +175,20 @@ describe('channel', () => {
 
     expect(res.body.status).toBe(403);
 
+    done();
+  });
+
+  test('Query with partial empty AccountContext success key not used default', async (done) => {
+    api = supertest(await createExpress());
     const res2 = await api
       .get(`${version.path}/channel`)
       .set({
         api_key:  'key1',
         project_id: '',
       })
-      .expect(403);
+      .expect(200);
 
-    expect(res2.body.status).toBe(403);
+    expect(res2.body.status).toBe(200);
 
     done();
   });
