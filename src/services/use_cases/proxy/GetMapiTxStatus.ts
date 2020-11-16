@@ -34,6 +34,7 @@ export default class GetMapiTxStatus extends UseCase {
     };
 
     this.merchantRequestor = new MerchantRequestor(
+      contextFactory.getNetwork(params.accountContext),
       contextFactory.getMapiEndpoints(params.accountContext),
       this.logger,
       saveResponseTask

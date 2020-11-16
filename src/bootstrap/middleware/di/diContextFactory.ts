@@ -3,7 +3,6 @@ import { Pool } from 'pg';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import AccountContextForbiddenError from '../../../services/error/AccountContextForbiddenError';
 import { contextsConfig } from "../../../cfg/config.js";
-import { contextsConfigTest } from "../../../cfg/config.test.js";
 
 export class ContextFactory {
   /**
@@ -31,7 +30,7 @@ export class ContextFactory {
    * construction calls with the `new` operator.
    */
   private constructor() {
-    this.contextsConfig = process.env.NODE_ENV !== 'test' ? contextsConfig : contextsConfigTest;
+    this.contextsConfig = contextsConfig;
 
     // Populate map of which projects are mapped to which hosts
     // Note that the newest (latest appeariing in config) takes precedence.
@@ -69,6 +68,12 @@ export class ContextFactory {
     // Will throw exception if not found
     const ctx = this.getAccountContextConfig(accountContext);
     return ctx.queue;
+  }
+
+  public getNetwork(accountContext?: IAccountContext): string {
+    // Will throw exception if not found
+    const ctx = this.getAccountContextConfig(accountContext);
+    return ctx.network;
   }
 
   public getMapiEndpoints(accountContext?: IAccountContext) {

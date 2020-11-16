@@ -11,7 +11,6 @@ export class AccountContextHelper {
             serviceKey: req.query.service_key || req.headers.service_key,
             host: req.headers.host
         };
-        console.log('ctx, ', ctx);
         return ctx;
     }
 

@@ -9,7 +9,7 @@ if (!envFound) {
 
 const config: IConfig = {
   appname: 'txq',
-  network: process.env.NETWORK === 'testnet' ? 'testnet' : 'livenet', // Set the merchantapi.endpoints below for testnet
+  network: process.env.NETWORK === 'testnet' ? 'testnet' : 'livenet',
   baseurl: process.env.BASEURL || 'http://localhost:8097',
   env: process.env.NODE_ENV || 'development',
   api: {

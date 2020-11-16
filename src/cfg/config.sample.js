@@ -1,6 +1,8 @@
 
 var cfg = {
   default: {
+    enabled: true,
+    network: 'livenet',
     keysRequired: false,
     apiKeys: ["key1", "key2"],
     serviceKeys: ["skey1"],
@@ -81,7 +83,9 @@ var cfg = {
       }
     }
   },
-  kronoverse: {
+  kitty: {
+    enabled: true,
+    network: 'testnet',
     keysRequired: true,
     apiKeys: ["k1"],
     serviceKeys: ["s1"],
@@ -89,7 +93,7 @@ var cfg = {
     dbConnection: {
         host: "localhost",
         user: "postgres",
-        database: "txq_dev",
+        database: "txq_test",
         password: "postgres",
         port: 5432,
         max: 3,

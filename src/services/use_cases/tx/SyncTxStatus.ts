@@ -101,6 +101,7 @@ export default class SyncTxStatus extends UseCase {
     };
 
     const merchantRequestor = new MerchantRequestor(
+      contextFactory.getNetwork(params.accountContext),
       contextFactory.getMapiEndpoints(params.accountContext),
       this.logger,
       saveResponseTask
@@ -152,7 +153,7 @@ export default class SyncTxStatus extends UseCase {
           });
         } catch (err) {
           this.logger.error('push_error', {
-            err: err.toString()
+            err: JSON.stringify(err),
           });
           throw err;
         }

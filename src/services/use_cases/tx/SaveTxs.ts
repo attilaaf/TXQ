@@ -40,6 +40,7 @@ export default class SaveTxs extends UseCase {
   }): Promise<UseCaseOutcome> {
     try {
       const queueSettings = contextFactory.getQueueSettings(params.accountContext);
+      const network = contextFactory.getNetwork(params.accountContext);
       let cleanedChannel = params.channel ? params.channel : '';
       const savedTxs = [];
       for (const txid in params.set) {
@@ -125,7 +126,7 @@ export default class SaveTxs extends UseCase {
             const scripthash = bsv.crypto.Hash.sha256(buffer).reverse().toString('hex');
             let address = '';
             try {
-              address = bsv.Address.fromScript(parsedTx.outputs[i].script, Config.network).toString();
+              address = bsv.Address.fromScript(parsedTx.outputs[i].script, network).toString();
             } catch (err) {
               // Do nothing
             }

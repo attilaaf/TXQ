@@ -23,6 +23,7 @@ export default class GetMapiTxFeeQuote extends UseCase {
     };
 
     const merchantRequestor = new MerchantRequestor(
+      contextFactory.getNetwork(params.accountContext),
       contextFactory.getMapiEndpoints(params.accountContext),
       this.logger,
       saveResponseTask
