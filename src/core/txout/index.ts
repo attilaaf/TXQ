@@ -11,8 +11,8 @@ class TxoutModel {
     let result: any;
     let split = scripthash.split(',');
     let q = `
-    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
-    ${script ? ', txout.script ' : ''}
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status,
+    txout.script
     FROM txout, tx
     WHERE scripthash IN (${this.joinQuote(split)})
     ${ unspent ? 'AND spend_txid IS NULL ' : '' }
@@ -28,8 +28,8 @@ class TxoutModel {
     let result: any;
     let split = address.split(',');
     let q = `
-    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
-    ${script ? ', txout.script ' : ''}
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status,
+    txout.script
     FROM txout, tx
     WHERE address IN (${this.joinQuote(split)})
     ${ unspent ? 'AND spend_txid IS NULL ' : '' }
@@ -47,8 +47,8 @@ class TxoutModel {
     const client = await this.db.getClient(accountContext);
     let result: any;
     let q = `
-    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
-    ${params.script ? ', txout.script ' : ''}
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status,
+    txout.script
     FROM txout, txoutgroup, tx
     WHERE
     txoutgroup.groupname = $1 AND
@@ -181,8 +181,8 @@ class TxoutModel {
   public async getTxout(accountContext: IAccountContext, txid: string, index: number, script?: boolean): Promise<string> {
     const client = await this.db.getClient(accountContext);
     let result: any = await client.query(`
-    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
-    ${script ? ', txout.script ' : ''}
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status,
+    txout.script
     FROM txout, tx
     WHERE txout.txid = $1 AND
     txout.index = $2 AND
@@ -203,8 +203,8 @@ class TxoutModel {
       txidsOnly.push(txOutpoints[index].txid);
     }
     let result = await client.query(`
-    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status
-    ${script ? ', txout.script ' : ''}
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status,
+    txout.script
     FROM txout, tx
     WHERE txout.txid IN(${this.joinQuote(txidsOnly)}) AND tx.txid = txout.txid`);
 

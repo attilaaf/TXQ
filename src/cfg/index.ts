@@ -24,6 +24,16 @@ const config: IConfig = {
     },
   },
   enableDefault: true,
+  configMode: 'database',
+  databaseModeConfig: {
+    host: process.env.DBCFG_HOST,
+    user: process.env.DBCFG_USER,
+    database: process.env.DBCFG_DATABASE,
+    password: process.env.DBCFG_PASSWORD,
+    port: process.env.DBCFG_PORT || 5432,
+    max: process.env.DBCFG_MAX_CLIENTS || 2,
+    idleTimeoutMillis: process.env.DBCFG_IDLE_TIMEOUT_MS || 10000
+  },
   logs: {
     level: process.env.LOG_LEVEL || 'debug',
     logRequestsEnabled: true,

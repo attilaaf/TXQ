@@ -25,10 +25,13 @@ export default class EnqInitialTxsForSyncAllProjects extends UseCase {
       if (contexts[projectId].queue.nosync) {
         continue;
       }
+      if (!contexts[projectId].hosts) {
+        continue;
+      }
       // Just use the first account context to enque
       const queueAccountContext: IAccountContext = {
         projectId,
-        apiKey: contexts[projectId].apiKeys[0],
+        apiKey: contexts[projectId].apiKeys ? contexts[projectId].apiKeys[0] : [],
         host: contexts[projectId].hosts[0]
       };
       let enqInitialTxsForSync = Container.get(EnqInitialTxsForSync);

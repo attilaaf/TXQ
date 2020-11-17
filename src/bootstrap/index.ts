@@ -95,7 +95,10 @@ setInterval(() => {
   startPendingTaskPoller();
 }, 10 * 60 * 1000);
 
-startPendingTaskPoller();
+setTimeout(() => {
+  startPendingTaskPoller();
+}, 1 * 1000);
+
 
 
 

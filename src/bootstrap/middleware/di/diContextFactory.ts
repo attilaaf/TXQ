@@ -14,6 +14,7 @@ export class ContextFactory {
   public static getInstance(): ContextFactory {
     if (!ContextFactory.instance) {
       ContextFactory.instance = new ContextFactory();
+      ContextFactory.instance.initialize();
     }
     return ContextFactory.instance;
   }
@@ -25,13 +26,23 @@ export class ContextFactory {
   private dbPoolMap: any = {};
   private hostsMap: any = {};
   private contextsConfig: any;
+  private dbCfgPool: any;
   /**
    * The Singleton's constructor should always be private to prevent direct
    * construction calls with the `new` operator.
    */
   private constructor() {
-    this.contextsConfig = contextsConfig;
+  }
 
+  public initialize() {
+    if (cfg.configMode === 'file') {
+      this.contextsConfig = contextsConfig;
+    } else if (cfg.configMode === 'database') {
+      this.dbCfgPool = new Pool(cfg.databaseModeConfig);
+      this.dbConfigTimerStart(true);
+    } else {
+      throw new Error('Invalid configMode');
+    }
     // Populate map of which projects are mapped to which hosts
     // Note that the newest (latest appeariing in config) takes precedence.
     for (const entry in this.contextsConfig) {
@@ -47,6 +58,37 @@ export class ContextFactory {
         }
       }
     }
+  }
+
+  public dbConfigTimerStart(startNow?: boolean) {
+    const CYCLE_TIME_SECONDS = startNow ? 0 : 30;
+		setTimeout(async () => {
+      console.log('Updating config...');
+      try {
+        const constructedConfigContext = {};
+        const projects = await this.dbCfgPool.query('SELECT * FROM project');
+        for (const project of projects.rows) {
+          // console.log('project rows', project);
+          if (!project.service_txq_db ||
+              !project.service_txq_config ||
+              !project.service_txq_config.enabled ||
+              !project.service_txq_config.hosts) {
+            continue;
+          }
+          constructedConfigContext[project.name] = project.service_txq_config;
+          constructedConfigContext[project.name].dbConnection = project.service_txq_db;
+          constructedConfigContext[project.name].apiKeys = [ project.api_key ];
+          constructedConfigContext[project.name].serviceKeys = [ project.service_key ];
+        }
+        // Update to latest config
+        this.contextsConfig = constructedConfigContext;
+        console.log('configs', this.contextsConfig);
+			} catch (err) {
+        console.log('Err', err.toString());
+      } finally {
+				this.dbConfigTimerStart();
+			}
+		}, 1000 * CYCLE_TIME_SECONDS);
   }
 
   public getDefaultPoolClient() {
@@ -84,6 +126,7 @@ export class ContextFactory {
 
   public async getClient(accountContext?: IAccountContext) {
     // Will throw exception if not found
+
     const ctx = this.getAccountContextConfig(accountContext).dbConnection;
 
     if (!ctx) {
@@ -118,6 +161,7 @@ export class ContextFactory {
   }
 
   private getAccountContextConfig(accountContext?: IAccountContext): any {
+    console.log('acc', accountContext);
     if (!accountContext || !accountContext.projectId || accountContext.projectId === ''){
       throw new AccountContextForbiddenError();
     }
