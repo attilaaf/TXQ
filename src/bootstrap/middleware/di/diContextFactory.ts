@@ -34,25 +34,18 @@ export class ContextFactory {
   private constructor() {
   }
 
-  public initialize() {
-    if (cfg.configMode === 'file') {
-      this.contextsConfig = contextsConfig;
-    } else if (cfg.configMode === 'database') {
-      this.dbCfgPool = new Pool(cfg.databaseModeConfig);
-      this.dbConfigTimerStart(true);
-    } else {
-      throw new Error('Invalid configMode');
-    }
+  public loadCtx(ctxCfg: any) {
+    this.hostsMap = {};
     // Populate map of which projects are mapped to which hosts
     // Note that the newest (latest appeariing in config) takes precedence.
-    for (const entry in this.contextsConfig) {
-      if (!this.contextsConfig.hasOwnProperty(entry)) {
+    for (const entry in ctxCfg) {
+      if (!ctxCfg.hasOwnProperty(entry)) {
         continue;
       }
-      if (!this.contextsConfig[entry].enabled) {
+      if (!ctxCfg[entry].enabled) {
         continue;
       }
-      for (const host of this.contextsConfig[entry].hosts) {
+      for (const host of ctxCfg[entry].hosts) {
         if (!this.hostsMap[host]) {
           this.hostsMap[host] = entry;
         }
@@ -60,15 +53,31 @@ export class ContextFactory {
     }
   }
 
+  public initialize() {
+    // Always load file first
+    this.contextsConfig = contextsConfig;
+    this.loadCtx(this.contextsConfig);
+
+    if (cfg.configMode === 'file') {
+      // Do nothing
+    } else if (cfg.configMode === 'database') {
+      this.dbCfgPool = new Pool(cfg.databaseModeConfig);
+      this.dbConfigTimerStart(true);
+    } else {
+      throw new Error('Invalid configMode');
+    }
+  }
+
   public dbConfigTimerStart(startNow?: boolean) {
-    const CYCLE_TIME_SECONDS = startNow ? 0 : 30;
+    const CYCLE_TIME_SECONDS = startNow ? 0 : 20;
 		setTimeout(async () => {
       console.log('Updating config...');
       try {
         const constructedConfigContext = {};
         const projects = await this.dbCfgPool.query('SELECT * FROM project');
+        console.log('Project rows', projects.rows.length);
+        let c = 0;
         for (const project of projects.rows) {
-          // console.log('project rows', project);
           if (!project.service_txq_db ||
               !project.service_txq_config ||
               !project.service_txq_config.enabled ||
@@ -79,10 +88,13 @@ export class ContextFactory {
           constructedConfigContext[project.name].dbConnection = project.service_txq_db;
           constructedConfigContext[project.name].apiKeys = [ project.api_key ];
           constructedConfigContext[project.name].serviceKeys = [ project.service_key ];
+          console.log('db ProjectName', project.name);
+          c++;
         }
         // Update to latest config
-        this.contextsConfig = constructedConfigContext;
-        console.log('configs', this.contextsConfig);
+        this.contextsConfig = Object.assign(this.contextsConfig, {}, constructedConfigContext);
+        console.log('contextsConfig db counts', c);
+        this.loadCtx(this.contextsConfig);
 			} catch (err) {
         console.log('Err', err.toString());
       } finally {
@@ -157,11 +169,11 @@ export class ContextFactory {
   }
 
   public getMatchedHost(host?: string): any {
+    console.log('hostmap', this.hostsMap);
     return host ? this.hostsMap[host] : null;
   }
 
   private getAccountContextConfig(accountContext?: IAccountContext): any {
-    console.log('acc', accountContext);
     if (!accountContext || !accountContext.projectId || accountContext.projectId === ''){
       throw new AccountContextForbiddenError();
     }
