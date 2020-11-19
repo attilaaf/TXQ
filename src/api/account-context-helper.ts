@@ -6,7 +6,7 @@ import cfg from '../cfg';
 export class AccountContextHelper {
     static getContext(req: Request): IAccountContext {
         const ctx = {
-            projectId: req.headers.project_id || AccountContextHelper.getByHost(req) || 'default',
+            projectId: req.query.project_id || req.headers.project_id || AccountContextHelper.getByHost(req) || 'default',
             apiKey: req.query.api_key || req.headers.api_key,
             serviceKey: req.query.service_key || req.headers.service_key,
             host: req.headers.host
