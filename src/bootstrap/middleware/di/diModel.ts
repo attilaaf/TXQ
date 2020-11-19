@@ -6,7 +6,7 @@ import TxinModel from './../../../core/txin';
 import MerchantapilogModel from './../../../core/merchantapilog';
 import UpdatelogModel from './../../../core/updatelog';
 import TxoutgroupModel from './../../../core/txoutgroup';
-
+import TxStoreModel from './../../../core/txstore';
 
 export const statusDI = {
   TxModel,
@@ -16,5 +16,6 @@ export const statusDI = {
   TxinModel,
   MerchantapilogModel,
   UpdatelogModel,
-  TxoutgroupModel
+  TxoutgroupModel,
+  TxStoreModel
 };

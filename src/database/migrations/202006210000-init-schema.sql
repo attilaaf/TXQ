@@ -59,7 +59,7 @@ CREATE TABLE txout (
     spend_index integer NULL
 );
 
--- Do not need index on `txid` because we always query with (txid, channel)
+-- Do not need index on txid because we always query with (txid, channel)
 CREATE UNIQUE INDEX idx_uk_txout_txid_index ON txout USING btree (txid, index);
 CREATE INDEX idx_txout_address_index ON txout USING btree (address);
 CREATE INDEX idx_txout_scripthash_index ON txout USING btree (scripthash);

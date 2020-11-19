@@ -16,6 +16,7 @@ import "../services/spend/index";
 import "../services/event/index";
 import "../services/txoutgroup/index";
 import "../services/updatelog/index";
+import "../services/txstore/index";
 
 import "../services/helpers/MerchantRequestor";
 
@@ -58,6 +59,9 @@ import "../services/use_cases/txoutgroup/GetTxoutgroupListByScriptid";
 import "../services/use_cases/txoutgroup/AddGroupScriptIds";
 import "../services/use_cases/txoutgroup/DeleteGroupScriptIds";
 
+import "../services/use_cases/txstore/GetTxStore";
+import "../services/use_cases/txstore/GetTxStoreRevisions";
+import "../services/use_cases/txstore/SaveTxStore";
 
 SetTimeZone('UTC');
 

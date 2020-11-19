@@ -59,7 +59,7 @@ CREATE TABLE txout (
     spend_index integer NULL
 );
 
--- Do not need index on `txid` because we always query with (txid, channel)
+-- Do not need index on txid because we always query with (txid, channel)
 CREATE UNIQUE INDEX idx_uk_txout_txid_index ON txout USING btree (txid, index);
 CREATE INDEX idx_txout_address_index ON txout USING btree (address);
 CREATE INDEX idx_txout_scripthash_index ON txout USING btree (scripthash);
@@ -101,10 +101,8 @@ CREATE TABLE versions (
 
 CREATE UNIQUE INDEX idx_uk_versions_version ON versions USING btree (version);
 
--- Insert versions bootstrap
 INSERT INTO versions(version) VALUES ('202006210000');
 
--- 202006260000-add-miner-fields-merchantapilogs
 ALTER TABLE merchantapilog ADD COLUMN miner varchar NULL;
 
 INSERT INTO versions(version) VALUES ('202006260000');
@@ -120,7 +118,17 @@ CREATE INDEX idx_txoutgroup_groupname ON txoutgroup USING btree (groupname);
 CREATE INDEX idx_txoutgroup_scriptid ON txoutgroup USING btree (scriptid);
 CREATE UNIQUE INDEX idx_uk_txoutgroup_groupname_scriptid ON txoutgroup USING btree (groupname, scriptid);
 
--- Insert versions bootstrap
 INSERT INTO versions(version) VALUES ('202009010000');
 
+CREATE TABLE txstore (
+    id varchar NOT NULL,
+    category varchar NOT NULL,
+    revision integer NOT NULL,
+    data jsonb NULL,
+    created_at integer NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_uk_id ON txstore USING btree (id, category, revision);
+
+INSERT INTO versions(version) VALUES ('202011110000');
 
