@@ -8,7 +8,7 @@ import MapiServiceError from '../../../services/error/MapiServiceError';
 import { sendMapiErrorWrapper } from '../../../util/sendMapiErrorWrapper';
 import GetMapiTxFeeQuote from '../../../services/use_cases/proxy/GetMapiTxFeeQuote';
 import { AccountContextHelper } from '../../account-context-helper';
-import AccountContextForbiddenError from '../../../services/error/AccountContextForbiddenError';
+import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 
 export default [
   {
@@ -24,7 +24,7 @@ export default [
           if (error instanceof MapiServiceError) {
             sendMapiErrorWrapper(res, 500, error.toString());
             return;
-          } else if (error instanceof AccountContextForbiddenError) {
+          } else if (error instanceof AccessForbiddenError) {
             sendMapiErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -46,7 +46,7 @@ export default [
           if (error instanceof MapiServiceError) {
             sendMapiErrorWrapper(res, 500, error.toString());
             return;
-          } else if (error instanceof AccountContextForbiddenError) {
+          } else if (error instanceof AccessForbiddenError) {
             sendMapiErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -69,7 +69,7 @@ export default [
           if (error instanceof MapiServiceError) {
             sendMapiErrorWrapper(res, 500, error.toString());
             return;
-          } else if (error instanceof AccountContextForbiddenError) {
+          } else if (error instanceof AccessForbiddenError) {
             sendMapiErrorWrapper(res, 403, error.toString());
             return;
           }

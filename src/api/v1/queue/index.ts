@@ -9,7 +9,7 @@ import GetTxsBySyncState from '../../../services/use_cases/queue/GetTxsBySyncSta
 import RequeueTxsDlq from '../../../services/use_cases/queue/RequeueTxsDlq';
 import { AccountContextHelper } from '../../account-context-helper';
 import { sendMapiErrorWrapper } from '../../../util/sendMapiErrorWrapper';
-import AccountContextForbiddenError from '../../../services/error/AccountContextForbiddenError';
+import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 
 export default [
   {
@@ -22,7 +22,7 @@ export default [
           const data = await getQueueStats.run({accountContext: AccountContextHelper.getContext(Req)});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendMapiErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -41,7 +41,7 @@ export default [
           const data = await getTxsDlq.run({dlq: null, accountContext: AccountContextHelper.getContext(Req)});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendMapiErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -60,7 +60,7 @@ export default [
           const data = await getTxsDlq.run({dlq: Req.params.dlq, accountContext: AccountContextHelper.getContext(Req)});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendMapiErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -79,7 +79,7 @@ export default [
           const data = await uc.run({dlq: null, limit: Req.query.limit ? Number(Req.query.limit) : 20, accountContext: AccountContextHelper.getContext(Req)});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendMapiErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -98,7 +98,7 @@ export default [
           const data = await uc.run({dlq: Req.params.dlq, limit: Req.query.limit ? Number(Req.query.limit) : 20, accountContext: AccountContextHelper.getContext(Req)});
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendMapiErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -122,7 +122,7 @@ export default [
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendMapiErrorWrapper(res, 403, error.toString());
             return;
           }

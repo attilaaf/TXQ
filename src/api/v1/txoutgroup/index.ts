@@ -9,7 +9,7 @@ import AddGroupScriptIds from '../../../services/use_cases/txoutgroup/AddGroupSc
 import DeleteGroupScriptIds from '../../../services/use_cases/txoutgroup/DeleteGroupScriptIds';
 import GetTxoutgroupListByScriptid from '../../../services/use_cases/txoutgroup/GetTxoutgroupListByScriptid';
 import { AccountContextHelper } from '../../account-context-helper';
-import AccountContextForbiddenError from '../../../services/error/AccountContextForbiddenError';
+import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 
 export default [
   {
@@ -30,7 +30,7 @@ export default [
             sendErrorWrapper(res, 404, error.toString());
             return;
           }
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -59,7 +59,7 @@ export default [
             sendErrorWrapper(res, 404, error.toString());
             return;
           }
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -88,7 +88,7 @@ export default [
             sendErrorWrapper(res, 404, error.toString());
             return;
           }
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -117,7 +117,7 @@ export default [
             sendErrorWrapper(res, 404, error.toString());
             return;
           }
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }

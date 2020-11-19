@@ -1,5 +1,4 @@
 import 'reflect-metadata';
-//import 'module-alias/register';
 import { createServer } from 'http';
 import * as SetTimeZone from 'set-tz';
 import { handleServerExit, handleExceptions } from './middleware/errorMiddleware';
@@ -32,6 +31,8 @@ import "../services/use_cases/tx/GetTxsByChannel";
 import "../services/use_cases/tx/EnqInitialTxsForSync";
 import "../services/use_cases/tx/IncrementTxRetries";
 import "../services/use_cases/tx/UpdateTxDlq";
+
+import "../services/use_cases/system/GetSystemStatus";
 
 import "../services/use_cases/queue/GetTxsDlq";
 import "../services/use_cases/queue/RequeueTxsDlq";
@@ -69,8 +70,8 @@ async function startServer() {
 
   app.get('/', function(req, res) {
     res.json({
-      txq: 'hello'
-    })
+      hello: 'world'
+    });
   });
   server.listen(Config.api.port);
 

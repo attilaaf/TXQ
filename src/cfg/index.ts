@@ -24,7 +24,7 @@ const config: IConfig = {
     },
   },
   enableDefault: true,
-  configMode: 'database',
+  configMode: process.env.CONFIG_MODE || 'file',
   databaseModeConfig: {
     host: process.env.DBCFG_HOST,
     user: process.env.DBCFG_USER,
@@ -34,6 +34,7 @@ const config: IConfig = {
     max: process.env.DBCFG_MAX_CLIENTS || 2,
     idleTimeoutMillis: process.env.DBCFG_IDLE_TIMEOUT_MS || 10000
   },
+  systemKey: process.env.SYSTEM_API_KEY || 'jsdfkj22494932secret',
   logs: {
     level: process.env.LOG_LEVEL || 'debug',
     logRequestsEnabled: true,

@@ -91,8 +91,9 @@ export interface IConfig {
   enableDefault?: boolean;
   env?: string;
   enableUpdateLogging?: boolean;
-  configMode?: 'file' | 'database';
+  configMode?: string; // 'file' | 'database';
   databaseModeConfig?: any;
+  systemKey?: string;
   api?: IApi;
   logs?: ILog;
   interceptors?: any;

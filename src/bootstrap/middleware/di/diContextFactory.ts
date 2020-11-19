@@ -1,8 +1,46 @@
 import cfg from '../../../cfg';
 import { Pool } from 'pg';
 import { IAccountContext } from '@interfaces/IAccountContext';
-import AccountContextForbiddenError from '../../../services/error/AccountContextForbiddenError';
 import { contextsConfig } from "../../../cfg/config.js";
+import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
+import { ISystemContext } from '@interfaces/ISystemContext';
+import * as fs from 'fs';
+import InvalidParamError from '../../../services/error/InvalidParamError';
+import { IAccountContextsConfig } from '@interfaces/IConfig';
+
+const cacheConfigPath = './config.cache.json';
+
+const jsonFileReader = async (filePath) => {
+    return new Promise((resolve, reject) => {
+      fs.readFile(filePath, (err, fileData: any) => {
+        if (err) {
+          return reject(err);
+        }
+        try {
+            const object = JSON.parse(fileData);
+            return resolve(object);
+        } catch(err) {
+          console.log('jsonFileReader', err);
+          return reject(null);
+        }
+      });
+    });
+};
+
+const jsonFileWriter = async (filePath, data) => {
+    return new Promise((resolve, reject) => {
+        fs.writeFile(filePath, JSON.stringify(data, null, 4), 'utf8', (err) => {
+            if (err){
+                console.log('jsonFileWriter', err);
+                reject(err);
+            }
+            else {
+              resolve();
+            }
+        });
+    });
+};
+
 
 export class ContextFactory {
   /**
@@ -32,9 +70,13 @@ export class ContextFactory {
    * construction calls with the `new` operator.
    */
   private constructor() {
+    this.contextsConfig = contextsConfig;
   }
 
   public loadCtx(ctxCfg: any) {
+
+    this.validateContext(ctxCfg);
+
     this.hostsMap = {};
     // Populate map of which projects are mapped to which hosts
     // Note that the newest (latest appeariing in config) takes precedence.
@@ -51,19 +93,52 @@ export class ContextFactory {
         }
       }
     }
+    this.contextsConfig = ctxCfg;
+    jsonFileWriter(cacheConfigPath, this.contextsConfig);
+
   }
 
-  public initialize() {
-    // Always load file first
-    this.contextsConfig = contextsConfig;
-    this.loadCtx(this.contextsConfig);
+  public getContexts(systemContext: ISystemContext) {
+    if (systemContext.systemKey && systemContext.systemKey === cfg.systemKey) {
+      const copied = {};
+      for (const entry in this.contextsConfig) {
+        if (!this.contextsConfig.hasOwnProperty(entry)) {
+          continue;
+        }
+        const copy = Object.assign({}, this.contextsConfig[entry]);
+        delete copy.dbConnection;
+        delete copy.apiKeys;
+        delete copy.serviceKeys;
+        copied[entry] = copy;
+      }
+      return copied;
+    }
+    throw new AccessForbiddenError();
+  }
 
-    if (cfg.configMode === 'file') {
-      // Do nothing
-    } else if (cfg.configMode === 'database') {
+  public async initialize() {
+    // Always load the cache first if available, if not then default to config.js
+    await jsonFileReader(cacheConfigPath)
+    .then(async (data: any) => {
+        if (data) {
+            this.loadCtx(data);
+            return;
+        }
+    }).catch((error) => {
+        console.log('Cache config file error, falling back to default config.js', error);
+        if (cfg.configMode === 'file') {
+          this.loadCtx(contextsConfig);
+        }
+    });
+
+    // Try to load from database if it's also set
+    if (cfg.configMode === 'database') {
       this.dbCfgPool = new Pool(cfg.databaseModeConfig);
       this.dbConfigTimerStart(true);
-    } else {
+    } else if (cfg.configMode === 'file') {
+      // Do nothing since we always default to file
+    }
+    else {
       throw new Error('Invalid configMode');
     }
   }
@@ -88,7 +163,6 @@ export class ContextFactory {
           constructedConfigContext[project.name].dbConnection = project.service_txq_db;
           constructedConfigContext[project.name].apiKeys = [ project.api_key ];
           constructedConfigContext[project.name].serviceKeys = [ project.service_key ];
-          console.log('db ProjectName', project.name);
           c++;
         }
         // Update to latest config
@@ -96,7 +170,7 @@ export class ContextFactory {
         console.log('contextsConfig db counts', c);
         this.loadCtx(this.contextsConfig);
 			} catch (err) {
-        console.log('Err', err.toString());
+        console.log('Err', err.toString(), err.stack);
       } finally {
 				this.dbConfigTimerStart();
 			}
@@ -115,7 +189,7 @@ export class ContextFactory {
       return this.dbPoolMap.default;
     }
 
-    throw new AccountContextForbiddenError();
+    throw new AccessForbiddenError();
   }
 
   public getQueueSettings(accountContext?: IAccountContext) {
@@ -142,7 +216,7 @@ export class ContextFactory {
     const ctx = this.getAccountContextConfig(accountContext).dbConnection;
 
     if (!ctx) {
-      throw new AccountContextForbiddenError();
+      throw new AccessForbiddenError();
     }
 
     if (!this.dbPoolMap[accountContext.projectId]) {
@@ -169,13 +243,12 @@ export class ContextFactory {
   }
 
   public getMatchedHost(host?: string): any {
-    console.log('hostmap', this.hostsMap);
     return host ? this.hostsMap[host] : null;
   }
 
   private getAccountContextConfig(accountContext?: IAccountContext): any {
     if (!accountContext || !accountContext.projectId || accountContext.projectId === ''){
-      throw new AccountContextForbiddenError();
+      throw new AccessForbiddenError();
     }
     const entry = this.contextsConfig[accountContext.projectId];
     // If there is a context then try to lookup the connection pool by mapping
@@ -183,7 +256,7 @@ export class ContextFactory {
       // Check for wildcard or restrict to allowed hosts
       if (accountContext.host !== '*' && -1 === entry.hosts.indexOf('*') &&
           -1 === entry.hosts.indexOf(accountContext.host)) {
-        throw new AccountContextForbiddenError();
+        throw new AccessForbiddenError();
       }
       // If no keys are required, then let it pass through
       if (
@@ -197,7 +270,37 @@ export class ContextFactory {
         return entry;
       }
     }
-    throw new AccountContextForbiddenError();
+    throw new AccessForbiddenError();
+  }
+  private validateContext(ctx: IAccountContextsConfig) {
+    if (!ctx) {
+      throw new InvalidParamError();
+    }
+    let counter = 0;
+    for (const entry  in ctx) {
+      if (!ctx.hasOwnProperty(entry)) {
+        continue;
+      }
+      counter++;
+
+      if (!ctx[entry].queue) {
+        throw new InvalidParamError();
+      }
+      if (!ctx[entry].merchantapi) {
+        throw new InvalidParamError();
+      }
+      if (!ctx[entry].hosts) {
+        throw new InvalidParamError();
+      }
+
+      if (!ctx[entry].dbConnection) {
+        throw new InvalidParamError();
+      }
+    }
+
+    if (!counter) {
+      throw new InvalidParamError();
+    }
   }
 }
 

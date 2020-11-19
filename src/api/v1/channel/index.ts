@@ -6,7 +6,7 @@ import GetTxsByChannel from '../../../services/use_cases/tx/GetTxsByChannel';
 import ResourceNotFoundError from '../../../services/error/ResourceNotFoundError';
 import { sendErrorWrapper } from '../../../util/sendErrorWrapper';
 import { AccountContextHelper } from '../../account-context-helper';
-import AccountContextForbiddenError from '../../../services/error/AccountContextForbiddenError';
+import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 
 export default [
   {
@@ -28,7 +28,7 @@ export default [
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
             return;
-          } else if (error instanceof AccountContextForbiddenError) {
+          } else if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -56,7 +56,7 @@ export default [
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
             return;
-          } else if (error instanceof AccountContextForbiddenError) {
+          } else if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }

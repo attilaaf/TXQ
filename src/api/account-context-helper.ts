@@ -9,7 +9,8 @@ export class AccountContextHelper {
             projectId: req.query.project_id || req.headers.project_id || AccountContextHelper.getByHost(req) || 'default',
             apiKey: req.query.api_key || req.headers.api_key,
             serviceKey: req.query.service_key || req.headers.service_key,
-            host: req.headers.host
+            host: req.headers.host,
+            systemKey: req.query.system_key || req.headers.system_key,
         };
         return ctx;
     }

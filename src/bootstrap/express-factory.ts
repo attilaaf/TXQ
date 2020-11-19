@@ -56,8 +56,8 @@ const createExpressInstance = async () => {
 
   app.get('/', function(req, res) {
     res.json({
-      txq: 'hello'
-    })
+      hello: 'world'
+    });
   });
 
   return app;

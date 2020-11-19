@@ -16,7 +16,7 @@ import GetBalanceByGroup from '../../../services/use_cases/spends/GetBalanceByGr
 import GetBalanceByAddresses from '../../../services/use_cases/spends/GetBalanceByAddresses';
 import GetBalanceByScriptHashes from '../../../services/use_cases/spends/GetBalanceByScriptHashes';
 import { AccountContextHelper } from '../../account-context-helper';
-import AccountContextForbiddenError from '../../../services/error/AccountContextForbiddenError';
+import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 
 export default [
   {
@@ -39,7 +39,7 @@ export default [
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
             return;
-          } else if (error instanceof AccountContextForbiddenError) {
+          } else if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -66,7 +66,7 @@ export default [
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
             return;
-          } else if (error instanceof AccountContextForbiddenError) {
+          } else if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -93,7 +93,7 @@ export default [
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
             return;
-          } else if (error instanceof AccountContextForbiddenError) {
+          } else if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -120,7 +120,7 @@ export default [
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());
             return;
-          } else if (error instanceof AccountContextForbiddenError) {
+          } else if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -142,7 +142,7 @@ export default [
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -168,7 +168,7 @@ export default [
           sendResponseWrapper(Req, res, 200, data.result);
 
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -194,7 +194,7 @@ export default [
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -216,7 +216,7 @@ export default [
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -242,7 +242,7 @@ export default [
           sendResponseWrapper(Req, res, 200, data.result);
 
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -271,7 +271,7 @@ export default [
 
         } catch (error) {
 
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -296,7 +296,7 @@ export default [
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -318,7 +318,7 @@ export default [
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -344,7 +344,7 @@ export default [
           sendResponseWrapper(Req, res, 200, data.result);
 
         } catch (error) {
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
@@ -372,7 +372,7 @@ export default [
             sendErrorWrapper(res, 404, error.toString());
             return;
           }
-          if (error instanceof AccountContextForbiddenError) {
+          if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
