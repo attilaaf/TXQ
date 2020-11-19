@@ -71,6 +71,7 @@ export default class PushMapiTx extends UseCase {
         result: send
       };
     } catch (error) {
+      this.logger.error({error, stack: error.stack});
       throw new MapiServiceError(error);
     }
   }

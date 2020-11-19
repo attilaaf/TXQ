@@ -40,6 +40,7 @@ export default class GetMapiTxFeeQuote extends UseCase {
         result: feeQuote
       };
     } catch (error) {
+      this.logger.error({error, stack: error.stack});
       throw new MapiServiceError(error);
     }
   }

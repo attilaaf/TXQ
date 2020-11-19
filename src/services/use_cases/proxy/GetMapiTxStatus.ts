@@ -52,6 +52,7 @@ export default class GetMapiTxStatus extends UseCase {
         result: status
       };
     } catch (error) {
+      this.logger.error({error, stack: error.stack});
       throw new MapiServiceError(error);
     }
   }
