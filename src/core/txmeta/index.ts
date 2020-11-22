@@ -26,25 +26,47 @@ class TxmetaModel {
     const client = await this.db.getClient(accountContext);
     let result: any;
     let channelStr = channel ? channel : '';
-    if (afterId)  {
-      result = await client.query(`
-      SELECT txmeta.id, ${rawtx ? 'tx.rawtx,' : '' } tx.txid, i, h, tx.send, status, completed, tx.updated_at, tx.created_at,
-      channel, metadata, tags, extracted FROM tx, txmeta
-      WHERE id < $1 AND channel = $2 AND tx.txid = txmeta.txid
-      ORDER BY txmeta.created_at DESC
-      LIMIT $3`, [
-        afterId, channelStr, limit
-      ]);
-    } else {
-      result = await client.query(`
-      SELECT txmeta.id, ${rawtx ? 'tx.rawtx,' : '' } tx.txid, i, h, tx.send, status, completed, tx.updated_at, tx.created_at,
-      channel, metadata, tags, extracted FROM tx, txmeta
-      WHERE channel = $1 AND tx.txid = txmeta.txid
-      ORDER BY txmeta.created_at DESC
-      LIMIT $2`, [
-        channelStr, limit
-      ]);
-    }
+
+    result = await client.query(
+      `SELECT 
+        txmeta.id
+        ,${rawtx ? 'tx.rawtx,' : '' } tx.txid
+        ,i
+        ,h
+        ,tx.send
+        ,status
+        ,completed
+        ,tx.updated_at
+        ,tx.created_at
+        ,channel
+        ,metadata
+        ,tags
+        ,extracted 
+        ,txsync.dlq
+      FROM 
+        tx 
+      INNER JOIN 
+        txmeta ON (tx.txid = txmeta.txid) 
+      INNER JOIN 
+        txsync ON (txmeta.txid = txsync.txid) 
+      WHERE 
+        ${
+          afterId 
+          ? `id < $1 AND channel = $2 ` 
+          : `channel = $1 `
+        } 
+        AND tx.txid = txmeta.txid 
+      ORDER BY txmeta.created_at DESC 
+      ${
+        afterId 
+        ? `LIMIT $3` 
+        : `LIMIT $2` 
+      }`, 
+      afterId 
+      ? [ afterId, channelStr, limit ] 
+      : [ channelStr, limit ]
+    );
+
     return result.rows;
   }
 

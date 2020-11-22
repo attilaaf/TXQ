@@ -18,9 +18,22 @@ class TxModel {
   public async getTx(accountContext: IAccountContext, txid: string, rawtx?: boolean): Promise<string> {
     const client = await this.db.getClient(accountContext);
     let result: any = await client.query(`
-      SELECT txid, ${rawtx ? 'rawtx,' : '' } h, i, send, status, completed, updated_at, created_at
-      FROM tx
-      WHERE txid = $1`, [ txid ]);
+      SELECT 
+        tx.txid
+        ,${rawtx ? 'tx.rawtx,' : '' } tx.h
+        ,tx.i
+        ,tx.send
+        ,tx.status
+        ,tx.completed
+        ,tx.updated_at
+        ,tx.created_at
+        ,txsync.dlq 
+      FROM 
+        tx 
+      INNER JOIN 
+        txsync ON (tx.txid = txsync.txid) 
+      WHERE 
+        tx.txid = $1 `, [ txid ]);
     return result.rows[0];
   }
 
