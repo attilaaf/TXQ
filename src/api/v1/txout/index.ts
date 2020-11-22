@@ -101,7 +101,7 @@ export default [
         }
       },
     ],
-  },
+  },/*
   {
     path: `${path}/txout/channel`,
     method: 'get',
@@ -190,7 +190,7 @@ export default [
         }
       },
     ],
-  },
+  },*/
   {
     path: `${path}/spends/:txOutpoints`,
     method: 'get',

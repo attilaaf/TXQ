@@ -19,7 +19,7 @@ export default [
           let data = await uc.run({
             channel: '',
             id: Req.query.id ? Req.query.id : 0,
-            tags: Req.query.tags,
+            // tags: Req.query.tags,
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
             accountContext: AccountContextHelper.getContext(Req)
@@ -48,7 +48,7 @@ export default [
           let data = await uc.run({
             channel: Req.params.channel,
             id: Req.query.id ? Req.query.id : 0,
-            tags: Req.query.tags,
+            // tags: Req.query.tags,
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
             accountContext: AccountContextHelper.getContext(Req)
@@ -67,7 +67,7 @@ export default [
       },
     ],
   },
-  {
+  /*{
     path: `${path}/tags/:tags`,
     method: 'get',
     handler: [
@@ -94,5 +94,5 @@ export default [
         }
       },
     ],
-  }
+  }*/
 ];
