@@ -44,9 +44,11 @@ class TxmetaModel {
         ,extracted 
         ,txsync.dlq
       FROM 
-        tx
-        ,txmeta
-        ,txsync 
+        tx 
+      INNER JOIN 
+        txmeta ON (tx.txid = txmeta.txid) 
+      INNER JOIN 
+        txsync ON (txmeta.txid = txsync.txid) 
       WHERE 
         ${
           afterId 
@@ -54,7 +56,6 @@ class TxmetaModel {
           : `channel = $1 `
         } 
         AND tx.txid = txmeta.txid 
-        AND txmeta.txid = txsync.txid 
       ORDER BY txmeta.created_at DESC 
       ${
         afterId 
