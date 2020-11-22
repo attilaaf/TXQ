@@ -103,6 +103,95 @@ export default [
     ],
   },
   {
+    path: `${path}/txout/channel`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetTxoutsByChannelTags);
+          let data = await uc.run({
+            channel: null,
+            tags: Req.query.tags,
+            limit: Req.query.limit ? Req.query.limit : 1000,
+            offset: Req.query.offset ? Req.query.offset : 0,
+            script: Req.query.script === '0' ? false : true,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          } else if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/channel/:channel`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetTxoutsByChannelTags);
+          let data = await uc.run({
+            channel: Req.params.channel,
+            tags: Req.query.tags,
+            limit: Req.query.limit ? Req.query.limit : 1000,
+            offset: Req.query.offset ? Req.query.offset : 0,
+            script: Req.query.script === '0' ? false : true,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          } else if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/tags/:tags`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetTxoutsByTags);
+          let data = await uc.run({
+            tags: Req.params.tags,
+            limit: Req.query.limit ? Req.query.limit : 1000,
+            offset: Req.query.offset ? Req.query.offset : 0,
+            script: Req.query.script === '0' ? false : true,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          } else if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
     path: `${path}/spends/:txOutpoints`,
     method: 'get',
     handler: [

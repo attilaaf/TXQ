@@ -128,7 +128,7 @@ CREATE TABLE txstore (
     created_at integer NOT NULL
 );
 
-CREATE UNIQUE INDEX idx_uk_id ON txstore USING btree (id, category, revision);
+CREATE UNIQUE INDEX idx_uk_txstore_id ON txstore USING btree (id, category, revision);
 
 INSERT INTO versions(version) VALUES ('202011110000');
 
