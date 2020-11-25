@@ -17,6 +17,8 @@ import GetBalanceByAddresses from '../../../services/use_cases/spends/GetBalance
 import GetBalanceByScriptHashes from '../../../services/use_cases/spends/GetBalanceByScriptHashes';
 import { AccountContextHelper } from '../../account-context-helper';
 import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
+import InvalidParamError from '../../../services/error/InvalidParamError';
+import GetTxHistoryByScriptHashOrAddressArray from '../../../services/use_cases/spends/GetTxHistoryByScriptHashOrAddressArray';
 
 export default [
   {
@@ -219,6 +221,28 @@ export default [
     ],
   },
   {
+    path: `${path}/txout/scripthash/balance/:scripthash`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetBalanceByScriptHashes);
+          let data = await uc.run({
+            scripthash: Req.params.scripthash,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
     path: `${path}/txout/scripthash/:scripthash/balance`,
     method: 'get',
     handler: [
@@ -230,6 +254,32 @@ export default [
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/scripthash/utxo/:scripthash`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let getUtxosByScriptHash = Container.get(GetUtxosByScriptHash);
+          let data = await getUtxosByScriptHash.run({
+            scripthash: Req.params.scripthash,
+            limit: Req.query.limit ? Req.query.limit : 1000,
+            offset: Req.query.offset ? Req.query.offset : 0,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+
+          sendResponseWrapper(Req, res, 200, data.result);
+
         } catch (error) {
           if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
@@ -278,7 +328,86 @@ export default [
             script: Req.query.script === '0' ? false : true,
             limit: Req.query.limit ? Req.query.limit : 1000,
             offset: Req.query.offset ? Req.query.offset : 0,
-            unspent: Req.query.unspent === '1' ? true : true,
+            unspent: Req.query.unspent === '1' ? true : false,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/scripthash/history/:addresses`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetTxHistoryByScriptHashOrAddressArray);
+          let data = await uc.run({
+            scripts: Req.params.addresses,
+            limit: Req.query.limit ? Req.query.limit: 100,
+            offset: Req.query.offset,
+            order: Req.query.order ? Req.query.order : 'desc',
+            fromblockheight: Req.query.fromblockheight ? Req.query.fromblockheight : null,
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof InvalidParamError) {
+            sendErrorWrapper(res, 422, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/scripthash/history`,
+    method: 'post',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetTxHistoryByScriptHashOrAddressArray);
+          let data = await uc.run({
+            scripts: Req.body.addresses || Req.body.addrs || Req.body.addr || Req.body.address,
+            limit: Req.query.limit ? Req.query.limit: 100,
+            offset: Req.query.offset,
+            order: Req.query.order ? Req.query.order : 'desc'
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof InvalidParamError) {
+            sendErrorWrapper(res, 422, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/address/balance/:address`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetBalanceByAddresses);
+          let data = await uc.run({
+            address: Req.params.address,
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
@@ -304,6 +433,32 @@ export default [
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/address/utxo/:address`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetUtxosByAddress);
+          let data = await uc.run({
+            address: Req.params.address,
+            limit: Req.query.limit ? Req.query.limit : 1000,
+            offset: Req.query.offset ? Req.query.offset : 0,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+
+          sendResponseWrapper(Req, res, 200, data.result);
+
         } catch (error) {
           if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
@@ -370,6 +525,88 @@ export default [
     ],
   },
   {
+    path: `${path}/txout/address/history/:addresses`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetTxHistoryByScriptHashOrAddressArray);
+          let data = await uc.run({
+            scripts: Req.params.addresses,
+            limit: Req.query.limit ? Req.query.limit: 100,
+            offset: Req.query.offset,
+            order: Req.query.order ? Req.query.order : 'desc',
+            fromblockheight: Req.query.fromblockheight ? Req.query.fromblockheight : null,
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof InvalidParamError) {
+            sendErrorWrapper(res, 422, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/address/history`,
+    method: 'post',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetTxHistoryByScriptHashOrAddressArray);
+          let data = await uc.run({
+            scripts: Req.body.addresses || Req.body.addrs || Req.body.addr || Req.body.address,
+            limit: Req.query.limit ? Req.query.limit: 100,
+            offset: Req.query.offset,
+            order: Req.query.order ? Req.query.order : 'desc'
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof InvalidParamError) {
+            sendErrorWrapper(res, 422, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/group/utxo/:groupname`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetUtxosByGroup);
+          let data = await uc.run({
+            groupname: Req.params.groupname,
+            limit: Req.query.limit ? Req.query.limit : 1000,
+            script: Req.query.script === '0' ? false : true,
+            offset: Req.query.offset ? Req.query.offset : 0,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
     path: `${path}/txout/group/:groupname/utxo`,
     method: 'get',
     handler: [
@@ -387,6 +624,58 @@ export default [
         } catch (error) {
           if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/group/balance/:groupname`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetBalanceByGroup);
+          let data = await uc.run({
+            groupname: Req.params.groupname,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/group/history/:groupname`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetTxHistoryByScriptHashOrAddressArray);
+          let data = await uc.run({
+            scripts: Req.params.addresses,
+            limit: Req.query.limit ? Req.query.limit: 100,
+            offset: Req.query.offset,
+            order: Req.query.order,
+            fromblockheight: Req.query.fromblockheight ? Req.query.fromblockheight : null,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          if (error instanceof InvalidParamError) {
+            sendErrorWrapper(res, 422, error.toString());
             return;
           }
           next(error);

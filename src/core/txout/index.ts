@@ -1,6 +1,7 @@
 import { Service, Inject } from 'typedi';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
+import InvalidParamError from '../../services/error/InvalidParamError';
 
 @Service('txoutModel')
 class TxoutModel {
@@ -10,30 +11,44 @@ class TxoutModel {
     const client = await this.db.getClient(accountContext);
     let result: any;
     let split = scripthash.split(',');
+
     let q = `
-    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status,
-    txout.script
-    FROM txout, tx
-    WHERE scripthash IN (${this.joinQuote(split)})
-    ${ unspent ? 'AND spend_txid IS NULL ' : '' }
-    AND txout.txid = tx.txid
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, tx.i, tx.h,
+    txout.script, txin.txid as spend_txid, txin.index as spend_index
+    FROM 
+      txout 
+    JOIN 
+      tx ON (txout.txid = tx.txid)
+    LEFT OUTER JOIN 
+      txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
+    WHERE
+    scripthash IN (${this.joinQuote(split)}) AND
+    tx.orphaned IS NOT TRUE 
+    ${unspent ? 'AND txin.prevtxid IS NULL' : ''}
     OFFSET $1
     LIMIT $2`;
     result = await client.query(q, [ offset, limit ]);
     return result.rows;
   }
+ 
 
   public async getTxoutByAddress(accountContext: IAccountContext, address: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
     const client = await this.db.getClient(accountContext);
     let result: any;
     let split = address.split(',');
     let q = `
-    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status,
-    txout.script
-    FROM txout, tx
-    WHERE address IN (${this.joinQuote(split)})
-    ${ unspent ? 'AND spend_txid IS NULL ' : '' }
-    AND txout.txid = tx.txid
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis,  tx.i, tx.h,
+    txout.script, txin.txid as spend_txid, txin.index as spend_index
+    FROM 
+      txout 
+    JOIN 
+      tx ON (txout.txid = tx.txid)
+    LEFT OUTER JOIN 
+      txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
+    WHERE
+    address IN (${this.joinQuote(split)}) AND
+    tx.orphaned IS NOT TRUE 
+    ${unspent ? 'AND txin.prevtxid IS NULL' : ''}
     OFFSET $1
     LIMIT $2`;
     result = await client.query(q, [ offset, limit ]);
@@ -47,17 +62,21 @@ class TxoutModel {
     const client = await this.db.getClient(accountContext);
     let result: any;
     let q = `
-    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status,
-    txout.script
-    FROM txout, txoutgroup, tx
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis,  tx.i, tx.h,
+    txout.script, txin.txid as spend_txid, txin.index as spend_index, txoutgroup.groupname
+    FROM 
+      txoutgroup
+    JOIN
+      txout ON (txoutgroup.scriptid = txout.address OR txoutgroup.scriptid = txout.scripthash)
+    JOIN 
+      tx ON (txout.txid = tx.txid)
+    LEFT OUTER JOIN 
+      txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
     WHERE
     txoutgroup.groupname = $1 AND
-    (
-      txoutgroup.scriptid = txout.address OR
-      txoutgroup.scriptid = txout.scripthash
-    ) AND
-    ${ params.unspent ? ' spend_txid IS NULL AND ' : '' }
+    ${params.unspent ? 'AND txin.prevtxid IS NULL' : ''}
     tx.txid = txout.txid
+    AND tx.orphaned IS NOT TRUE
     OFFSET $2
     LIMIT $3`;
 
@@ -72,23 +91,32 @@ class TxoutModel {
       SELECT * FROM
       (
         SELECT sum(satoshis) as balance
-        FROM txout, tx
+        FROM 
+          txout 
+        JOIN 
+          tx ON (txout.txid = tx.txid)
+        LEFT OUTER JOIN 
+          txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
         WHERE
         txout.scripthash IN (${this.joinQuote(scripthashes)}) AND
-        spend_txid IS NULL AND
-        txout.txid = tx.txid AND
-        tx.completed IS TRUE
+        txin.prevtxid IS NULL AND
+        tx.completed IS TRUE AND
+        tx.orphaned IS NOT TRUE
 
         UNION
 
-        SELECT sum(satoshis) as balance
-        FROM txout, tx
+        SELECT sum(satoshis) as balance 
+        FROM 
+          txout  
+        JOIN 
+          tx ON (txout.txid = tx.txid)
+        LEFT OUTER JOIN 
+          txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
         WHERE
         txout.scripthash IN (${this.joinQuote(scripthashes)}) AND
-        spend_txid IS NULL AND
-        txout.txid = tx.txid AND
-        tx.completed IS FALSE
-
+        txin.prevtxid IS NULL AND
+        tx.completed IS FALSE AND
+        tx.orphaned IS NOT TRUE
       ) AS q1
     `;
     result = await client.query(str);
@@ -106,23 +134,32 @@ class TxoutModel {
       SELECT * FROM
       (
         SELECT sum(satoshis) as balance
-        FROM txout, tx
+        FROM 
+          txout
+        JOIN 
+          tx ON (txout.txid = tx.txid)
+        LEFT OUTER JOIN 
+          txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
         WHERE
         txout.address IN (${this.joinQuote(addresses)}) AND
-        spend_txid IS NULL AND
-        txout.txid = tx.txid AND
-        tx.completed IS TRUE
+        txin.prevtxid IS NULL AND
+        tx.completed IS TRUE AND
+        tx.orphaned IS NOT TRUE
 
         UNION
 
         SELECT sum(satoshis) as balance
-        FROM txout, tx
+        FROM 
+          txout  
+        JOIN 
+          tx ON (txout.txid = tx.txid)
+        LEFT OUTER JOIN 
+          txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
         WHERE
         txout.address IN (${this.joinQuote(addresses)}) AND
-        spend_txid IS NULL AND
-        txout.txid = tx.txid AND
-        tx.completed IS FALSE
-
+        txin.prevtxid IS NULL AND
+        tx.completed IS FALSE AND
+        tx.orphaned IS NOT TRUE
       ) AS q1
     `;
     result = await client.query(str);
@@ -140,34 +177,39 @@ class TxoutModel {
     const client = await this.db.getClient(accountContext);
     let result: any;
     const str = `
-      SELECT * FROM
+     SELECT * FROM
       (
         SELECT sum(satoshis) as balance
-        FROM txout, txoutgroup, tx
+        FROM 
+          txoutgroup
+        JOIN
+          txout ON (txoutgroup.scriptid = txout.address OR txoutgroup.scriptid = txout.scripthash)
+        JOIN 
+          tx ON (txout.txid = tx.txid)
+        LEFT OUTER JOIN 
+          txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
         WHERE
         txoutgroup.groupname = $1 AND
-        (
-          txoutgroup.scriptid = txout.address OR
-          txoutgroup.scriptid = txout.scripthash
-        ) AND
-        spend_txid IS NULL AND
-        txout.txid = tx.txid AND
-        tx.completed IS TRUE
+        txin.prevtxid IS NULL AND
+        tx.completed IS TRUE AND
+        tx.orphaned IS NOT TRUE
 
         UNION
 
         SELECT sum(satoshis) as balance
-        FROM txout, txoutgroup, tx
+        FROM 
+          txoutgroup
+        JOIN
+          txout ON (txoutgroup.scriptid = txout.address OR txoutgroup.scriptid = txout.scripthash)
+        JOIN 
+          tx ON (txout.txid = tx.txid)
+        LEFT OUTER JOIN 
+          txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
         WHERE
-        txoutgroup.groupname = $2 AND
-        (
-          txoutgroup.scriptid = txout.address OR
-          txoutgroup.scriptid = txout.scripthash
-        ) AND
-        spend_txid IS NULL AND
-        txout.txid = tx.txid AND
-        tx.completed IS FALSE
-
+        txoutgroup.groupname = $1 AND
+        txin.prevtxid IS NULL AND
+        tx.completed IS FALSE AND
+        tx.orphaned IS NOT TRUE
       ) AS q1
     `;
     result = await client.query(str, [ groupname, groupname ]);
@@ -181,14 +223,21 @@ class TxoutModel {
   public async getTxout(accountContext: IAccountContext, txid: string, index: number, script?: boolean): Promise<string> {
     const client = await this.db.getClient(accountContext);
     let result: any = await client.query(`
-    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status,
-    txout.script
-    FROM txout, tx
-    WHERE txout.txid = $1 AND
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, tx.i, tx.h,
+    txout.script, txin.txid as spend_txid, txin.index as spend_index
+    FROM 
+      txout 
+    JOIN 
+      tx ON (txout.txid = tx.txid)
+    LEFT OUTER JOIN 
+      txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
+    WHERE
+    txout.txid = $1 AND
     txout.index = $2 AND
-    tx.txid = txout.txid`, [
+    tx.orphaned IS NOT TRUE `, [
       txid, index
     ]);
+    console.log('getxout', result.rows);
     return result.rows[0];
   }
 
@@ -203,11 +252,18 @@ class TxoutModel {
       txidsOnly.push(txOutpoints[index].txid);
     }
     let result = await client.query(`
-    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, txout.spend_txid, txout.spend_index, tx.status,
-    txout.script
-    FROM txout, tx
-    WHERE txout.txid IN(${this.joinQuote(txidsOnly)}) AND tx.txid = txout.txid`);
-
+    SELECT txout.txid, txout.index, txout.address, txout.scripthash, txout.satoshis, tx.i, tx.h,
+    txout.script, txin.txid as spend_txid, txin.index as spend_index
+    FROM 
+      txout 
+    JOIN 
+      tx ON (txout.txid = tx.txid)
+    LEFT OUTER JOIN 
+      txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
+    WHERE
+      txout.txid IN(${this.joinQuote(txidsOnly)}) AND tx.txid = txout.txid AND
+      tx.orphaned IS NOT TRUE 
+   `);
     const results = [];
     // Walk the results and only keep the txouts that match txid+index
     for (const row of result.rows) {
@@ -230,19 +286,82 @@ class TxoutModel {
       ]);
     return result;
   }
-
-  public async updateSpendIndex(
-    accountContext: IAccountContext,
-    txid: string, index: string, spendTxId: string, spendIndex: number
-  ) {
+ 
+  public async getTxHistoryByScriptHash(accountContext: IAccountContext, scripthashes: string [], params?: { order?: any, limit?: any, offset?: any, fromblockheight?: any}): Promise<any[]> {
     const client = await this.db.getClient(accountContext);
-    let result: any = await client.query(
-      `UPDATE txout
-      SET spend_txid=$1, spend_index=$2
-      WHERE txid=$3 AND index=$4`, [
-        spendTxId, spendIndex, txid, index
-      ]);
-    return result;
+    if (!scripthashes || !scripthashes.length) {
+      return [];
+    }
+ 
+    let order = 'desc NULLS FIRST';
+    let orderSign = '<';
+    if (params.order === 'asc') {
+      order = 'asc NULLS LAST';
+      orderSign = '>';
+    }
+    let limit = 1000;
+    if (params.limit) {
+      limit = parseInt(params.limit, 10);
+    }
+
+    if (isNaN(limit)) {
+      throw new InvalidParamError();
+    }
+    if (limit > 1000) {
+      throw new InvalidParamError();
+    }
+
+    if (limit < 100) {
+      limit = 100;
+    }
+
+    let offset = 0;
+    if (params.offset) {
+      offset = parseInt(params.offset, 10);
+    }
+    if (offset < 0 || isNaN(offset)) {
+      offset = 0;
+    }
+    let result = null;
+
+    let fromblockheight = null;
+    if (params.fromblockheight) {
+      fromblockheight = parseInt(params.fromblockheight, 10);
+    }
+
+    if (fromblockheight) {
+      const q = `
+      SELECT tx.txid, rawtx, h, i, completed, 
+      txout.index, txout.script, txout.address, txout.scripthash, 
+      txout.satoshis 
+      FROM tx, txout
+      WHERE 
+      tx.txid = txout.txid AND
+      scripthash IN ($1) AND
+      tx.orphaned IS NOT TRUE AND
+      tx.i ${orderSign} ${fromblockheight} AND
+      ORDER BY tx.i ${order}
+      OFFSET $2
+      LIMIT $3
+      `;
+      result = await client.query(q, [scripthashes]);
+    } else {
+      const q = `
+      SELECT tx.txid, rawtx, h, i, completed, 
+      txout.index, txout.script, txout.address, txout.scripthash, 
+      txout.satoshis 
+      FROM tx, txout
+      WHERE 
+      tx.txid = txout.txid AND
+      scripthash IN ($1) AND
+      tx.orphaned IS NOT TRUE AND
+      ORDER BY tx.i ${order}
+      OFFSET $2
+      LIMIT $3
+      `;
+      result = await client.query(q);
+    }
+    return result.rows;
   }
 
   private joinQuote(arr: string[]): string {

@@ -56,6 +56,10 @@ export default class TxoutService {
     );
   }
 
+  public async getTxHistoryByScriptHash(scripthashes: string [], params: any): Promise<any[]> {
+    return this.txoutModel.getTxHistoryByScriptHash(scripthashes, params);
+  }
+
 }
 
 

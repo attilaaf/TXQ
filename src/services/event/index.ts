@@ -3,10 +3,13 @@ import { Response, Request } from 'express';
 import { SSEHandler } from '../../services/helpers/SSEHandler';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import contextFactory from '../../bootstrap/middleware/di/diContextFactory';
+import { ITxEntityWithMetadata } from '@interfaces/ITransactionData';
+import { ITXOutput } from '@interfaces/ITxOutput';
 
 export enum EventTypes {
   updatetx = 'updatetx',
   newtx = 'newtx',
+  txout = 'txout',
 }
 
 export interface ISessionSSEPayload {
@@ -31,9 +34,48 @@ export default class EventService {
   private initialized;
   private channelMapEvents: Map<string, ISessionSSEData> = new Map();
   constructor(
+    @Inject('txoutgroupService') private txoutgroupService,
     @Inject('logger') private logger) {
 
     this.initialize();
+  }
+
+  
+  /**
+   * 
+   * @param accountContext Ctx this is for
+   * @param channel - Channel to publish
+   * @param evts Tx events to publish
+   */
+  public pushTxEvents(accountContext: IAccountContext, channel: string, evts: ITxEntityWithMetadata[]) {
+    for (const item of evts) {
+      this.pushChannelEvent(accountContext, channel, { entity: item, eventType: EventTypes.newtx}, item.id);
+    }
+  }
+
+  /**
+   * 
+   * @param accountContext Ctx this is for
+   * @param channel - Channel to publish
+   * @param evts Txout events to publish
+   */
+  public async pushTxoutEvents(accountContext: IAccountContext, evts: ITXOutput[]) {
+    for (const item of evts) {
+      const scriptIds = [];
+      if (item.address) {
+        scriptIds.push(item.address);
+        this.pushChannelEvent(accountContext, 'address-' + item.address, { entity: item, eventType: EventTypes.txout}, -1);
+      }
+      if (item.scripthash) {
+        scriptIds.push(item.scripthash);
+        this.pushChannelEvent(accountContext, 'scripthash-' + item.scripthash, { entity: item, eventType: EventTypes.txout}, -1);
+      }
+      // Now get all the groups to be notified
+      const txoutgroups = await this.txoutgroupService.getTxoutgroupNamesByScriptIds(accountContext, scriptIds);
+      for (const txoutgroup of txoutgroups) {
+        this.pushChannelEvent(accountContext, 'groupby-' + txoutgroup.groupname, { entity: item, eventType: EventTypes.txout}, -1);
+      }
+    }
   }
 
   /**

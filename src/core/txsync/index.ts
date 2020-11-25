@@ -1,7 +1,7 @@
 import { Service, Inject } from 'typedi';
 import { DateUtil } from '../../services/helpers/DateUtil';
-import { IAccountContext } from '@interfaces/IAccountContext';
 import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
+import { IAccountContext } from '@interfaces/IAccountContext';
 
 export enum sync_state {
   sync_fail = -1,

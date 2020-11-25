@@ -6,9 +6,14 @@ let url = config.baseurl + ':' + config.api.port;
 //api = supertest(url + '' + version.path);
 let api;
 
+const boot = async () => {
+  api = supertest(await createExpress())
+};
+boot();
+
 describe('tx', () => {
   test('txid 404', async (done) => {
-      api = supertest(await createExpress());
+    
       api
         .get(`${version.path}/tx/394a5afbb3f07a0399a34a43b73bb04aba174f931d13d341600383383bb51971`)
         .expect(404)
@@ -39,6 +44,9 @@ describe('tx', () => {
           },
           '7895bfd75e0db3c0305d3edc098e3edbe326c451f155305f4c8f5fd76096161f': {
             rawtx: '010000000137b78bd8c2bb99d4f587b78b4049234f376c31b12e51f70fd1454a69bd6be7e0600000006b4830450221008d7dc8a4d1cdfee37f40276ba8a9146036388ee7d07864cd3ce1d1a377d3d70902204af105402869d1c382341574915b7bc22873352889fced102c06683b595ae9464121036c8e693e962817ebbe672e9800170760d89777c166d401fb4fdb492c55b4a6e5ffffffff0123020000000000001976a91458ef6dcedee6cd4403e4c12880896111f43be2e088ac00000000',
+          }, 
+          "6806a6d0ec0b0e9e2a8171b20d126a371945779628fcf1e8c7034296103453df": {
+            "rawtx": "0200000004e62949f14ac43de3380a91ad5bd149de6649926359964f971d17d14ff1c89131000000006b483045022100d28609fe4c4de5958d4e4329bb821b532daa2734fcf374dac5d226e5cc2bd4f10220277796f07fb33c9cd5f7f198f958d78bbd92480db057c9c203b89723e9d6ed144121038e12ce1e2219bc4f9547c084d0bccdae9d39453d42a5ae543c00517a571dd971ffffffff7e5a5973a47c97496afdc7390ffd1a72e463516654273ca5d5a26657042b0e8f010000006a473044022032a45ef5fb971e7489b4d2196f74b43f653b6cb69ea566cd1ac88b9e4fb1fe5902204eede099f6bb6918b61b48141ed6c37f48f38aacdf1df1fdf4f7d1424817b62c412102f72f77b5036cdc57e715d7721d398a02b2c7dea13f13febaa4aa47191bd9e32affffffffe051bee4720c84eeec34bd5961ca723b4cc5bdea449c76872d37a51557c149e5010000006b4830450221009d256b6254b1d26359c095fba39bffde6b2149bb5427fc1e06f4243f568015ba022074331b5708ea5f8fb94099e0510c23359b1d062c0513ed8fb2bab9edd54f95bf412102f72f77b5036cdc57e715d7721d398a02b2c7dea13f13febaa4aa47191bd9e32affffffff94d0150ca03eeb0e5711086eef960699af67fc1540238fae2e5069725f416d90580000006b483045022100ffd490f45cc3510379bca47273b4b762390e3769641cb656d9abd4b6efa93416022014701ea969cc7dc0dae67cd0ee31b8d6dcd3b2327009bfcad9b3819794f7b2594121038c1d16b30f87c69acb9c2b6e54eeef11d219703a98c2e2e7b4c1590e15508e3fffffffff0200fc5ea6260000001976a914ac8c269edbaf6f4257562038ff27dd7dc03b50d288acc68622a5160000001976a914b9b9edb47415c3d6980fec683c60b8b74754df9988ac00000000"
           }
         }
       })
@@ -51,6 +59,7 @@ describe('tx', () => {
           "result": [
             "3191c8f14fd1171d974f965963924966de49d15bad910a38e33dc44af14929e6",
             '7895bfd75e0db3c0305d3edc098e3edbe326c451f155305f4c8f5fd76096161f',
+            '6806a6d0ec0b0e9e2a8171b20d126a371945779628fcf1e8c7034296103453df'
           ],
           "status": 200
         });
@@ -104,9 +113,7 @@ describe('tx', () => {
       .expect(200)
       .end((err, res) => {
         expect(res.body.status).toBe(200);
-        if (res.body.result.status) {
-          delete res.body.result.status
-        }
+        delete res.body.result.status
         delete res.body.result.updated_at;
         delete res.body.result.created_at;
         delete res.body.result.id;
@@ -146,6 +153,7 @@ describe('tx', () => {
             // "updated_at":1595177303,
             // "created_at":1595176406,
             // "id":743,
+            "orphaned": null,
             "channel":"",
             "metadata":{
 
@@ -155,7 +163,8 @@ describe('tx', () => {
             ],
             "extracted":{
 
-            }
+            },
+            "dlq": null
           }
         })
         done();
@@ -168,9 +177,8 @@ describe('tx', () => {
       .expect(200)
       .end((err, res) => {
         expect(res.body.status).toBe(200);
-        if (res.body.result.status) {
-          delete res.body.result.status
-        }
+         
+        delete res.body.result.status
         delete res.body.result.updated_at;
         delete res.body.result.created_at;
         delete res.body.result.id;
@@ -210,6 +218,7 @@ describe('tx', () => {
             // "updated_at":1595177303,
             // "created_at":1595176406,
             // "id":743,
+            "orphaned": null,
             "channel":"",
             "metadata":{
 
@@ -217,7 +226,8 @@ describe('tx', () => {
             "tags": {},
             "extracted":{
 
-            }
+            }, 
+            "dlq": null
           }
         })
         done();
@@ -272,6 +282,7 @@ describe('tx', () => {
             // "updated_at":1595177303,
             // "created_at":1595176406,
             // "id":743,
+            "orphaned": null,
             "channel":"foobar",
             "metadata":{
 
@@ -281,7 +292,8 @@ describe('tx', () => {
             ],
             "extracted":{
 
-            }
+            }, 
+            "dlq": null
           }
         })
 
@@ -297,16 +309,8 @@ describe('tx', () => {
       .end((err, res) => {
         expect(res.body.status).toBe(200);
 
-        expect(res.body).toEqual({
-          "status":200,
-          "errors":[
-
-          ],
-          "result":  [
-            '7895bfd75e0db3c0305d3edc098e3edbe326c451f155305f4c8f5fd76096161f',
-            '3191c8f14fd1171d974f965963924966de49d15bad910a38e33dc44af14929e6'
-          ]
-        })
+        expect(res.body.result.includes("7895bfd75e0db3c0305d3edc098e3edbe326c451f155305f4c8f5fd76096161f")).toEqual(true);
+        expect(res.body.result.includes("3191c8f14fd1171d974f965963924966de49d15bad910a38e33dc44af14929e6")).toEqual(true);
 
         done();
       });
@@ -343,14 +347,8 @@ describe('tx', () => {
           delete res.body.result.payload;
         }
 
-        if (res.body.result.publicKey) {
-          delete res.body.result.publicKey;
-        }
-
-        if (res.body.result.signature) {
-          delete res.body.result.signature;
-        }
-
+        delete res.body.result.publicKey;
+        delete res.body.result.signature;
         delete res.body.result.mapiResponses;
         delete res.body.result.mapiName;
         delete res.body.result.mapiEndpoint;

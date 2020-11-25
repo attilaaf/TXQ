@@ -54,6 +54,7 @@ class TxmetaModel {
           AND txsync.dlq IS NULL 
           AND tx.completed = TRUE 
           AND tx.i IS NOT NULL 
+          AND tx.orphaned IS NOT TRUE
         `;
         break;
 
@@ -72,6 +73,12 @@ class TxmetaModel {
           AND txsync.dlq IS NOT NULL 
         `;
         break;
+
+      case 'orphaned':
+          statusCondition = ` 
+            AND orphaned IS TRUE 
+          `;
+          break;
 
       case 'all':
       default:
@@ -119,7 +126,7 @@ class TxmetaModel {
         ${statusCondition} 
       GROUP BY ${columns} 
       ORDER BY 
-        txmeta.created_at DESC 
+        txmeta.id DESC 
       ${
         afterId 
         ? `LIMIT $3` 

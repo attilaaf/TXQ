@@ -28,8 +28,9 @@ export default class PushMapiTx extends UseCase {
     headers?: any,
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
-    await contextFactory.getClient(params.accountContext);
-    try { 
+    // Get the context to trigger exception earlier if needed
+    await contextFactory.getNetwork(params.accountContext);
+    try {
       const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
         await this.merchantapilogService.saveNoError(params.accountContext, miner, eventType, response, txid)
         return true;
@@ -67,7 +68,8 @@ export default class PushMapiTx extends UseCase {
               [tx.hash]: {
                 rawtx: tx.toString(),
                 metadata: channelMeta.metadata,
-                tags: channelMeta.tags
+                tags: channelMeta.tags,
+                send
               }
             },
             accountContext: params.accountContext

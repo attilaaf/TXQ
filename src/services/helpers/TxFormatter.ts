@@ -13,10 +13,11 @@ export class TxFormatter {
             address: e.address,
             scripthash: e.scripthash,
             spend_txid: e.spend_txid ? e.spend_txid : undefined,
-            spend_index: e.spend_index ? e.spend_index : undefined,
+            spend_index: e.spend_index || e.spend_index === 0 ? e.spend_index : undefined,
         };
-        if (e.status && e.status.payload && e.status.payload.blockHeight) {
-            r.height = e.status.payload.blockHeight;
+        if (e.h) {
+            r.height = e.i;
+            r.blockhash = e.h;
         }
         return r;
     }

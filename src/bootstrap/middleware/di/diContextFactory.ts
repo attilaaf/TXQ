@@ -1,12 +1,13 @@
 import cfg from '../../../cfg';
 import { Pool } from 'pg';
-import { IAccountContext } from '@interfaces/IAccountContext';
 import { contextsConfig } from "../../../cfg/config.js";
 import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 import { ISystemContext } from '@interfaces/ISystemContext';
 import * as fs from 'fs';
 import InvalidParamError from '../../../services/error/InvalidParamError';
 import { IAccountContextsConfig } from '@interfaces/IConfig';
+import InvalidConfigDbError from '../../../services/error/InvalidConfigDbError';
+import { IAccountContext } from '@interfaces/IAccountContext';
 
 const cacheConfigPath = './config.cache.json';
 
@@ -62,6 +63,7 @@ export class ContextFactory {
   // Store the database pools by projectId+apiKey
   // tslint:disable-next-line: member-ordering
   private dbPoolMap: any = {};
+  private assetDbPoolMap: any = {};
   private hostsMap: any = {};
   private contextsConfig: any;
   private dbCfgPool: any;
@@ -116,6 +118,33 @@ export class ContextFactory {
     throw new AccessForbiddenError();
   }
 
+  public getAccountContexts(): IAccountContext[] {
+    let ctxs: IAccountContext[] = [];
+    const contexts = this.getContextsConfig();
+    for (const projectId in contexts) {
+      if (!contexts.hasOwnProperty(projectId)) {
+        continue;
+      }
+      if (!contexts[projectId].enabled) {
+        continue;
+      }
+      if (!contexts[projectId].hosts) {
+        continue;
+      }
+      if (!contexts[projectId].filtersEnabled) {
+        console.log('Todo: filtersEnabled. Defaulting all');
+        ; // continue;
+      }
+      const ctx = {
+        projectId,
+        apiKey: contexts[projectId].apiKeys ? contexts[projectId].apiKeys[0] : [],
+        host: contexts[projectId].hosts[0]
+      };
+      ctxs.push(ctx);
+    }
+    return ctxs;
+  }
+
   public async initialize() {
     // Always load the cache first if available, if not then default to config.js
     try {
@@ -143,6 +172,13 @@ export class ContextFactory {
     else {
       throw new Error('Invalid configMode');
     }
+  }
+
+  public getConfigDbClient() {
+    if (this.dbCfgPool) {
+      return this.dbCfgPool;
+    }
+    throw new InvalidConfigDbError();
   }
 
   public dbConfigTimerStart(startNow?: boolean) {
@@ -194,6 +230,21 @@ export class ContextFactory {
     throw new AccessForbiddenError();
   }
 
+  public getDefaultAssetDbPoolClient() {
+    if (this.assetDbPoolMap.default) {
+      return this.assetDbPoolMap.default;
+    }
+    if (cfg.enableDefault) {
+      if (!this.contextsConfig.default || !this.contextsConfig.default.enabled) {
+        throw new Error('No enabled default assetDb config');
+      }
+      this.assetDbPoolMap.default = new Pool(this.contextsConfig.default.assetDbConnection);
+      return this.assetDbPoolMap.default;
+    }
+
+    throw new AccessForbiddenError();
+  }
+
   public getQueueSettings(accountContext?: IAccountContext) {
     // Will throw exception if not found
     const ctx = this.getAccountContextConfig(accountContext);
@@ -228,6 +279,26 @@ export class ContextFactory {
     return this.dbPoolMap[accountContext.projectId];
   }
 
+  public async getAssetDbClient(accountContext?: IAccountContext) {
+    const ctx = this.getAccountContextConfig(accountContext).assetDbConnection;
+
+    if (!ctx) {
+      throw new AccessForbiddenError();
+    }
+
+    if (!this.assetDbPoolMap[accountContext.projectId]) {
+      const pool = new Pool(ctx);
+      try {
+        await pool.query('SELECT 1');
+        this.assetDbPoolMap[accountContext.projectId] = pool;
+      } catch (err) {
+        throw new Error('Asset DB connect fail: ' + JSON.stringify(ctx) + ' , ' + JSON.stringify(accountContext));
+      }
+    }
+
+    return this.assetDbPoolMap[accountContext.projectId];
+  }
+
   public getContextsConfig() {
     return this.contextsConfig;
   }
@@ -252,7 +323,7 @@ export class ContextFactory {
       // Check for wildcard or restrict to allowed hosts
       if (accountContext.host !== '*' && -1 === entry.hosts.indexOf('*') &&
           -1 === entry.hosts.indexOf(accountContext.host)) {
-        throw new AccessForbiddenError();
+        throw new AccessForbiddenError(accountContext.host);
       }
       // If no keys are required, then let it pass through
       if (

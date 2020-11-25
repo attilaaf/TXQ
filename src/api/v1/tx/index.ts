@@ -15,6 +15,7 @@ import { sendErrorWrapper } from '../../../util/sendErrorWrapper';
 import ResyncTx from '../../../services/use_cases/queue/ResyncTx';
 import { AccountContextHelper } from '../../account-context-helper';
 import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
+import InputsAlreadySpentError from '../../../services/error/InputsAlreadySpentError';
 
 export default [
 
@@ -175,6 +176,7 @@ export default [
           let data = await saveTxs.run({
             channel: Req.body.channel,
             set: Req.body.set,
+            hideRawtx: Req.body.hideRawtx,
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
@@ -187,6 +189,11 @@ export default [
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
+          if (error instanceof InputsAlreadySpentError) {
+            sendErrorWrapper(res, 422, error.toString());
+            return;
+          }
+          
           next(error);
         }
       },

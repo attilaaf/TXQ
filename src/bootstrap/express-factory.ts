@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import * as express from 'express';
 import * as SetTimeZone from 'set-tz';
 import { middlewareLoader } from './middleware';
+ 
 import "../services/tx/index";
 import "../services/txsync/index";
 import "../services/txout/index";
@@ -10,7 +11,6 @@ import "../services/txmeta/index";
 import "../services/txin/index";
 import "../services/queue/index";
 import "../services/merchantapilog/index";
-import "../services/spend/index";
 import "../services/event/index";
 import "../services/txoutgroup/index";
 import "../services/updatelog/index";
@@ -47,7 +47,7 @@ import "../services/use_cases/events/ConnectChannelClientSSE";
 import "../services/use_cases/txoutgroup/GetTxoutgroupByName";
 import "../services/use_cases/txoutgroup/AddGroupScriptIds";
 import "../services/use_cases/txoutgroup/DeleteGroupScriptIds";
-
+ 
 SetTimeZone('UTC');
 
 const createExpressInstance = async () => {
