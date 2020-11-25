@@ -23,6 +23,8 @@ export default class GetMapiTxStatus extends UseCase {
     txid: string,
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
+    // Get the context to trigger exception earlier if needed
+    contextFactory.getNetwork(params.accountContext);
     const txRegex = new RegExp(BitcoinRegex.TXID_REGEX);
     if (!txRegex.test(params.txid)) {
       return;

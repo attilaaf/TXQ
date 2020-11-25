@@ -44,9 +44,11 @@ export default [
           sendMapiResponseWrapper(Req, res, data.result.mapiStatusCode ? data.result.mapiStatusCode : 200, data.result);
         } catch (error) {
           if (error instanceof MapiServiceError) {
+            console.log('MapiServiceError', error);
             sendMapiErrorWrapper(res, 500, error.toString());
             return;
           } else if (error instanceof AccessForbiddenError) {
+            console.log('AccessForbiddenError', error);
             sendMapiErrorWrapper(res, 403, error.toString());
             return;
           }

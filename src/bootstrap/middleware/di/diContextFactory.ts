@@ -62,6 +62,7 @@ export class ContextFactory {
   // Store the database pools by projectId+apiKey
   // tslint:disable-next-line: member-ordering
   private dbPoolMap: any = {};
+  private assetDbPoolMap: any = {};
   private hostsMap: any = {};
   private contextsConfig: any;
   private dbCfgPool: any;
@@ -194,6 +195,21 @@ export class ContextFactory {
     throw new AccessForbiddenError();
   }
 
+  public getDefaultAssetDbPoolClient() {
+    if (this.assetDbPoolMap.default) {
+      return this.assetDbPoolMap.default;
+    }
+    if (cfg.enableDefault) {
+      if (!this.contextsConfig.default || !this.contextsConfig.default.enabled) {
+        throw new Error('No enabled default assetDb config');
+      }
+      this.assetDbPoolMap.default = new Pool(this.contextsConfig.default.assetDbConnection);
+      return this.assetDbPoolMap.default;
+    }
+
+    throw new AccessForbiddenError();
+  }
+
   public getQueueSettings(accountContext?: IAccountContext) {
     // Will throw exception if not found
     const ctx = this.getAccountContextConfig(accountContext);
@@ -202,6 +218,7 @@ export class ContextFactory {
 
   public getNetwork(accountContext?: IAccountContext): string {
     // Will throw exception if not found
+    console.log('accountContext', accountContext);
     const ctx = this.getAccountContextConfig(accountContext);
     return ctx.network;
   }
@@ -234,6 +251,26 @@ export class ContextFactory {
     return this.dbPoolMap[accountContext.projectId];
   }
 
+  public async getAssetDbClient(accountContext?: IAccountContext) {
+    const ctx = this.getAccountContextConfig(accountContext).assetDbConnection;
+
+    if (!ctx) {
+      throw new AccessForbiddenError();
+    }
+
+    if (!this.assetDbPoolMap[accountContext.projectId]) {
+      const pool = new Pool(ctx);
+      try {
+        await pool.query('SELECT 1');
+        this.assetDbPoolMap[accountContext.projectId] = pool;
+      } catch (err) {
+        throw new Error('Asset DB connect fail: ' + JSON.stringify(ctx) + ' , ' + JSON.stringify(accountContext));
+      }
+    }
+
+    return this.assetDbPoolMap[accountContext.projectId];
+  }
+
   public getContextsConfig() {
     return this.contextsConfig;
   }
@@ -245,6 +282,7 @@ export class ContextFactory {
   }
 
   public getMatchedHost(host?: string): any {
+    console.log('this.hostsMap[host]', this.hostsMap);
     return host ? this.hostsMap[host] : null;
   }
 
@@ -258,7 +296,7 @@ export class ContextFactory {
       // Check for wildcard or restrict to allowed hosts
       if (accountContext.host !== '*' && -1 === entry.hosts.indexOf('*') &&
           -1 === entry.hosts.indexOf(accountContext.host)) {
-        throw new AccessForbiddenError();
+        throw new AccessForbiddenError(accountContext.host);
       }
       // If no keys are required, then let it pass through
       if (

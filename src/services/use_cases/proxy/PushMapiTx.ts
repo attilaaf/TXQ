@@ -26,6 +26,8 @@ export default class PushMapiTx extends UseCase {
     headers?: any,
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
+    // Get the context to trigger exception earlier if needed
+    contextFactory.getNetwork(params.accountContext);
     try {
       const tx = new bsv.Transaction(params.rawtx);
       const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {

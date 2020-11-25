@@ -65,7 +65,8 @@ export interface IDBConnection {
 export interface IDBMappings {
   [key: string]: {
     apiKeys: string[],
-    dbConnection: IDBConnection
+    dbConnection: IDBConnection,
+    assetDbConnection?: IDBConnection
   };
 }
 

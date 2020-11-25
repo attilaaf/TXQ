@@ -18,7 +18,9 @@ export default class EnqInitialTxsForSync extends UseCase {
     let txs = await this.txsyncService.getTxsForSync(params.accountContext);
 
     this.logger.info('sync_txs', {
-      count: txs.length
+      count: txs.length,
+      projectId: params.accountContext.projectId,
+      host: params.accountContext.host,
     });
     for (const tx of txs) {
       this.queueService.enqTxStatus(params.accountContext, tx);
