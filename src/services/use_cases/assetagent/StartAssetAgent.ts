@@ -53,7 +53,7 @@ export default class StartAssetAgent extends UseCase {
       getConfig: async (): Promise<{ startHeight: number, ctx: IAccountContext}> => {
         return new Promise((resolve, reject) => {
           return resolve({
-            startHeight: 662875,
+            startHeight: 0,
             ctx,
           });
         });
@@ -111,10 +111,6 @@ export default class StartAssetAgent extends UseCase {
       onBlock: async (kvstore: any, db: any, height: number, block: bsv.Block, config: { startHeight: number, ctx: IAccountContext}) => {
         return new Promise(async (resolve, reject) => {
           console.log('onblock');
-          // Insert into block header
-
-          kvstore.put('node', 'rocks');
-
           await this.txassetModel.saveBlockData(ctx, height, block);
           resolve();
         });

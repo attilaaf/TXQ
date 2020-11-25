@@ -464,44 +464,62 @@ class TxassetModel {
 
     return result.rows;
   }
-/*
-  height: 12315,
-  hash: '0000000003a03700d37276c1c6b5a7614c0f09e50b1dfdbba7127ab41883964d',
-  size: 216,
-  version: 1,
-  merkleroot: '9d7244532e4a510463990c818443fee680350283296c2b22dd311735b5e9fe57',
-  time: 1240762207,
-  nonce: 2426087729,
-  bits: '1d00ffff',
-  difficulty: '1',
-  previousblockhash: '00000000d2e6b2ee55a459873f27c936e7f0339866fbf5f44bd1d6b448830f70',
-  nextblockhash: '0000000013cb9b4fe3f2e979e7250182952077c93de709eec90026a215d74b4b',
-  coinbaseinfo: '04ffff001d020906',
-  coinbasetxid: '9d7244532e4a510463990c818443fee680350283296c2b22dd311735b5e9fe57',
-  chainwork: '0000000000000000000000000000000000000000000000000000301c301c301c'
-*/
+
+  public async generateCopyInCommands(client: any, height: number, block: bsv.Block): Promise<string> {
+
+    return 'q';
+  }
+
   public async saveBlockData(accountContext: IAccountContext, height: number, block: bsv.Block): Promise<string> {
     const client = await this.db.getAssetDbClient(accountContext);
-    const q = `
-    INSERT INTO block_header(height, hash, hashbytes, size, version, merkleroot, time, nonce, bits, difficulty, previousblockhash)
-    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-    `;
-    console.log('q', q, block.header, block.hash);
-    let result: any = await client.query(q, [
-        height,
-        block.hash,
-        block.hash, // Buffer.from(block.hash, 'hex'),
-        block.header.size,
-        block.header.version,
-        block.header.merkleRoot.toString('hex'),
-        block.header.time,
-        block.header.nonce,
-        block.header.bits,
-        block.header.getTargetDifficulty(),
-        block.header.prevHash.toString('hex')
-      ]);
+    const shouldAbort = (err) => {
+      if (err) {
+        console.error('Error in transaction', err.stack);
+        client.query('ROLLBACK', (error: any) => {
+          if (error) {
+            console.error('Error rolling back client', error.stack);
+          }
+          // release the client back to the pool (not done yet)
+        });
+      }
+      return !!err;
+    };
+    const tx = await client.query('BEGIN', async (err) => {
+      try {
+        if (shouldAbort(err)) {
+          return;
+        }
 
-    return result.rows;
+        await this.generateCopyInCommands(client, height, block);
+
+        const q = `
+        INSERT INTO block_header(height, hash, hashbytes, size, version, merkleroot, time, nonce, bits, difficulty, previousblockhash)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `;
+        console.log('q', q, block.header, block.hash);
+        let result: any = await client.query(q, [
+            height,
+            block.hash,
+            block.hash, // Buffer.from(block.hash, 'hex'),
+            block.header.size,
+            block.header.version,
+            block.header.merkleRoot.toString('hex'),
+            block.header.time,
+            block.header.nonce,
+            block.header.bits,
+            block.header.getTargetDifficulty(),
+            block.header.prevHash.toString('hex')
+          ]);
+        await client.query('COMMIT');
+        return result.rows;
+      } catch (err) {
+        if (shouldAbort(err)) {
+          throw err;
+        }
+      }
+    });
+
+    return tx;
   }
 
   private getOutputFragments(txOutpoints: any[]) {
