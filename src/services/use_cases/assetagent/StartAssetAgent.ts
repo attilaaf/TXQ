@@ -53,7 +53,7 @@ export default class StartAssetAgent extends UseCase {
       getConfig: async (): Promise<{ startHeight: number, ctx: IAccountContext}> => {
         return new Promise((resolve, reject) => {
           return resolve({
-            startHeight: 12332,
+            startHeight: 662875,
             ctx,
           });
         });
@@ -86,8 +86,17 @@ export default class StartAssetAgent extends UseCase {
       getBlock: async (kvstore: any, db: any, b: bsv.Block, config: { startHeight: number, ctx: IAccountContext}): Promise<string> => {
         return Axios.get(`https://media.bitcoinfiles.org/rawblock/${b}`)
           .then((result) => {
-            console.log('getblock', result.data);
             return result.data;
+          });
+      },
+
+      getBlockByHeight: async (height: number, config: { startHeight: number, ctx: IAccountContext}): Promise<any> => {
+        return Axios.get(`https://media.bitcoinfiles.org/height/${height}`)
+          .then((result) => {
+            return Axios.get(`https://media.bitcoinfiles.org/rawblock/${result.data.blockhash}`)
+            .then((resultblock) => {
+              return resultblock.data;
+            });
           });
       },
       // Get the currently known header so we do not accidentally delete everything
@@ -112,11 +121,11 @@ export default class StartAssetAgent extends UseCase {
       },
       // We know after this point that the next `onBlock` that is invoked will be _after_ lastCommonBlockHash
       // Delete after thing after corrrespondingHeight
-      onReorg: async (kvstore: any, db: any, reorg: { lastCommonBlockHash: string, corrrespondingHeight: number }, config: { startHeight: number, ctx: IAccountContext}) => {
+      onReorg: async (kvstore: any, db: any, reorg: { height: number }, config: { startHeight: number, ctx: IAccountContext}) => {
         return new Promise(async (resolve, reject) => {
           console.log('reorg', reorg);
           // Insert into block header
-          await this.txassetModel.deleteBlockDataNewerThan(ctx, reorg.corrrespondingHeight);
+          await this.txassetModel.deleteBlockDataNewerThan(ctx, reorg.height - 1);
           resolve();
         });
       }

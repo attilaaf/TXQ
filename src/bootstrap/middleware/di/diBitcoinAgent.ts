@@ -29,14 +29,29 @@ export class BitcoinAgent {
     //
   }
 
+  public validateBlockAndBeaconHeadersMatch(blockToVerify: { hash?: string, height?: number }, beaconHeaders: any[]) {
+    if (!blockToVerify || isNaN(blockToVerify.height) || !beaconHeaders || !beaconHeaders.length) {
+      return false;
+    }
+    if (blockToVerify.hash === beaconHeaders[0].hash && blockToVerify.height === beaconHeaders[0].height) {
+      return true;
+    }
+    return false;
+  }
+
+  public getBlockByHeight(height: number): any {
+
+  }
+
   public async start(params: {
     getConfig: () => Promise<{ startHeight: number, ctx: IAccountContext }>,
     open: (config: { startHeight: number, ctx: IAccountContext }) => Promise<{ kvstore?: any, db?: any }>,
+    getBlockByHeight: (height: number, config: { startHeight: number, ctx: IAccountContext}) => Promise<any>;
     getKnownBlockHeaders: (kvstore: any, db: any, limit: number, config: { startHeight: number, ctx: IAccountContext }) => Promise<Array<{hash: string, height: number}>>,
     getBlock: (kvstore: any, db: any, b: string, config: { startHeight: number, ctx: IAccountContext }) => Promise<string>,
     getBeaconHeaders: (kvstore: any, db: any, height: number, limit: number, config: { startHeight: number, ctx: IAccountContext }) => Promise<Array<{ blockhash: string, hash: string, height: number }>>,
     onBlock: (kvstore: any, db: any, height: number, block: string, config: { startHeight: number, ctx: IAccountContext }) => any,
-    onReorg: (kvstore: any, db: any, reorg: { lastCommonBlockHash: string, corrrespondingHeight: number }, config: { startHeight: number, ctx: IAccountContext }) => any,
+    onReorg: (kvstore: any, db: any, reorg: { height: number }, config: { startHeight: number, ctx: IAccountContext }) => any,
   }) {
     if (this.started) {
       throw new Error("Already started");
@@ -48,14 +63,16 @@ export class BitcoinAgent {
   public async eventLoop(params: {
     getConfig: () => Promise<{ startHeight: number, ctx: IAccountContext }>,
     open: (config: { startHeight: number, ctx: IAccountContext }) => Promise<{ kvstore?: any, db?: any }>,
+    getBlockByHeight: (height: number, config: { startHeight: number, ctx: IAccountContext}) => Promise<any>;
     getKnownBlockHeaders: (kvstore: any, db: any, limit: number, config: { startHeight: number, ctx: IAccountContext }) => Promise<Array<{hash: string, height: number}>>,
     getBlock: (kvstore: any, db: any, b: string, config: { startHeight: number, ctx: IAccountContext }) => Promise<string>,
     getBeaconHeaders: (kvstore: any, db: any, height: number, limit: number, config: { startHeight: number, ctx: IAccountContext }) => Promise<Array<{ blockhash: string, hash: string, height: number }>>,
     onBlock: (kvstore: any, db: any, height: number, block: string, config: { startHeight: number, ctx: IAccountContext }) => any,
-    onReorg: (kvstore: any, db: any, reorg: { lastCommonBlockHash: string, corrrespondingHeight: number }, config: { startHeight: number, ctx: IAccountContext }) => any,
+    onReorg: (kvstore: any, db: any, reorg: { height: number }, config: { startHeight: number, ctx: IAccountContext }) => any,
   }) {
     const config = await params.getConfig();
-    let nextBlockHeightToFetch = config.startHeight;
+    // let nextBlockHeightToFetch = config.startHeight;
+    let blockToVerify: { hash?: string, height?: number } = {};
 
     const sleeper = (time: number) => {
       return new Promise((resolve) => {
@@ -68,76 +85,86 @@ export class BitcoinAgent {
     const { kvstore, db } = await params.open(config);
     while (true) {
       try {
-        console.log('while');
-        const knownBlockHeader = await params.getKnownBlockHeaders(kvstore, db, reorgLimit, config);
-        if (knownBlockHeader.length !== 0) {
-          nextBlockHeightToFetch = knownBlockHeader[0].height + 1;
+        const knownBlockHeaders = await params.getKnownBlockHeaders(kvstore, db, reorgLimit, config);
+        if (knownBlockHeaders.length === 0) {
+          // nextBlockHeightToFetch = config.startHeight;
+          blockToVerify.height = null;
+          blockToVerify.hash = null;
+          const firstRawBlock = await params.getBlockByHeight(config.startHeight, config);
+          const firstBlock = bsv.Block.fromString(firstRawBlock)
+          await params.onBlock(kvstore, db, config.startHeight, firstBlock, config);
+          console.log('inserted initial block', config.startHeight);
+          continue;
+        } else {
+          // nextBlockHeightToFetch = knownBlockHeaders[0].height + 1;
+          blockToVerify.height = knownBlockHeaders[0].height;
+          blockToVerify.hash = knownBlockHeaders[0].hash;
         }
-        console.log('No beacdddon headers...');
         // Get the last N blockheaders so we can check where to continue from
-        const beaconHeaders = await params.getBeaconHeaders(kvstore, db, nextBlockHeightToFetch, reorgLimit, config);
+        const beaconHeaders = await params.getBeaconHeaders(kvstore, db, blockToVerify.height, reorgLimit, config);
         // If there are no known headers, then just loop
         if (!beaconHeaders.length) {
           console.log('No beacon headers...');
           continue;
         }
-        console.log('No beacon header3rs...');
-        const rawblock = await params.getBlock(kvstore, db, beaconHeaders[0].hash, config);
-        const block = bsv.Block.fromString(rawblock);
-        console.log('No beacon hetdsaders...');
-        // Validate that it matches the beacon header
-        if (!block.hash || (block.hash !== beaconHeaders[0].hash)) {
-          throw new Error('mismatch blockhash');
-        }
+        let reorgPoint = null;
 
-        if (nextBlockHeightToFetch !== beaconHeaders[0].height) {
-          throw new Error('Mismatch nextBlockHeightToFetch');
-        }
-        // Now we have a block
-        await params.onBlock(kvstore, db, nextBlockHeightToFetch, block, config);
-        console.log('inserted', nextBlockHeightToFetch);
+        if (!this.validateBlockAndBeaconHeadersMatch(blockToVerify, beaconHeaders)) {
+          console.log('Potential reorg detected', blockToVerify, beaconHeaders);
+          // The header does not match...find out why
 
-        let commonAncestorBlock: { lastCommonBlockHash: string, corrrespondingHeight: number } = null;
-        const updatedKnownBlockHeaders = await params.getKnownBlockHeaders(kvstore, db, reorgLimit, config);
-        console.log('updatedKnownBlockHeaders', updatedKnownBlockHeaders);
-        console.log('beaconHeaders', beaconHeaders);
-
-        function checkHeader(beaconHeadersInner: any[], known) {
-          for (const beacon of beaconHeadersInner) {
-            if (known.height === beacon.height && known.hash === beacon.hash) {
-              commonAncestorBlock = {
-                lastCommonBlockHash: known.hash,
-                corrrespondingHeight: known.height
+          let lastHeight = beaconHeaders[0].height;
+          for (let i = 0; i < beaconHeaders.length; i++) {
+            if (blockToVerify.height === beaconHeaders[i].height && blockToVerify.hash !== beaconHeaders[i].hash) {
+              reorgPoint =  {
+                height: beaconHeaders[i].height
               };
-              return commonAncestorBlock;
             }
+            if (lastHeight < beaconHeaders[i].height) {
+              console.log('Beacon header is not in decreasing order', reorgPoint, beaconHeaders);
+              throw new Error('Beacon header is not in decreasing order');
+            }
+            lastHeight = beaconHeaders[i].height;
           }
-          return null;
-        }
-
-        for (const known of updatedKnownBlockHeaders) {
-          let ch = checkHeader(beaconHeaders, known);
-          if (ch) {
-            commonAncestorBlock = ch;
-            break;
+          if (!reorgPoint) {
+            console.log('Reorg failure fatal', reorgPoint, beaconHeaders);
+            continue;
           }
         }
-        console.log('commonAncestorBlock', commonAncestorBlock);
 
-        if (!commonAncestorBlock && updatedKnownBlockHeaders.length){
-          console.log('Fatal: If there is no ancestor block then we hit re-org limit', reorgLimit);
-          exit(-1);
+        if (reorgPoint) {
+          console.log('Reorg detected', reorgPoint);
+          await params.onReorg(kvstore, db, reorgPoint, config);
+          continue;
         }
-        console.log('reorg point after commonAncestorBlock', commonAncestorBlock);
 
-        if (commonAncestorBlock && updatedKnownBlockHeaders.length) {
-          await params.onReorg(kvstore, db, commonAncestorBlock, config);
+        // Get the next block if available to proceed
+        let rawblock = null;
+        const nextBlockToFetch = beaconHeaders[0].height + 1;
+        try {
+          rawblock = await params.getBlockByHeight(nextBlockToFetch, config);
+        } catch (err) {
+            if (err.response && err.response.status === 404) {
+              console.log('rawblock 404, trying again later...', nextBlockToFetch);
+            } else {
+              console.log('rawblock err', err, nextBlockToFetch);
+            }
+
+          continue;
         }
-        nextBlockHeightToFetch = commonAncestorBlock.corrrespondingHeight + 1;
+
+        const block = bsv.Block.fromString(rawblock);
+
+        // Now we have a block
+        await params.onBlock(kvstore, db, nextBlockToFetch, block, config);
+        console.log('inserted', nextBlockToFetch);
+
+
+        //  nextBlockHeightToFetch = commonAncestorBlock.corrrespondingHeight + 1;
       } catch (err) {
-        console.log('err', err);
+        console.log('err', err.stack, err.toString());
       } finally  {
-        await sleeper(5);
+        await sleeper(4);
       }
     }
   }

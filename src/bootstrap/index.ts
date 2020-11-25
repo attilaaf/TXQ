@@ -108,8 +108,7 @@ setInterval(() => {
 
 
 setTimeout(() => {
- 
+
   let uc = Container.get(StartAssetAgent);
   uc.run();
-}, 3000);
- 
+}, 1000);
