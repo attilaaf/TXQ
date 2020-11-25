@@ -394,7 +394,7 @@ class TxassetModel {
         txid: row.txiddecode,
         index: Number(row.n),
         script: row.scriptdecode
-      }
+      };
     }
     return txOutMap;
   }
