@@ -1,6 +1,7 @@
 import { Service, Inject } from 'typedi';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
+import { DBUtils } from '../../services/helpers/DBUtils';
 
 @Service('txinModel')
 class TxinModel {
@@ -12,7 +13,7 @@ class TxinModel {
     INSERT INTO txin(txid, index, prevtxid, previndex, unlockscript)
     VALUES ($1, $2, $3, $4, $5)
     ON CONFLICT(txid, index) DO NOTHING`, [
-      txid, index, prevTxId, prevIndex, unlockScript
+      txid, index, prevTxId, prevIndex, DBUtils.encodeBufferToPG(unlockScript)
     ]);
     return result;
   }

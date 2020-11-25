@@ -159,14 +159,7 @@ const parallelRaceMultiSender = async (contentType: string, url: string, httpVer
           if (responseSaver) {
             await responseSaver(endpoints[i].name, eventType, response.data);
           }
-          const sleeper = (async (sec) => {
-            return new Promise((resolve, reject) => {
-              setTimeout(()=> {
-                resolve();
-              }, sec * 1000);
-            });
-          });
-
+    
           if (typeof response.data.payload === 'string') {
             response.data.payload = JSON.parse(response.data.payload);
           }

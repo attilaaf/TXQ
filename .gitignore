@@ -1,4 +1,4 @@
-
+agentdb/
 deploy_public.sh
 config.js
 config.prod.js
@@ -48,6 +48,8 @@ node_modules/
 .env.local
 .env.test
 .env.prod
+.env.prod
+
 # vscode
 .vscode
 .vs

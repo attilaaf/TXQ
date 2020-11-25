@@ -1,4 +1,5 @@
 import { IAccountContext } from '@interfaces/IAccountContext';
+import { TxFormatter } from '../../helpers/TxFormatter';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -19,9 +20,13 @@ export default class GetTxoutsByScriptHash extends UseCase {
     accountContext?: IAccountContext,
     unspent?: boolean}): Promise<UseCaseOutcome> {
     let entities = await this.txoutService.getTxoutByScriptHash(params.accountContext, params.scripthash, params.offset, params.limit, params.script, params.unspent);
+    let utxoFormatted = [];
+    utxoFormatted = entities.map((e) => {
+      return TxFormatter.formatTxoutWithEmbeddedStatusHeight(e);
+    })
     return {
       success: true,
-      result: entities
+      result: utxoFormatted
     };
   }
 }

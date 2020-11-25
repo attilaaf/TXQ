@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import * as express from 'express';
 import * as SetTimeZone from 'set-tz';
 import { middlewareLoader } from './middleware';
+import { Container } from 'typedi';
 import "../services/tx/index";
 import "../services/txsync/index";
 import "../services/txout/index";
@@ -10,15 +11,20 @@ import "../services/txmeta/index";
 import "../services/txin/index";
 import "../services/queue/index";
 import "../services/merchantapilog/index";
-import "../services/spend/index";
 import "../services/event/index";
 import "../services/txoutgroup/index";
 import "../services/updatelog/index";
+import "../services/blockheader/index";
+import "../services/txfilter/index";
+import "../services/txstore/index";
+import "../services/txfiltermanager/index";
+import "../services/outpointmonitor/index";
 
 import "../services/helpers/MerchantRequestor";
 
 import "../services/use_cases/tx/GetTx";
 import "../services/use_cases/tx/SaveTxs";
+import "../services/use_cases/tx/SaveTxsFromBlock";
 import "../services/use_cases/tx/SyncTxStatus";
 import "../services/use_cases/tx/GetTxsForSync";
 import "../services/use_cases/tx/GetTxsByChannel";
@@ -47,7 +53,9 @@ import "../services/use_cases/events/ConnectChannelClientSSE";
 import "../services/use_cases/txoutgroup/GetTxoutgroupByName";
 import "../services/use_cases/txoutgroup/AddGroupScriptIds";
 import "../services/use_cases/txoutgroup/DeleteGroupScriptIds";
+import "../services/use_cases/agents/filteragent/IngestFilterBlock";
 
+console.log('process.env.NODE_ENV', process.env.NODE_ENV);
 SetTimeZone('UTC');
 
 const createExpressInstance = async () => {

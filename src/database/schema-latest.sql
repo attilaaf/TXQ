@@ -10,38 +10,41 @@ SET default_tablespace = '';
 SET default_with_oids = false;
 
 CREATE TABLE tx (
-    txid varchar NOT NULL,
-    rawtx text NULL,
+    id bigserial,
+    txid varchar PRIMARY KEY,
+    rawtx bytea NOT NULL,
     h varchar NULL,
     i integer NULL,
+    time integer NULL,
     send jsonb NULL,
     status jsonb NULL,
-    completed boolean NOT NULL,
-    updated_at integer NULL,
-    created_at integer NOT NULL
-);
-
-CREATE UNIQUE INDEX idx_uk_tx_txid ON tx USING btree (txid);
-
-CREATE TABLE txsync (
-    txid varchar NOT NULL,
+    size integer NULL,
+    locktime integer NULL,
+    txsource smallint NULL,
+    orphaned boolean NULL, 
+    completed boolean NULL,
     sync integer NOT NULL,
     status_retries integer NULL,
     dlq varchar NULL,
-    updated_at integer NULL,
+    updated_at integer NOT NULL,
     created_at integer NOT NULL
 );
 
-CREATE UNIQUE INDEX idx_uk_txsync_txid ON txsync USING btree (txid);
-CREATE INDEX idx_txsync_sync ON txsync USING btree (sync);
-CREATE INDEX idx_txsync_dlq ON txsync USING btree (dlq);
+CREATE INDEX idx_tx_i ON tx USING btree (i);
+CREATE INDEX idx_tx_completed ON tx USING btree (completed);
+CREATE INDEX idx_tx_time ON tx USING btree (time);
+CREATE INDEX idx_tx_sync ON tx USING btree (sync);
+CREATE INDEX idx_tx_dlq ON tx USING btree (dlq);
+CREATE INDEX idx_tx_orphaned ON tx USING btree (orphaned);
+CREATE INDEX idx_tx_completed_index ON tx USING btree (completed);
 
 CREATE TABLE txin (
     txid varchar NOT NULL,
     index integer NOT NULL,
+    seq bigint NULL,
     prevtxid varchar NOT NULL,
     previndex integer NOT NULL,
-    unlockscript text NOT NULL
+    unlockscript bytea NOT NULL
 );
 
 CREATE UNIQUE INDEX idx_uk_txin_txid_index ON txin USING btree (txid, index);
@@ -50,13 +53,10 @@ CREATE UNIQUE INDEX idx_uk_txin_prevtxid_previndex ON txin USING btree (prevtxid
 CREATE TABLE txout (
     txid varchar NOT NULL,
     index integer NOT NULL,
-    script text NOT NULL,
+    script bytea NOT NULL,
     address varchar NULL,
     scripthash varchar NOT NULL,
-    satoshis bigint NOT NULL,
-    is_receive boolean NOT NULL DEFAULT true,
-    spend_txid varchar NULL,
-    spend_index integer NULL
+    satoshis bigint NOT NULL
 );
 
 -- Do not need index on txid because we always query with (txid, channel)
@@ -65,7 +65,7 @@ CREATE INDEX idx_txout_address_index ON txout USING btree (address);
 CREATE INDEX idx_txout_scripthash_index ON txout USING btree (scripthash);
 
 CREATE TABLE txmeta (
-    id SERIAL PRIMARY KEY,
+    id bigserial PRIMARY KEY,
     txid varchar NOT NULL,
     channel varchar NOT NULL,
     metadata jsonb NULL,
@@ -77,11 +77,48 @@ CREATE TABLE txmeta (
 
 CREATE UNIQUE INDEX idx_uk_txmeta_txid_channel ON txmeta USING btree (txid, channel);
 
+CREATE TABLE block_header (
+    height int PRIMARY KEY,
+    hash varchar NOT NULL,
+    header bytea NOT NULL,
+    version int NULL,
+    merkleroot varchar NOT NULL,
+    time int NOT NULL,
+    nonce bigint NOT NULL,
+    bits varchar NOT NULL,
+    difficulty varchar NOT NULL,
+    previousblockhash varchar NULL
+);
+
+CREATE UNIQUE INDEX idx_key_block_header_hash ON block_header USING btree (hash);
+ 
+CREATE TABLE txoutgroup (
+    groupname varchar NOT NULL,
+    scriptid varchar NOT NULL,
+    created_at integer NOT NULL,
+    metadata jsonb NULL
+);
+
+CREATE INDEX idx_txoutgroup_groupname ON txoutgroup USING btree (groupname);
+CREATE INDEX idx_txoutgroup_scriptid ON txoutgroup USING btree (scriptid);
+CREATE UNIQUE INDEX idx_uk_txoutgroup_groupname_scriptid ON txoutgroup USING btree (groupname, scriptid);
+
+CREATE TABLE txstore (
+    id varchar NOT NULL,
+    category varchar NOT NULL,
+    revision integer NOT NULL,
+    data jsonb NULL,
+    created_at integer NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_uk_txstore_id ON txstore USING btree (id, category, revision);
+
 CREATE TABLE merchantapilog (
     id SERIAL PRIMARY KEY,
     event_type varchar NULL,
     txid varchar NULL,
-    response jsonb NULL
+    response jsonb NULL,
+    miner varchar NULL
 );
 
 CREATE TABLE updatelog (
@@ -100,35 +137,34 @@ CREATE TABLE versions (
 );
 
 CREATE UNIQUE INDEX idx_uk_versions_version ON versions USING btree (version);
-
-INSERT INTO versions(version) VALUES ('202006210000');
-
-ALTER TABLE merchantapilog ADD COLUMN miner varchar NULL;
-
-INSERT INTO versions(version) VALUES ('202006260000');
-
-CREATE TABLE txoutgroup (
-    groupname varchar NOT NULL,
-    scriptid varchar NOT NULL,
+ 
+CREATE TABLE txfilter (
+    id SERIAL PRIMARY KEY,
+    name varchar NOT NULL,
+    enabled boolean NULL,
+    payload varchar NOT NULL,
     created_at integer NOT NULL,
-    metadata jsonb NULL
+    updated_at integer NOT NULL
 );
 
-CREATE INDEX idx_txoutgroup_groupname ON txoutgroup USING btree (groupname);
-CREATE INDEX idx_txoutgroup_scriptid ON txoutgroup USING btree (scriptid);
-CREATE UNIQUE INDEX idx_uk_txoutgroup_groupname_scriptid ON txoutgroup USING btree (groupname, scriptid);
+CREATE INDEX idx_txfilter_id ON txfilter USING btree (id);
+CREATE INDEX idx_txfilter_enabled ON txfilter USING btree (enabled);
+CREATE UNIQUE INDEX idx_txfilter_name ON txfilter USING btree (name);
 
-INSERT INTO versions(version) VALUES ('202009010000');
-
-CREATE TABLE txstore (
-    id varchar NOT NULL,
-    category varchar NOT NULL,
-    revision integer NOT NULL,
-    data jsonb NULL,
-    created_at integer NOT NULL
+CREATE TABLE outpointmonitor (
+    txid varchar NOT NULL,
+    index integer NOT NULL,
+    spend_height integer NULL,
+    spend_blockhash varchar NULL,
+    spend_txid varchar NULL,
+    spend_index varchar NULL,
+    created_at integer NOT NULL,
+    updated_at integer NOT NULL
 );
 
-CREATE UNIQUE INDEX idx_uk_txstore_id ON txstore USING btree (id, category, revision);
+CREATE UNIQUE INDEX idx_outpointmonitor_txid_index ON outpointmonitor USING btree (txid, index);
+CREATE INDEX idx_outpointmonitor_spend_height_index ON outpointmonitor USING btree (spend_height);
 
-INSERT INTO versions(version) VALUES ('202011110000');
+INSERT INTO versions(version) VALUES ('202012080000');
 
+  

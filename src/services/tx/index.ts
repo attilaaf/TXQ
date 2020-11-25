@@ -14,6 +14,11 @@ export default class TxService {
     return this.txModel.isTxExist(accountContext, txid);
   }
 
+  public async getUnconfirmedTxids(accountContext: IAccountContext): Promise<string[]> {
+    return this.txModel.getUnconfirmedTxids(accountContext);
+  }
+
+ 
   public async getTx(accountContext: IAccountContext, txid: string, rawtx?: boolean) {
     let tx = await this.txModel.getTx(accountContext, txid, rawtx);
     if (!tx) {
@@ -30,18 +35,7 @@ export default class TxService {
       txid
     );
   }
-
-  public async saveTx(accountContext: IAccountContext, rawtx: string) {
-    if (!rawtx) {
-      throw new InvalidParamError();
-    }
-    const parsedTx = new bsv.Transaction(rawtx)
-    return this.txModel.saveTx(accountContext,
-      parsedTx.hash,
-      rawtx
-    );
-  }
-
+ 
   public async saveTxStatus(accountContext: IAccountContext, txid: string, txStatus: ITransactionStatus, blockhash?: string, blockheight?: number) {
     await this.txModel.saveTxStatus(
       accountContext,
@@ -68,7 +62,8 @@ export default class TxService {
 
     await this.txModel.updateCompleted(accountContext,
       txid,
-      true
+      true,
+      null
     );
     await this.txsyncModel.updateTxsyncAndClearDlq(
       accountContext,

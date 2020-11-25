@@ -23,7 +23,7 @@
     "allowJs": true,
     "noEmit": false
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/services/use_cases/agents/filteragent/IngestFilterBlock"],
   "exclude": ["node_modules", "tests"],
   "compileOnSave": false
 }

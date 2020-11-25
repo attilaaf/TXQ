@@ -1,8 +1,9 @@
-import { IAccountContext } from '@interfaces/IAccountContext';
+
 import contextFactory from '../../../bootstrap/middleware/di/diContextFactory';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
+import { IAccountContext } from '@interfaces/IAccountContext';
 
 @Service('getSystemStatus')
 export default class GetSystemStatus extends UseCase {

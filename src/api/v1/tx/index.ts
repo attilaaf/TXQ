@@ -15,6 +15,7 @@ import { sendErrorWrapper } from '../../../util/sendErrorWrapper';
 import ResyncTx from '../../../services/use_cases/queue/ResyncTx';
 import { AccountContextHelper } from '../../account-context-helper';
 import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
+import InputsAlreadySpentError from '../../../services/error/InputsAlreadySpentError';
 
 export default [
 
@@ -44,7 +45,10 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let syncTxStatus = Container.get(SyncTxStatus);
-          let data = await syncTxStatus.run({ txid: Req.params.txid, accountContext: AccountContextHelper.getContext(Req)});
+          let data = await syncTxStatus.run({ 
+            txid: Req.params.txid, 
+            accountContext: AccountContextHelper.getContext(Req)
+          });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           if (error instanceof TransactionStillProcessingError) {
@@ -75,7 +79,9 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let getTxsForSync = Container.get(GetTxsForSync);
-          let data = await getTxsForSync.run({accountContext: AccountContextHelper.getContext(Req)});
+          let data = await getTxsForSync.run({
+            accountContext: AccountContextHelper.getContext(Req),
+          });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           if (error instanceof AccessForbiddenError) {
@@ -175,6 +181,7 @@ export default [
           let data = await saveTxs.run({
             channel: Req.body.channel,
             set: Req.body.set,
+            hideRawtx: Req.body.hideRawtx,
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
@@ -187,6 +194,11 @@ export default [
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
+          if (error instanceof InputsAlreadySpentError) {
+            sendErrorWrapper(res, 422, error.toString());
+            return;
+          }
+          
           next(error);
         }
       },

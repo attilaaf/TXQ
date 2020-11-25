@@ -1,7 +1,6 @@
 import { IAccountContext } from "@interfaces/IAccountContext";
 import contextFactory from "../bootstrap/middleware/di/diContextFactory";
 import { Request } from "express";
-import cfg from '../cfg';
 
 export class AccountContextHelper {
     static getContext(req: Request): IAccountContext {

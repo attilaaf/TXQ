@@ -52,15 +52,16 @@ class TxmetaModel {
     switch (status) {
       case 'confirmed':
         statusCondition = ` 
-          AND txsync.dlq IS NULL 
+          AND tx.dlq IS NULL 
           AND tx.completed = TRUE 
           AND tx.i IS NOT NULL 
+          AND tx.orphaned IS NOT TRUE
         `;
         break;
 
       case 'unconfirmed':
         statusCondition = ` 
-          AND txsync.dlq IS NULL 
+          AND tx.dlq IS NULL 
           AND (
             tx.completed = FALSE 
             OR tx.i IS NULL
@@ -70,9 +71,15 @@ class TxmetaModel {
 
       case 'dead':
         statusCondition = ` 
-          AND txsync.dlq IS NOT NULL 
+          AND tx.dlq IS NOT NULL 
         `;
         break;
+
+      case 'orphaned':
+          statusCondition = ` 
+            AND orphaned IS TRUE 
+          `;
+          break;
 
       case 'all':
       default:
@@ -81,7 +88,7 @@ class TxmetaModel {
 
     const columns = `
       txmeta.id
-      ,${rawtx ? 'tx.rawtx,' : '' } tx.txid
+      ,${rawtx ?  `encode(tx.rawtx, 'hex') as rawtx, `: '' } tx.txid
       ,i
       ,h
       ,tx.send
@@ -93,7 +100,7 @@ class TxmetaModel {
       ,metadata
       ,tags
       ,extracted 
-      ,txsync.dlq 
+      ,tx.dlq 
     `;
 
     result = await client.query(
@@ -106,13 +113,11 @@ class TxmetaModel {
       INNER JOIN 
         txmeta ON (tx.txid = txmeta.txid) 
       INNER JOIN 
-        txsync ON (tx.txid = txsync.txid) 
-      INNER JOIN 
         txout ON (tx.txid = txout.txid) 
       WHERE 
         ${
           afterId 
-          ? `id < $1 AND channel = $2 ` 
+          ? `txmeta.id < $1 AND channel = $2 ` 
           : `channel = $1 `
         } 
         ${addressesCondition} 

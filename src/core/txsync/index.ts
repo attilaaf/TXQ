@@ -1,7 +1,7 @@
 import { Service, Inject } from 'typedi';
 import { DateUtil } from '../../services/helpers/DateUtil';
-import { IAccountContext } from '@interfaces/IAccountContext';
 import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
+import { IAccountContext } from '@interfaces/IAccountContext';
 
 export enum sync_state {
   sync_fail = -1,
@@ -17,13 +17,13 @@ class TxsyncModel {
 
   public async getTxsync(accountContext: IAccountContext, txid: string): Promise<string> {
     const client = await this.db.getClient(accountContext);
-    let result: any = await client.query(`SELECT * FROM txsync WHERE txid = $1`, [  txid ]);
+    let result: any = await client.query(`SELECT txid, sync, dlq, status_retries, created_at FROM tx WHERE txid = $1`, [ txid ]);
     return result.rows[0];
   }
 
   public async getTxsForSync(accountContext: IAccountContext): Promise<string[]> {
     const client = await this.db.getClient(accountContext);
-    let result: any = await client.query(`SELECT txid FROM txsync WHERE sync = 1`);
+    let result: any = await client.query(`SELECT txid FROM tx WHERE sync = 1`);
     const txids = [];
     for (const item of result.rows) {
       txids.push(item.txid);
@@ -37,9 +37,9 @@ class TxsyncModel {
 
     // tslint:disable-next-line: prefer-conditional-expression
     if (dlq) {
-      result = await client.query(`SELECT txid FROM txsync WHERE dlq = $1`, [ dlq ]);
+      result = await client.query(`SELECT txid FROM tx WHERE dlq = $1`, [ dlq ]);
     } else {
-      result = await client.query(`SELECT txid FROM txsync WHERE dlq IS NOT NULL`);
+      result = await client.query(`SELECT txid FROM tx WHERE dlq IS NOT NULL`);
     }
 
     const txids = [];
@@ -53,8 +53,8 @@ class TxsyncModel {
     const client = await this.db.getClient(accountContext);
     let result: any;
     result = await client.query(`
-    SELECT tx.txid FROM tx, txsync
-    WHERE txsync.sync = 1 AND txsync.txid = tx.txid AND tx.completed = false
+    SELECT tx.txid FROM tx
+    WHERE tx.sync = 1 AND tx.completed = false
     OFFSET $1 LIMIT $2`, [ offset, limit]);
     const txids = [];
     for (const item of result.rows) {
@@ -67,9 +67,8 @@ class TxsyncModel {
     const client = await this.db.getClient(accountContext);
     let result: any;
     result = await client.query(`
-    SELECT tx.txid FROM tx, txsync
-    WHERE txsync.sync = $1
-    AND txsync.txid = tx.txid
+    SELECT tx.txid FROM tx
+    WHERE tx.sync = $1
     OFFSET $2 LIMIT $3`,[ syncState, offset, limit]);
     const txids = [];
     for (const item of result.rows) {
@@ -82,9 +81,9 @@ class TxsyncModel {
     const client = await this.db.getClient(accountContext);
     const now = DateUtil.now();
     let result: any = await client.query(`
-    UPDATE txsync
+    UPDATE tx
     SET status_retries = status_retries + 1, updated_at = $1
-    WHERE txid = $2`, [ now,txid ]);
+    WHERE txid = $2`, [ now, txid ]);
     return result;
   }
 
@@ -92,7 +91,7 @@ class TxsyncModel {
     const client = await this.db.getClient(accountContext);
     const now = DateUtil.now();
     let result: any = await client.query(`
-    UPDATE txsync
+    UPDATE tx
     SET dlq = $1, updated_at = $2, sync = -1
     WHERE txid = $3`, [ dlq, now, txid ]);
     return result;
@@ -103,7 +102,7 @@ class TxsyncModel {
     const now = DateUtil.now();
     let syncInitial =  nosync ? 0 : 1; // Otherwise 'pending'
     let result: any = await client.query(`
-    INSERT INTO txsync(txid, updated_at, created_at, sync, status_retries)
+    INSERT INTO tx(txid, updated_at, created_at, sync, status_retries)
     VALUES ($1, $2, $3, $4, 0)
     ON CONFLICT(txid) DO UPDATE
     SET sync=$5`, [
@@ -116,7 +115,7 @@ class TxsyncModel {
     const client = await this.db.getClient(accountContext);
     const now = DateUtil.now();
     let result: any = await client.query(`
-    UPDATE txsync SET sync = 1, dlq = null, updated_at = $1
+    UPDATE tx SET sync = 1, dlq = null, updated_at = $1
     WHERE txid = $2`, [
       now, txid
     ]);
@@ -127,7 +126,7 @@ class TxsyncModel {
     const client = await this.db.getClient(accountContext);
     const now = DateUtil.now();
     let result: any = await client.query(`
-    UPDATE txsync
+    UPDATE tx
     SET sync = $1, updated_at = $2
     WHERE txid = $3`, [
       sync, now, txid
@@ -139,7 +138,7 @@ class TxsyncModel {
     const client = await this.db.getClient(accountContext);
     const now = DateUtil.now();
     let result: any = await client.query(`
-    UPDATE txsync
+    UPDATE tx
     SET sync = $1, updated_at = $2, dlq = null
     WHERE txid = $3`, [
       sync, now, txid

@@ -18,8 +18,6 @@ export default class SyncTxStatus extends UseCase {
     @Inject('logger') private logger
   ) {
     super();
-
-
   }
 
  /**

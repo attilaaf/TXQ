@@ -13,7 +13,7 @@ export default class GetTxsForSync extends UseCase {
   }
 
   public async run(params?: {accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
-    let txs = await this.txsyncService.getTxsForSync(params ? params.accountContext : {});
+    let txs = await this.txsyncService.getTxsForSync(params);
     return {
       success: true,
       result: txs

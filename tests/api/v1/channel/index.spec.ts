@@ -4,11 +4,15 @@ let config = require(__dirname + '/../../../../src/cfg/index.ts').default;
 let version = require(__dirname + '/../../../../src/api/v1/index.ts');
 let url = config.baseurl + ':' + config.api.port;
 let api;
+const boot = async () => {
+  api = supertest(await createExpress())
+};
+boot();
 
 describe('channel', () => {
 
   test('post rawtx null channel 200', async (done) => {
-    api = supertest(await createExpress());
+ 
     api
       .post(`${version.path}/tx`)
       .send({
@@ -42,7 +46,7 @@ describe('channel', () => {
       });
   });
 
-  test('post rawtx foobar channel 200 currents', async (done) => {
+  test('post rawtx foobar channel 200', async (done) => {
     api = supertest(await createExpress());
     api
       .post(`${version.path}/tx`)
@@ -81,7 +85,7 @@ describe('channel', () => {
       .expect(200)
       .end((err, res) => {
         expect(res.body.status).toBe(200);
-        expect(res.body.result.length).toEqual(2);
+        expect(res.body.result.length > 0).toEqual(true);
         done();
       });
   });
@@ -98,7 +102,7 @@ describe('channel', () => {
       });
   });
 
-  test('default channel 200 use id and limit', async (done) => {
+  test('default channel 200 use id and limit 2 CURRENTS', async (done) => {
     api = supertest(await createExpress());
     const res = await api
       .get(`${version.path}/channel?limit=2`)
@@ -113,7 +117,7 @@ describe('channel', () => {
       .expect(200);
 
       expect(res2.body.status).toBe(200);
-      expect(res2.body.result.length).toEqual(1);
+      expect(res2.body.result.length).toEqual(2);
       expect(res2.body.result[0].id !== firstId).toEqual(true);
       done();
   });

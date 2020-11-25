@@ -65,7 +65,8 @@ export interface IDBConnection {
 export interface IDBMappings {
   [key: string]: {
     apiKeys: string[],
-    dbConnection: IDBConnection
+    dbConnection: IDBConnection,
+    assetDbConnection?: IDBConnection
   };
 }
 
@@ -89,6 +90,9 @@ export interface IConfig {
   network?: 'testnet' | 'mainnet' | 'livenet' | undefined;
   baseurl?: string;
   enableDefault?: boolean;
+  enableAssetAgent?: boolean;
+  enableFilterTrackerAgent?: boolean;
+  filterTrackerAgentStartHeight?: number;
   env?: string;
   enableUpdateLogging?: boolean;
   configMode?: string; // 'file' | 'database';
@@ -97,5 +101,6 @@ export interface IConfig {
   api?: IApi;
   logs?: ILog;
   interceptors?: any;
+  assets?: any;
 }
 
