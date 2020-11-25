@@ -7,6 +7,7 @@ import MerchantapilogModel from './../../../core/merchantapilog';
 import UpdatelogModel from './../../../core/updatelog';
 import TxoutgroupModel from './../../../core/txoutgroup';
 import TxStoreModel from './../../../core/txstore';
+import TxAssetModel from './../../../core/txasset';
 
 export const statusDI = {
   TxModel,
@@ -17,5 +18,6 @@ export const statusDI = {
   MerchantapilogModel,
   UpdatelogModel,
   TxoutgroupModel,
-  TxStoreModel
+  TxStoreModel,
+  TxAssetModel
 };

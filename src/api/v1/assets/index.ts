@@ -1,22 +1,19 @@
 import { Request, Response, NextFunction } from 'express';
 import { Container } from 'typedi';
-import { path } from './../index';
-import GetTxout from '../../../services/use_cases/spends/GetTxout';
-import GetTxoutsByScriptHash from '../../../services/use_cases/spends/GetTxoutsByScriptHash';
-import GetTxoutsByAddress from '../../../services/use_cases/spends/GetTxoutsByAddress';
-import GetUtxosByAddress from '../../../services/use_cases/spends/GetUtxosByAddress';
-import GetUtxosByScriptHash from '../../../services/use_cases/spends/GetUtxosByScriptHash';
+import { path } from '../index';
 import ResourceNotFoundError from '../../../services/error/ResourceNotFoundError';
 import { sendResponseWrapper } from '../../../util/sendResponseWrapper';
 import { sendErrorWrapper } from '../../../util/sendErrorWrapper';
-import GetTxoutsByOutpointArray from '../../../services/use_cases/spends/GetTxoutsByOutpointArray';
-import GetTxoutsByGroup from '../../../services/use_cases/spends/GetTxoutsByGroup';
-import GetUtxosByGroup from '../../../services/use_cases/spends/GetUtxosByGroup';
-import GetBalanceByGroup from '../../../services/use_cases/spends/GetBalanceByGroup';
-import GetBalanceByAddresses from '../../../services/use_cases/spends/GetBalanceByAddresses';
-import GetBalanceByScriptHashes from '../../../services/use_cases/spends/GetBalanceByScriptHashes';
-import { AccountContextHelper } from '../../account-context-helper';
-import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
+import GetUtxosByScriptHashOrAddressArray from '../../../services/use_cases/assets/GetUtxosByScriptHashOrAddressArray';
+import GetBalanceByScriptHashOrAddressArray from '../../../services/use_cases/assets/GetBalanceByScriptHashOrAddressArray';
+import GetTxHistoryByScriptHashOrAddressArray from '../../../services/use_cases/assets/GetTxHistoryByScriptHashOrAddressArray';
+import GetTxoutsByTxidArray from '../../../services/use_cases/assets/GetTxoutsByTxidArray';
+import InvalidParamError from '../../../services/error/InvalidParamError';
+import GetTxoutsByScriptHashOrAddressArray from '../../../services/use_cases/assets/GetTxoutsByScriptHashOrAddressArray';
+
+function checkWithSpends(Req: any): boolean {
+  return Req.query.withSpends === 'true' || Req.query.withSpends === '1' ?  true : false;
+}
 
 export default [
   {
@@ -28,9 +25,9 @@ export default [
           let uc = Container.get(GetUtxosByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.params.addresses,
-            limit: Req.query.limit ? Req.query.limit: 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc'
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc'
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -81,10 +78,10 @@ export default [
           let uc = Container.get(GetTxHistoryByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.params.addresses,
-            limit: Req.query.limit ? Req.query.limit: 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc',
-            fromblockheight: Req.query.fromblockheight ? Req.query.fromblockheight : null,
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc',
+            fromblockheight: Req.query.fromblockheight ? Number(Req.query.fromblockheight) : null,
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -110,9 +107,9 @@ export default [
           let uc = Container.get(GetTxHistoryByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.body.addresses || Req.body.addrs || Req.body.addr || Req.body.address,
-            limit: Req.query.limit ? Req.query.limit: 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc'
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc'
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -138,9 +135,9 @@ export default [
           let uc = Container.get(GetUtxosByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.body.addresses || Req.body.addrs || Req.body.addr || Req.body.address,
-            limit: Req.query.limit ? Req.query.limit: 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc'
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc'
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -166,10 +163,10 @@ export default [
           let uc = Container.get(GetTxoutsByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.params.addresses,
-            limit: Req.query.limit ? Req.query.limit: 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc',
-            withSpends: Req.query.withSpends === 'true' || Req.query.withSpends === 1 ?  true : false,
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc',
+            withSpends: Req.query.withSpends === 'true' || Req.query.withSpends === '1' ?  true : false,
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -195,10 +192,10 @@ export default [
           let uc = Container.get(GetTxoutsByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.body.addresses || Req.body.addrs || Req.body.addr || Req.body.address,
-            limit: Req.query.limit ? Req.query.limit: 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc',
-            withSpends: Req.query.withSpends === 'false' || Req.query.withSpends === '0' ?  false : true,
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc',
+            withSpends: Req.query.withSpends === 'true' || Req.query.withSpends === '1' ?  true : false,
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -224,9 +221,10 @@ export default [
           let uc = Container.get(GetUtxosByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.params.scripthashes,
-            limit: Req.query.limit ? Req.query.limit: 100,
-            offset: Req.query.offset,
-            order: Req.params.order ? Req.params.order : 'desc'
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc',
+
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -252,9 +250,10 @@ export default [
           let uc = Container.get(GetUtxosByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.body.scripthashes || Req.body.scripthash,
-            limit: Req.query.limit ? Req.query.limit : 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc',
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc',
+
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -280,10 +279,10 @@ export default [
           let uc = Container.get(GetTxHistoryByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.params.scripthashes,
-            limit: Req.query.limit ? Req.query.limit : 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc',
-            fromblockheight: Req.query.fromblockheight ? Req.query.fromblockheight : null,
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc',
+            fromblockheight: Req.query.fromblockheight ? Number(Req.query.fromblockheight) : null,
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -309,9 +308,9 @@ export default [
           let uc = Container.get(GetTxHistoryByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.body.scripthashes || Req.body.scripthash,
-            limit: Req.query.limit ? Req.query.limit : 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc',
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc',
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -362,10 +361,10 @@ export default [
           let uc = Container.get(GetTxoutsByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.params.scripthashes,
-            limit: Req.query.limit ? Req.query.limit: 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc',
-            withSpends: Req.query.withSpends === 'false' || Req.query.withSpends === '0' ?  false : true,
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc',
+            withSpends: checkWithSpends(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -391,10 +390,10 @@ export default [
           let uc = Container.get(GetTxoutsByScriptHashOrAddressArray);
           let data = await uc.run({
             scripts: Req.body.scripthashes || Req.body.scripthash,
-            limit: Req.query.limit ? Req.query.limit: 100,
-            offset: Req.query.offset,
-            order: Req.query.order ? Req.query.order : 'desc',
-            withSpends: Req.query.withSpends === 'false' || Req.query.withSpends === '0' ?  false : true,
+            limit: Req.query.limit ? Number(Req.query.limit) : 100,
+            offset: Number(Req.query.offset),
+            order: Req.query.order !== 'asc' ? 'desc' : 'asc',
+            withSpends: Req.query.withSpends === 'true' || Req.query.withSpends === '1' ?  true : false,
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -420,7 +419,7 @@ export default [
           let uc = Container.get(GetTxoutsByTxidArray);
           let data = await uc.run({
             txOutpoints: Req.params.txOutputs,
-            withSpends: Req.query.withSpends === 'false' || Req.query.withSpends === '0' ?  false : true,
+            withSpends: checkWithSpends(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -446,7 +445,7 @@ export default [
           let uc = Container.get(GetTxoutsByTxidArray);
           let data = await uc.run({
             txOutpoints: Req.body.outputs,
-            withSpends: Req.query.withSpends === 'false' || Req.query.withSpends === '0' ?  false : true,
+            withSpends: checkWithSpends(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -462,55 +461,5 @@ export default [
         }
       },
     ],
-  },
-  {
-    path: `${path}/spends/:txOutputs`,
-    method: 'get',
-    handler: [
-    async (Req: Request, res: Response, next: NextFunction) => {
-      try {
-        let uc = Container.get(GetSpendsByTxidArray);
-        let data = await uc.run({
-          txOutpoints: Req.params.txOutputs
-        });
-        sendResponseWrapper(Req, res, 200, data.result);
-      } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          sendErrorWrapper(res, 404, error.toString());
-          return;
-        }
-        if (error instanceof InvalidParamError) {
-          sendErrorWrapper(res, 422, error.toString());
-          return;
-        }
-        next(error);
-      }
-    },
-    ]
-  },
-  {
-    path: `${path}/spends`,
-    method: 'post',
-    handler: [
-    async (Req: Request, res: Response, next: NextFunction) => {
-      try {
-        let uc = Container.get(GetSpendsByTxidArray);
-        let data = await uc.run({
-          txOutpoints: Req.body.outputs
-        });
-        sendResponseWrapper(Req, res, 200, data.result);
-      } catch (error) {
-        if (error instanceof ResourceNotFoundError) {
-          sendErrorWrapper(res, 404, error.toString());
-          return;
-        }
-        if (error instanceof InvalidParamError) {
-          sendErrorWrapper(res, 422, error.toString());
-          return;
-        }
-        next(error);
-      }
-    },
-    ]
   },
 ];

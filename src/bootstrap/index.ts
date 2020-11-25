@@ -59,6 +59,11 @@ import "../services/use_cases/txoutgroup/GetTxoutgroupListByScriptid";
 import "../services/use_cases/txoutgroup/AddGroupScriptIds";
 import "../services/use_cases/txoutgroup/DeleteGroupScriptIds";
 
+import "../services/use_cases/assets/GetTxoutsByScriptHashOrAddressArray";
+import "../services/use_cases/assets/GetUtxosByScriptHashOrAddressArray";
+import "../services/use_cases/assets/GetBalanceByScriptHashOrAddressArray";
+import "../services/use_cases/assets/GetTxHistoryByScriptHashOrAddressArray";
+
 import "../services/use_cases/txstore/GetTxStore";
 import "../services/use_cases/txstore/GetTxStoreRevisions";
 import "../services/use_cases/txstore/SaveTxStore";
@@ -67,6 +72,7 @@ SetTimeZone('UTC');
 
 import EnqInitialTxsForSyncAllProjects from '../services/use_cases/tx/EnqInitialTxsForSyncAllProjects';
 import { createExpress } from './express-factory';
+import StartAssetAgent from '../services/use_cases/assetagent/StartAssetAgent';
 
 async function startServer() {
   let app = await createExpress();
@@ -98,12 +104,12 @@ async function startPendingTaskPoller() {
 
 setInterval(() => {
   startPendingTaskPoller();
-}, 10 * 60 * 1000);
+}, 120 * 1000);
+
 
 setTimeout(() => {
-  startPendingTaskPoller();
-}, 1 * 1000);
-
-
-
-
+ 
+  let uc = Container.get(StartAssetAgent);
+  uc.run();
+}, 3000);
+ 

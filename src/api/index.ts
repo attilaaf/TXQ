@@ -7,8 +7,9 @@ import SSERoute from './v1/sse/index';
 import MapiRoute from './v1/mapi/index';
 import TxstoreRoute from './v1/txstore/index';
 import SystemRoute from './system/status/index';
+import AssetRoute from './v1/assets/index';
 
 export default [
     ...TxRoute, ...QueueRoute, ...TxoutRoute, ...ChannelRoute, ...SSERoute,
-    ...TxoutgroupRoute, ...MapiRoute, ...SystemRoute, ...TxstoreRoute
+    ...TxoutgroupRoute, ...MapiRoute, ...SystemRoute, ...TxstoreRoute, ...AssetRoute
 ];
