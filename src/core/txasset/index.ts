@@ -624,53 +624,41 @@ class TxassetModel {
     const pool = await this.db.getAssetDbClient(accountContext);
     console.log('saveBlockData1', height);
 
-    pool.connect(async (err, client, release) => {
-      const shouldAbort = err => {
-        if (err) {
-          console.error('Error in transaction', err.stack);
-          client.query('ROLLBACK', err => {
-            if (err) {
-              console.error('Error rolling back client', err.stack);
-            }
-            // release the client back to the pool
-            release();
-          });
-        }
-        return !!err;
-      };
-      if (err) {
-        return console.error('Error acquiring client', err.stack);
-      }
-      console.error('saveBlockData2');
-      const tx = await client.query('BEGIN', async (err) => {
-          if (shouldAbort(err)) {
-            return;
-          }
-          console.error('saveBlockData copyin', height);
-          await this.generateCopyInCommands(client, height, block);
-          console.error('saveBlockData copyin after', height);
+    ; await (async () => {
+      // note: we don't try/catch this because if connecting throws an exception
+      // we don't need to dispose of the client (it will be undefined)
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        await this.generateCopyInCommands(client, height, block);
+        console.log('saveBlockData copyin after', height);
           const q = `
           INSERT INTO block_header(height, hash, hashbytes, size, version, merkleroot, time, nonce, bits, difficulty, previousblockhash)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           `;
           console.log('q', q, block.header, block.hash);
-          let result: any = await client.query(q, [
-              height,
-              block.hash,
-              block.hash, // Buffer.from(block.hash, 'hex'),
-              block.header.size,
-              block.header.version,
-              block.header.merkleRoot.toString('hex'),
-              block.header.time,
-              block.header.nonce,
-              block.header.bits,
-              block.header.getTargetDifficulty(),
-              block.header.prevHash.toString('hex')
-            ]);
-          await client.query('COMMIT');
-          return result.rows;
-
-      });
+        let result: any = await client.query(q, [
+          height,
+          block.hash,
+          block.hash, // Buffer.from(block.hash, 'hex'),
+          block.header.size,
+          block.header.version,
+          block.header.merkleRoot.toString('hex'),
+          block.header.time,
+          block.header.nonce,
+          block.header.bits,
+          block.header.getTargetDifficulty(),
+          block.header.prevHash.toString('hex')
+        ]);
+        await client.query('COMMIT');
+      } catch (e) {
+        await client.query('ROLLBACK');
+        throw e;
+      } finally {
+        client.release();
+      }
+    })().catch((e) => {
+      console.error(e.stack);
     });
   }
 
