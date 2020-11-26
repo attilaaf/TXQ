@@ -566,57 +566,54 @@ class TxassetModel {
 
       return buf;
     }
-    console.log('started');
-    return new Promise(async (resolve, reject) => {
-      try {
-        const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(client, height, block);
-        if (!blockTxRecords.length) {
-          console.log('reached asdsfsfend');
-          return;
-        }
-        const stream = client.query(from(`COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, lockscript, unlockscript, scripthash) FROM STDIN WITH NULL as \'null\'`));
-        var rs = new Readable;
-        let currentIndex = 0;
-        const delim = '\t';
-        rs._read = () => {
-          if (currentIndex === blockTxRecords.length) {
-            console.log('reached end');
-            rs.push(null);
+    return new Promise((resolve, reject) => {
 
-
-            console.log('reached end2');
-          } else {
-            let txo = blockTxRecords[currentIndex];
-            const copyDataRow = enc(txo.version) + delim + enc(txo.assetid) + delim + enc(txo.assettypeid) + delim + enc(txo.issuer) + delim +
-              enc(txo.owner) + delim + enc(txo.size) + delim + enc(txo.height) + delim + enc(txo.txid) + delim + enc(txo.blockhash) + delim +
-              enc(txo.locktime) + delim + enc(txo.ins) + delim + enc(txo.outs) + delim + enc(txo.txindex) + delim + enc(txo.n) + delim +
-              enc(txo.prevtxid) + delim + enc(txo.prevn) + delim + enc(txo.seq) + delim + enc(txo.lockscript) + delim + enc(txo.unlockscript) + delim + enc(txo.scripthash) +
-              '\n';
-            //console.log('copyDataRow', copyDataRow, txo.scripthash, txo.unlockscript);
-            rs.push(copyDataRow);
-
-            currentIndex = currentIndex+1;
-          }
-        };
-        let onError = strErr => {
-          console.log('err--------------------');
-          console.error('Something went wrong:', strErr);
-          reject(strErr);
-          return;
-        };
-        rs.on('error', onError);
-        stream.on('error', onError);
-        stream.on('end', function(e) {
-          console.log('end--------------------');
-          resolve();
-        });
-        return rs.pipe(stream);
-      } catch (err) {
-        console.log('outer err', err);
+      const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(client, height, block);
+      if (!blockTxRecords.length) {
+        console.log('reached asdsfsfend');
+        return;
       }
-      console.log('exit func');
-      // rs.pipe(new bytea.Encoder());
-      // rs.pipe(new bytea.Encoder());
+      console.log('started', blockTxRecords.length);
+      const stream = client.query(from(`COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, lockscript, unlockscript, scripthash) FROM STDIN WITH NULL as \'null\'`));
+      var rs = new Readable;
+      let currentIndex = 0;
+      const delim = '\t';
+      rs._read = () => {
+        if (currentIndex === blockTxRecords.length) {
+          console.log('reached end');
+          rs.push(null);
+          rs.push(null);
+          console.log('reached end2');
+        } else {
+          let txo = blockTxRecords[currentIndex];
+          const copyDataRow = enc(txo.version) + delim + enc(txo.assetid) + delim + enc(txo.assettypeid) + delim + enc(txo.issuer) + delim +
+            enc(txo.owner) + delim + enc(txo.size) + delim + enc(txo.height) + delim + enc(txo.txid) + delim + enc(txo.blockhash) + delim +
+            enc(txo.locktime) + delim + enc(txo.ins) + delim + enc(txo.outs) + delim + enc(txo.txindex) + delim + enc(txo.n) + delim +
+            enc(txo.prevtxid) + delim + enc(txo.prevn) + delim + enc(txo.seq) + delim + enc(txo.lockscript) + delim + enc(txo.unlockscript) + delim + enc(txo.scripthash) + '\n';
+          //console.log('copyDataRow', copyDataRow, txo.scripthash, txo.unlockscript);
+          rs.push(copyDataRow);
+
+          currentIndex = currentIndex+1;
+        }
+      };
+      let onError = strErr => {
+        console.log('err--------------------');
+        console.error('Something went wrong:', strErr);
+        reject(strErr);
+        return;
+      };
+      rs.on('error', onError);
+      stream.on('error', onError);
+      stream.on('finish', (e) => {
+        console.log('finish', e);
+        resolve();
+      });
+      stream.on('end', function(e) {
+        console.log('end--------------------');
+        resolve();
+      });
+      rs.pipe(stream);
+      console.log('fiinalize');
     });
   }
 
