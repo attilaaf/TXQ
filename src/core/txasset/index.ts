@@ -478,17 +478,17 @@ class TxassetModel {
     const txidset = [];
     const blockRecords = [];
     for (const tx of block.transactions) {
-      console.log('tx');
+
       const txhash = tx.hash;
       txidset.push(txhash);
       const maxN = Math.max(tx.inputs.length, tx.outputs.length);
       for (let i = 0; i  < maxN; i++) {
         const blockRecord: any= {
-          txid: tx.hash,
+          txid: Buffer.from(tx.hash, 'hex'),
           height,
           n: i,
           version: tx.version,
-          assettypeid: null,
+          assettypeid: 0,
           assetid: null,
           issuer: null,
           owner: null,
@@ -496,10 +496,10 @@ class TxassetModel {
         console.log('JSON', tx.toJSON());
         if (i < tx.inputs.length) {
           if (txIndex > 0) {
-            blockRecord.prevn = tx.inputs[i].prevTxid;
-            blockRecord.prevtxid = tx.inputs[i].outputIndex;
+            blockRecord.prevn = tx.inputs[i].outputIndex;
+            blockRecord.prevtxid = tx.inputs[i].prevTxId;
             blockRecord.seq = tx.inputs[i].sequenceNumber;
-            blockRecord.unlockscript = tx.inputs[i].script;
+            blockRecord.unlockscript = tx.inputs[i].script.toBuffer();
             // Check if utxo found here
 					} else if (txIndex === 0) {
 						; // Do nothing for coinbae
@@ -514,7 +514,7 @@ class TxassetModel {
 					blockRecord.locktime = tx.nLockTime;
 					blockRecord.ins = tx.inputs.length;
 					blockRecord.outs = tx.outputs.length;
-					blockRecord.blockhash = block.hash;
+					blockRecord.blockhash = block.header.hash;
 					blockRecord.txindex = txIndex;
 				  //	blockRecord.unlockscript = tx.inputs[i].script;
 					blockRecord.size = tx.toString().length / 2;
@@ -538,20 +538,20 @@ class TxassetModel {
       if (!blockTxRecords.length) {
         return;
       }
-      const stream = client.query(from('COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, seq, unlockscript, scripthash) FROM STDIN'));
+      const stream = client.query(from('COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, unlockscript, scripthash) FROM STDIN'));
       console.error('stream', stream);
       var rs = new Readable;
       let currentIndex = 0;
       rs._read = () => {
-        if (currentIndex === txs.length) {
+        if (currentIndex === blockTxRecords.length) {
           rs.push(null);
         } else {
           let txo = blockTxRecords[currentIndex];
           rs.push(
-            txo.version + '\t' + txo.assetid + '\t' + txo.assettypeid + txo.assettypeid + '\t' + txo.issuer + '\t' +
+            txo.version + '\t' + txo.assetid + '\t' + txo.assettypeid + '\t' + txo.issuer + '\t' +
             txo.owner + '\t' + txo.size + '\t'  + txo.height + '\t' + txo.txid + '\t' + txo.blockhash + '\t'  +
             txo.locktime + '\t' + txo.ins + '\t' + txo.outs + '\t' + txo.txindex + '\t' + txo.n + '\t' +
-            txo.prevtxid + '\t' + txo.seq + '\t' + txo.unlockscript + '\t' + txo.scripthash +
+            txo.prevtxid + '\t' + txo.prevn + '\t' + txo.seq + '\t' + txo.unlockscript + '\t' + txo.scripthash +
             '\n');
           currentIndex = currentIndex+1;
         }
