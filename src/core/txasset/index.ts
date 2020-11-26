@@ -548,14 +548,14 @@ class TxassetModel {
     function enc(buf: Buffer | any) {
 
       if (buf === null || buf === undefined) {
-        return 'NULL';
+        return 'null';
       }
       if (!isNaN(buf)) {
         return buf;
       }
 
       if (!buf) {
-        return "aNULL";
+        return "null";
       }
       if (buf instanceof Buffer) {
       // return `decode(` + buf.toString('hex') + `, 'hex')`;
@@ -570,11 +570,11 @@ class TxassetModel {
       if (!blockTxRecords.length) {
         return;
       }
-      const stream = client.query(from(`COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, unlockscript, scripthash) FROM STDIN DELIMITER ','`));
+      const stream = client.query(from(`COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, unlockscript, scripthash) FROM STDIN WITH NULL as \'null\'`));
 
       var rs = new Readable;
       let currentIndex = 0;
-      const delim = ',';
+      const delim = '\t';
       rs._read = () => {
         if (currentIndex === blockTxRecords.length) {
           rs.push(null);
