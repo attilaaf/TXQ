@@ -494,8 +494,8 @@ class TxassetModel {
           assetid: Buffer.from('00', 'hex'),
           issuer: Buffer.from('00', 'hex'),
           owner: Buffer.from('00', 'hex'),
-          ins: null,
-          outs: null,
+          ins: tx.inputs.length,
+          outs: tx.outputs.length,
           prevn: null,
           prevtxid: null,
           seq: null,
@@ -505,7 +505,7 @@ class TxassetModel {
           scripthash: null,
           locktime: null,
           txindex: null,
-          blockhash: null,
+          blockhash: Buffer.from(block.header.hash, 'hex')
         };
         console.log('JSON', tx.toJSON());
         if (i < tx.inputs.length) {
@@ -531,7 +531,7 @@ class TxassetModel {
 					blockRecord.blockhash = Buffer.from(block.header.hash, 'hex');
 					blockRecord.txindex = txIndex;
 				  //	blockRecord.unlockscript = tx.inputs[i].script;
-					blockRecord.size = tx.toString().length / 2;
+					// blockRecord.size = tx.toString().length / 2;
 					txIndex++;
 					// Fall through for first
         }
@@ -545,11 +545,23 @@ class TxassetModel {
 
   public async generateCopyInCommands(client: any, height: number, block: bsv.Block): Promise<any> {
 
-    function enc(buf: Buffer) {
-      if (!buf) {
-        return '';
+    function enc(buf: Buffer | any) {
+
+      if (buf === null || buf === undefined) {
+        return 'NULL';
       }
-      return `\\\\x` + buf.toString('hex');
+      if (!isNaN(buf)) {
+        return buf;
+      }
+
+      if (!buf) {
+        return "aNULL";
+      }
+      if (buf instanceof Buffer) {
+      // return `decode(` + buf.toString('hex') + `, 'hex')`;
+       return `\\\\x` + buf.toString('hex');
+      }
+      return buf;
     }
 
     const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(client, height, block);
@@ -558,20 +570,21 @@ class TxassetModel {
       if (!blockTxRecords.length) {
         return;
       }
-      const stream = client.query(from('COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, unlockscript, scripthash) FROM STDIN'));
+      const stream = client.query(from(`COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, unlockscript, scripthash) FROM STDIN DELIMITER ','`));
 
       var rs = new Readable;
       let currentIndex = 0;
+      const delim = ',';
       rs._read = () => {
         if (currentIndex === blockTxRecords.length) {
           rs.push(null);
         } else {
           let txo = blockTxRecords[currentIndex];
-          const copyDataRow = txo.version + '\t' + enc(txo.assetid) + '\t' + txo.assettypeid + '\t' + enc(txo.issuer) + '\t' +
-          enc(txo.owner) + '\t' + txo.size + '\t' + txo.height + '\t' + enc(txo.txid) + '\t' + enc(txo.blockhash) + '\t'  +
-          txo.locktime + '\t' + txo.ins + '\t' + txo.outs + '\t' + txo.txindex + '\t' + txo.n + '\t' +
-          enc(txo.prevtxid) + '\t' + txo.prevn + '\t' + txo.seq + '\t' + enc(txo.unlockscript) + '\t' + enc(txo.scripthash) +
-          '\n';
+          const copyDataRow = enc(txo.version) + delim + enc(txo.assetid) + delim + enc(txo.assettypeid) + delim + enc(txo.issuer) + delim +
+            enc(txo.owner) + delim + enc(txo.size) + delim + enc(txo.height) + delim + enc(txo.txid) + delim + enc(txo.blockhash) + delim +
+            enc(txo.locktime) + delim + enc(txo.ins) + delim + enc(txo.outs) + delim + enc(txo.txindex) + delim + enc(txo.n) + delim +
+            enc(txo.prevtxid) + delim + enc(txo.prevn) + delim + enc(txo.seq) + delim + enc(txo.unlockscript) + delim + enc(txo.scripthash) +
+            '\n';
           console.log('copyDataRow', copyDataRow);
           rs.push(copyDataRow);
           currentIndex = currentIndex+1;
