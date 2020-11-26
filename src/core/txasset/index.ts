@@ -473,7 +473,6 @@ class TxassetModel {
 
   public getBlockTxRecords(client: any, height: number, block: bsv.Block): ITxOutRecord[] {
     // Get all transactions that have at least one input that matches
-    // bytea.decode(input)
     var txIndex = 0;
     var txSkippedCount = 0;
     var txTotalCount = 0;
@@ -508,7 +507,7 @@ class TxassetModel {
           txindex: null,
           blockhash: Buffer.from(block.header.hash, 'hex')
         };
-       //  console.log('JSON', tx.toJSON());
+
         if (i < tx.inputs.length) {
           if (txIndex > 0) {
             blockRecord.prevn = tx.inputs[i].outputIndex;
@@ -525,7 +524,7 @@ class TxassetModel {
           blockRecord.lockscript = tx.outputs[i].script.toBuffer();
           const sh = bsv.crypto.Hash.sha256(blockRecord.lockscript);
           sh.reverse();
-          blockRecord.scripthash = sh; //.toString('hex');
+          blockRecord.scripthash = sh;
         }
         if (i === 0) {
 					blockRecord.locktime = tx.nLockTime;
@@ -542,12 +541,10 @@ class TxassetModel {
       }
       txTotalCount++;
     }
-   //  console.log('blockRecords', blockRecords);
     return blockRecords;
   }
 
   public async generateCopyInCommands(client: any, height: number, block: bsv.Block): Promise<any> {
-    console.log('generateCopyInCommands 1');
     function enc(buf: Buffer | any) {
       if (buf === null || buf === undefined) {
         return 'null';
@@ -557,7 +554,6 @@ class TxassetModel {
       }
 
       if (buf instanceof Buffer) {
-        // return `decode(` + buf.toString('hex') + `, 'hex')`;
          return `\\\\x` + buf.toString('hex');
       }
       if (!buf) {
@@ -567,37 +563,29 @@ class TxassetModel {
       return buf;
     }
     return new Promise((resolve, reject) => {
-
       const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(client, height, block);
       if (!blockTxRecords.length) {
-        console.log('reached asdsfsfend');
+        console.log('Empty block');
         return;
       }
-      console.log('started', blockTxRecords.length);
       const stream = client.query(from(`COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, lockscript, unlockscript, scripthash) FROM STDIN WITH NULL as \'null\'`));
       var rs = new Readable;
       let currentIndex = 0;
       const delim = '\t';
       rs._read = () => {
         if (currentIndex === blockTxRecords.length) {
-          console.log('reached end');
           rs.push(null);
-          rs.push(null);
-          console.log('reached end2');
         } else {
           let txo = blockTxRecords[currentIndex];
           const copyDataRow = enc(txo.version) + delim + enc(txo.assetid) + delim + enc(txo.assettypeid) + delim + enc(txo.issuer) + delim +
             enc(txo.owner) + delim + enc(txo.size) + delim + enc(txo.height) + delim + enc(txo.txid) + delim + enc(txo.blockhash) + delim +
             enc(txo.locktime) + delim + enc(txo.ins) + delim + enc(txo.outs) + delim + enc(txo.txindex) + delim + enc(txo.n) + delim +
             enc(txo.prevtxid) + delim + enc(txo.prevn) + delim + enc(txo.seq) + delim + enc(txo.lockscript) + delim + enc(txo.unlockscript) + delim + enc(txo.scripthash) + '\n';
-          //console.log('copyDataRow', copyDataRow, txo.scripthash, txo.unlockscript);
           rs.push(copyDataRow);
-
           currentIndex = currentIndex+1;
         }
       };
       let onError = strErr => {
-        console.log('err--------------------');
         console.error('Something went wrong:', strErr);
         reject(strErr);
         return;
@@ -605,30 +593,22 @@ class TxassetModel {
       rs.on('error', onError);
       stream.on('error', onError);
       stream.on('finish', (e) => {
-        console.log('finish', e);
-        resolve();
-      });
-      stream.on('end', function(e) {
-        console.log('end--------------------');
+        console.log('Finished loading', height, blockTxRecords.length);
         resolve();
       });
       rs.pipe(stream);
-      console.log('fiinalize');
     });
   }
 
   public async saveBlockData(accountContext: IAccountContext, height: number, block: bsv.Block): Promise<any> {
     const pool = await this.db.getAssetDbClient(accountContext);
-    console.log('saveBlockData1', height);
-
-    ; await (async () => {
+    await (async () => {
       // note: we don't try/catch this because if connecting throws an exception
       // we don't need to dispose of the client (it will be undefined)
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
         await this.generateCopyInCommands(client, height, block);
-        console.log('saveBlockData copyin after', height);
           const q = `
           INSERT INTO block_header(height, hash, hashbytes, size, version, merkleroot, time, nonce, bits, difficulty, previousblockhash)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -672,6 +652,5 @@ class TxassetModel {
  }
 
 }
-
 
 export default TxassetModel;
