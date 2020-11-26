@@ -39,10 +39,6 @@ export class BitcoinAgent {
     return false;
   }
 
-  public getBlockByHeight(height: number): any {
-
-  }
-
   public async start(params: {
     getConfig: () => Promise<{ startHeight: number, ctx: IAccountContext }>,
     open: (config: { startHeight: number, ctx: IAccountContext }) => Promise<{ kvstore?: any, db?: any }>,
@@ -85,7 +81,7 @@ export class BitcoinAgent {
     const { kvstore, db } = await params.open(config);
     while (true) {
       try {
-        console.log('--');
+        console.log('---');
         const knownBlockHeaders = await params.getKnownBlockHeaders(kvstore, db, reorgLimit, config);
         if (knownBlockHeaders.length === 0) {
           // nextBlockHeightToFetch = config.startHeight;
@@ -132,7 +128,7 @@ export class BitcoinAgent {
             continue;
           }
         }
-
+        console.log('past here' );
         if (reorgPoint) {
           console.log('Reorg detected', reorgPoint);
           await params.onReorg(kvstore, db, reorgPoint, config);
@@ -143,6 +139,7 @@ export class BitcoinAgent {
         let rawblock = null;
         const nextBlockToFetch = beaconHeaders[0].height + 1;
         try {
+          console.log('in33serted', nextBlockToFetch);
           rawblock = await params.getBlockByHeight(nextBlockToFetch, config);
         } catch (err) {
             if (err.response && err.response.status === 404) {
@@ -150,20 +147,19 @@ export class BitcoinAgent {
             } else {
               console.log('rawblock err', err, nextBlockToFetch);
             }
-
+          console.log('contnue getBlockByHeight');
           continue;
         }
-
+        console.log('insertdded', nextBlockToFetch);
         const block = bsv.Block.fromString(rawblock);
-        console.log('--bb');
+        console.log('inserted3', nextBlockToFetch);
         // Now we have a block
         await params.onBlock(kvstore, db, nextBlockToFetch, block, config);
         console.log('inserted', nextBlockToFetch);
-
-        //  nextBlockHeightToFetch = commonAncestorBlock.corrrespondingHeight + 1;
       } catch (err) {
-        console.log('err', err.stack, err.toString());
+        console.log('err', err);
       } finally  {
+        console.log('fiinally ran');
         await sleeper(4);
       }
     }

@@ -547,6 +547,7 @@ class TxassetModel {
   }
 
   public async generateCopyInCommands(client: any, height: number, block: bsv.Block): Promise<any> {
+    console.log('generateCopyInCommands 1');
     function enc(buf: Buffer | any) {
       if (buf === null || buf === undefined) {
         return 'null';
@@ -565,10 +566,9 @@ class TxassetModel {
 
       return buf;
     }
+    console.log('started');
     return new Promise(async (resolve, reject) => {
       try {
-
-
         const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(client, height, block);
         if (!blockTxRecords.length) {
           console.log('reached asdsfsfend');
@@ -582,6 +582,9 @@ class TxassetModel {
           if (currentIndex === blockTxRecords.length) {
             console.log('reached end');
             rs.push(null);
+
+
+            console.log('reached end2');
           } else {
             let txo = blockTxRecords[currentIndex];
             const copyDataRow = enc(txo.version) + delim + enc(txo.assetid) + delim + enc(txo.assettypeid) + delim + enc(txo.issuer) + delim +
@@ -596,6 +599,7 @@ class TxassetModel {
           }
         };
         let onError = strErr => {
+          console.log('err--------------------');
           console.error('Something went wrong:', strErr);
           reject(strErr);
           return;
@@ -610,6 +614,7 @@ class TxassetModel {
       } catch (err) {
         console.log('outer err', err);
       }
+      console.log('exit func');
       // rs.pipe(new bytea.Encoder());
       // rs.pipe(new bytea.Encoder());
     });
@@ -617,26 +622,27 @@ class TxassetModel {
 
   public async saveBlockData(accountContext: IAccountContext, height: number, block: bsv.Block): Promise<any> {
     const pool = await this.db.getAssetDbClient(accountContext);
-    console.error('saveBlockDatan', height);
-    return pool.connect(async (err, client, done) => {
-      console.error('pool connect', height);
+    console.log('saveBlockData1', height);
+
+    pool.connect(async (err, client, release) => {
       const shouldAbort = err => {
         if (err) {
-          console.error('Error in transaction', err.stack)
+          console.error('Error in transaction', err.stack);
           client.query('ROLLBACK', err => {
             if (err) {
-              console.error('Error rolling back client', err.stack)
+              console.error('Error rolling back client', err.stack);
             }
             // release the client back to the pool
-            done()
-          })
+            release();
+          });
         }
-        return !!err
+        return !!err;
       };
-
-      console.error('saveBlockDatan', height);
+      if (err) {
+        return console.error('Error acquiring client', err.stack);
+      }
+      console.error('saveBlockData2');
       const tx = await client.query('BEGIN', async (err) => {
-        try {
           if (shouldAbort(err)) {
             return;
           }
@@ -663,14 +669,8 @@ class TxassetModel {
             ]);
           await client.query('COMMIT');
           return result.rows;
-        } catch (err) {
-          console.log('err-------------------------------', err);
-          shouldAbort(err);
-          throw err;
-        }
-      });
 
-      return tx;
+      });
     });
   }
 

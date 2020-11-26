@@ -109,21 +109,12 @@ export default class StartAssetAgent extends UseCase {
       },
       // Invoked in order for each block at starting point or after the `getKnownBlockheader`
       onBlock: async (kvstore: any, db: any, height: number, block: bsv.Block, config: { startHeight: number, ctx: IAccountContext}) => {
-        return new Promise(async (resolve, reject) => {
-          console.log('onblock', height, block.transactions.length);
-          await this.txassetModel.saveBlockData(ctx, height, block);
-          resolve();
-        });
+          return this.txassetModel.saveBlockData(ctx, height, block);
       },
       // We know after this point that the next `onBlock` that is invoked will be _after_ lastCommonBlockHash
       // Delete after thing after corrrespondingHeight
       onReorg: async (kvstore: any, db: any, reorg: { height: number }, config: { startHeight: number, ctx: IAccountContext}) => {
-        return new Promise(async (resolve, reject) => {
-          console.log('reorg', reorg);
-          // Insert into block header
-          await this.txassetModel.deleteBlockDataNewerThan(ctx, reorg.height - 1);
-          resolve();
-        });
+        return this.txassetModel.deleteBlockDataNewerThan(ctx, reorg.height - 1);
       }
     });
 
