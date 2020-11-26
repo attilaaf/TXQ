@@ -8,6 +8,7 @@ import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import * as bsv from 'bsv';
 import { Readable } from 'stream';
+
 import { from } from 'pg-copy-streams';
 import { ITxOutRecord } from '@interfaces/ITxOutRecord';
 import * as bytea from 'postgres-bytea';
@@ -491,9 +492,9 @@ class TxassetModel {
           size,
           version: tx.version,
           assettypeid: 0,
-          assetid: Buffer.from('00', 'hex'),
-          issuer: Buffer.from('00', 'hex'),
-          owner: Buffer.from('00', 'hex'),
+          assetid: null,
+          issuer: null,
+          owner: null,
           ins: tx.inputs.length,
           outs: tx.outputs.length,
           prevn: null,
@@ -507,7 +508,7 @@ class TxassetModel {
           txindex: null,
           blockhash: Buffer.from(block.header.hash, 'hex')
         };
-        console.log('JSON', tx.toJSON());
+       //  console.log('JSON', tx.toJSON());
         if (i < tx.inputs.length) {
           if (txIndex > 0) {
             blockRecord.prevn = tx.inputs[i].outputIndex;
@@ -522,7 +523,9 @@ class TxassetModel {
         if (i < tx.outputs.length) {
 					blockRecord.satoshis = tx.outputs[i].satoshis;
           blockRecord.lockscript = tx.outputs[i].script.toBuffer();
-					blockRecord.scripthash = bsv.crypto.Hash.sha256(blockRecord.lockscript).reverse(); //.toString('hex');
+          const sh = bsv.crypto.Hash.sha256(blockRecord.lockscript);
+          sh.reverse();
+          blockRecord.scripthash = sh; //.toString('hex');
         }
         if (i === 0) {
 					blockRecord.locktime = tx.nLockTime;
@@ -539,14 +542,12 @@ class TxassetModel {
       }
       txTotalCount++;
     }
-    console.log('blockRecords', blockRecords);
+   //  console.log('blockRecords', blockRecords);
     return blockRecords;
   }
 
   public async generateCopyInCommands(client: any, height: number, block: bsv.Block): Promise<any> {
-
     function enc(buf: Buffer | any) {
-
       if (buf === null || buf === undefined) {
         return 'null';
       }
@@ -554,51 +555,61 @@ class TxassetModel {
         return buf;
       }
 
+      if (buf instanceof Buffer) {
+        // return `decode(` + buf.toString('hex') + `, 'hex')`;
+         return `\\\\x` + buf.toString('hex');
+      }
       if (!buf) {
         return "null";
       }
-      if (buf instanceof Buffer) {
-      // return `decode(` + buf.toString('hex') + `, 'hex')`;
-       return `\\\\x` + buf.toString('hex');
-      }
+
       return buf;
     }
-
-    const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(client, height, block);
     return new Promise(async (resolve, reject) => {
+      try {
 
-      if (!blockTxRecords.length) {
-        return;
-      }
-      const stream = client.query(from(`COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, unlockscript, scripthash) FROM STDIN WITH NULL as \'null\'`));
 
-      var rs = new Readable;
-      let currentIndex = 0;
-      const delim = '\t';
-      rs._read = () => {
-        if (currentIndex === blockTxRecords.length) {
-          rs.push(null);
-        } else {
-          let txo = blockTxRecords[currentIndex];
-          const copyDataRow = enc(txo.version) + delim + enc(txo.assetid) + delim + enc(txo.assettypeid) + delim + enc(txo.issuer) + delim +
-            enc(txo.owner) + delim + enc(txo.size) + delim + enc(txo.height) + delim + enc(txo.txid) + delim + enc(txo.blockhash) + delim +
-            enc(txo.locktime) + delim + enc(txo.ins) + delim + enc(txo.outs) + delim + enc(txo.txindex) + delim + enc(txo.n) + delim +
-            enc(txo.prevtxid) + delim + enc(txo.prevn) + delim + enc(txo.seq) + delim + enc(txo.unlockscript) + delim + enc(txo.scripthash) +
-            '\n';
-          console.log('copyDataRow', copyDataRow);
-          rs.push(copyDataRow);
-          currentIndex = currentIndex+1;
+        const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(client, height, block);
+        if (!blockTxRecords.length) {
+          console.log('reached asdsfsfend');
+          return;
         }
-      };
-      let onError = strErr => {
-        console.error('Something went wrong:', strErr);
-        reject(strErr);
-        return;
-      };
-      rs.on('error', onError);
-      stream.on('error', onError);
-      stream.on('end', resolve);
-      rs.pipe(stream);
+        const stream = client.query(from(`COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, lockscript, unlockscript, scripthash) FROM STDIN WITH NULL as \'null\'`));
+        var rs = new Readable;
+        let currentIndex = 0;
+        const delim = '\t';
+        rs._read = () => {
+          if (currentIndex === blockTxRecords.length) {
+            console.log('reached end');
+            rs.push(null);
+          } else {
+            let txo = blockTxRecords[currentIndex];
+            const copyDataRow = enc(txo.version) + delim + enc(txo.assetid) + delim + enc(txo.assettypeid) + delim + enc(txo.issuer) + delim +
+              enc(txo.owner) + delim + enc(txo.size) + delim + enc(txo.height) + delim + enc(txo.txid) + delim + enc(txo.blockhash) + delim +
+              enc(txo.locktime) + delim + enc(txo.ins) + delim + enc(txo.outs) + delim + enc(txo.txindex) + delim + enc(txo.n) + delim +
+              enc(txo.prevtxid) + delim + enc(txo.prevn) + delim + enc(txo.seq) + delim + enc(txo.lockscript) + delim + enc(txo.unlockscript) + delim + enc(txo.scripthash) +
+              '\n';
+            //console.log('copyDataRow', copyDataRow, txo.scripthash, txo.unlockscript);
+            rs.push(copyDataRow);
+
+            currentIndex = currentIndex+1;
+          }
+        };
+        let onError = strErr => {
+          console.error('Something went wrong:', strErr);
+          reject(strErr);
+          return;
+        };
+        rs.on('error', onError);
+        stream.on('error', onError);
+        stream.on('end', function(e) {
+          console.log('end--------------------');
+          resolve();
+        });
+        return rs.pipe(stream);
+      } catch (err) {
+        console.log('outer err', err);
+      }
       // rs.pipe(new bytea.Encoder());
       // rs.pipe(new bytea.Encoder());
     });
@@ -631,7 +642,7 @@ class TxassetModel {
           }
           console.error('saveBlockData copyin', height);
           await this.generateCopyInCommands(client, height, block);
-
+          console.error('saveBlockData copyin after', height);
           const q = `
           INSERT INTO block_header(height, hash, hashbytes, size, version, merkleroot, time, nonce, bits, difficulty, previousblockhash)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -653,6 +664,7 @@ class TxassetModel {
           await client.query('COMMIT');
           return result.rows;
         } catch (err) {
+          console.log('err-------------------------------', err);
           shouldAbort(err);
           throw err;
         }

@@ -17,5 +17,6 @@ export interface ITxOutRecord {
   prevn: any;
   seq: any;
   unlockscript: any;
+  lockscript: any;
   scripthash: any;
 }
