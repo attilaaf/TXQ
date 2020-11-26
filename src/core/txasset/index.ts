@@ -10,7 +10,8 @@ import * as bsv from 'bsv';
 import { Readable } from 'stream';
 import { from } from 'pg-copy-streams';
 import { ITxOutRecord } from '@interfaces/ITxOutRecord';
-import * as pgbyte from 'postgres-bytea';
+import * as bytea from 'postgres-bytea';
+import { size } from 'lodash';
 
 @Service('txassetModel')
 class TxassetModel {
@@ -478,7 +479,7 @@ class TxassetModel {
     const txidset = [];
     const blockRecords = [];
     for (const tx of block.transactions) {
-
+      const size = tx.toString().length / 2;
       const txhash = tx.hash;
       txidset.push(txhash);
       const maxN = Math.max(tx.inputs.length, tx.outputs.length);
@@ -487,11 +488,24 @@ class TxassetModel {
           txid: Buffer.from(tx.hash, 'hex'),
           height,
           n: i,
+          size,
           version: tx.version,
           assettypeid: 0,
-          assetid: null,
-          issuer: null,
-          owner: null,
+          assetid: Buffer.from('00', 'hex'),
+          issuer: Buffer.from('00', 'hex'),
+          owner: Buffer.from('00', 'hex'),
+          ins: null,
+          outs: null,
+          prevn: null,
+          prevtxid: null,
+          seq: null,
+          unlockscript: null,
+          satoshis: null,
+          lockscript: null,
+          scripthash: null,
+          locktime: null,
+          txindex: null,
+          blockhash: null,
         };
         console.log('JSON', tx.toJSON());
         if (i < tx.inputs.length) {
@@ -508,13 +522,13 @@ class TxassetModel {
         if (i < tx.outputs.length) {
 					blockRecord.satoshis = tx.outputs[i].satoshis;
           blockRecord.lockscript = tx.outputs[i].script.toBuffer();
-					blockRecord.scripthash = bsv.crypto.Hash.sha256(blockRecord.lockscript).reverse().toString('hex');
+					blockRecord.scripthash = bsv.crypto.Hash.sha256(blockRecord.lockscript).reverse(); //.toString('hex');
         }
         if (i === 0) {
 					blockRecord.locktime = tx.nLockTime;
 					blockRecord.ins = tx.inputs.length;
 					blockRecord.outs = tx.outputs.length;
-					blockRecord.blockhash = block.header.hash;
+					blockRecord.blockhash = Buffer.from(block.header.hash, 'hex');
 					blockRecord.txindex = txIndex;
 				  //	blockRecord.unlockscript = tx.inputs[i].script;
 					blockRecord.size = tx.toString().length / 2;
@@ -530,16 +544,22 @@ class TxassetModel {
   }
 
   public async generateCopyInCommands(client: any, height: number, block: bsv.Block): Promise<any> {
-    const txs = block.transactions;
+
+    function enc(buf: Buffer) {
+      if (!buf) {
+        return '';
+      }
+      return `\\\\x` + buf.toString('hex');
+    }
 
     const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(client, height, block);
     return new Promise(async (resolve, reject) => {
-      console.error('Ecopy in commandsn');
+
       if (!blockTxRecords.length) {
         return;
       }
       const stream = client.query(from('COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, unlockscript, scripthash) FROM STDIN'));
-      console.error('stream', stream);
+
       var rs = new Readable;
       let currentIndex = 0;
       rs._read = () => {
@@ -547,12 +567,13 @@ class TxassetModel {
           rs.push(null);
         } else {
           let txo = blockTxRecords[currentIndex];
-          rs.push(
-            txo.version + '\t' + txo.assetid + '\t' + txo.assettypeid + '\t' + txo.issuer + '\t' +
-            txo.owner + '\t' + txo.size + '\t'  + txo.height + '\t' + txo.txid + '\t' + txo.blockhash + '\t'  +
-            txo.locktime + '\t' + txo.ins + '\t' + txo.outs + '\t' + txo.txindex + '\t' + txo.n + '\t' +
-            txo.prevtxid + '\t' + txo.prevn + '\t' + txo.seq + '\t' + txo.unlockscript + '\t' + txo.scripthash +
-            '\n');
+          const copyDataRow = txo.version + '\t' + enc(txo.assetid) + '\t' + txo.assettypeid + '\t' + enc(txo.issuer) + '\t' +
+          enc(txo.owner) + '\t' + txo.size + '\t' + txo.height + '\t' + enc(txo.txid) + '\t' + enc(txo.blockhash) + '\t'  +
+          txo.locktime + '\t' + txo.ins + '\t' + txo.outs + '\t' + txo.txindex + '\t' + txo.n + '\t' +
+          enc(txo.prevtxid) + '\t' + txo.prevn + '\t' + txo.seq + '\t' + enc(txo.unlockscript) + '\t' + enc(txo.scripthash) +
+          '\n';
+          console.log('copyDataRow', copyDataRow);
+          rs.push(copyDataRow);
           currentIndex = currentIndex+1;
         }
       };
@@ -565,6 +586,8 @@ class TxassetModel {
       stream.on('error', onError);
       stream.on('end', resolve);
       rs.pipe(stream);
+      // rs.pipe(new bytea.Encoder());
+      // rs.pipe(new bytea.Encoder());
     });
   }
 
