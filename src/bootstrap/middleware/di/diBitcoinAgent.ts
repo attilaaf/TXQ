@@ -85,6 +85,7 @@ export class BitcoinAgent {
     const { kvstore, db } = await params.open(config);
     while (true) {
       try {
+        console.log('--');
         const knownBlockHeaders = await params.getKnownBlockHeaders(kvstore, db, reorgLimit, config);
         if (knownBlockHeaders.length === 0) {
           // nextBlockHeightToFetch = config.startHeight;
@@ -108,7 +109,7 @@ export class BitcoinAgent {
           continue;
         }
         let reorgPoint = null;
-
+        console.log('--2');
         if (!this.validateBlockAndBeaconHeadersMatch(blockToVerify, beaconHeaders)) {
           console.log('Potential reorg detected', blockToVerify, beaconHeaders);
           // The header does not match...find out why
@@ -154,11 +155,10 @@ export class BitcoinAgent {
         }
 
         const block = bsv.Block.fromString(rawblock);
-
+        console.log('--bb');
         // Now we have a block
         await params.onBlock(kvstore, db, nextBlockToFetch, block, config);
         console.log('inserted', nextBlockToFetch);
-
 
         //  nextBlockHeightToFetch = commonAncestorBlock.corrrespondingHeight + 1;
       } catch (err) {

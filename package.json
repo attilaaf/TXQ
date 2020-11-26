@@ -68,6 +68,8 @@
     "module-alias": "^2.2.0",
     "morgan": "^1.9.1",
     "pg": "^8.3.0",
+    "pg-copy-streams": "^5.1.1",
+    "postgres-bytea": "^3.0.0",
     "reflect-metadata": "^0.1.13",
     "set-tz": "^0.2.0",
     "swagger-jsdoc": "^3.2.9",

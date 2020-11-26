@@ -7,6 +7,10 @@ import InvalidParamError from '../../services/error/InvalidParamError';
 import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import * as bsv from 'bsv';
+import { Readable } from 'stream';
+import { from } from 'pg-copy-streams';
+import { ITxOutRecord } from '@interfaces/ITxOutRecord';
+import * as pgbyte from 'postgres-bytea';
 
 @Service('txassetModel')
 class TxassetModel {
@@ -465,61 +469,161 @@ class TxassetModel {
     return result.rows;
   }
 
-  public async generateCopyInCommands(client: any, height: number, block: bsv.Block): Promise<string> {
-
-    return 'q';
+  public getBlockTxRecords(client: any, height: number, block: bsv.Block): ITxOutRecord[] {
+    // Get all transactions that have at least one input that matches
+    // bytea.decode(input)
+    var txIndex = 0;
+    var txSkippedCount = 0;
+    var txTotalCount = 0;
+    const txidset = [];
+    const blockRecords = [];
+    for (const tx of block.transactions) {
+      console.log('tx');
+      const txhash = tx.hash;
+      txidset.push(txhash);
+      const maxN = Math.max(tx.inputs.length, tx.outputs.length);
+      for (let i = 0; i  < maxN; i++) {
+        const blockRecord: any= {
+          txid: tx.hash,
+          height,
+          n: i,
+          version: tx.version,
+          assettypeid: null,
+          assetid: null,
+          issuer: null,
+          owner: null,
+        };
+        console.log('JSON', tx.toJSON());
+        if (i < tx.inputs.length) {
+          if (txIndex > 0) {
+            blockRecord.prevn = tx.inputs[i].prevTxid;
+            blockRecord.prevtxid = tx.inputs[i].outputIndex;
+            blockRecord.seq = tx.inputs[i].sequenceNumber;
+            blockRecord.unlockscript = tx.inputs[i].script;
+            // Check if utxo found here
+					} else if (txIndex === 0) {
+						; // Do nothing for coinbae
+					}
+        }
+        if (i < tx.outputs.length) {
+					blockRecord.satoshis = tx.outputs[i].satoshis;
+          blockRecord.lockscript = tx.outputs[i].script.toBuffer();
+					blockRecord.scripthash = bsv.crypto.Hash.sha256(blockRecord.lockscript).reverse().toString('hex');
+        }
+        if (i === 0) {
+					blockRecord.locktime = tx.nLockTime;
+					blockRecord.ins = tx.inputs.length;
+					blockRecord.outs = tx.outputs.length;
+					blockRecord.blockhash = block.hash;
+					blockRecord.txindex = txIndex;
+				  //	blockRecord.unlockscript = tx.inputs[i].script;
+					blockRecord.size = tx.toString().length / 2;
+					txIndex++;
+					// Fall through for first
+        }
+        blockRecords.push(blockRecord);
+      }
+      txTotalCount++;
+    }
+    console.log('blockRecords', blockRecords);
+    return blockRecords;
   }
 
-  public async saveBlockData(accountContext: IAccountContext, height: number, block: bsv.Block): Promise<string> {
-    const client = await this.db.getAssetDbClient(accountContext);
-    const shouldAbort = (err) => {
-      if (err) {
-        console.error('Error in transaction', err.stack);
-        client.query('ROLLBACK', (error: any) => {
-          if (error) {
-            console.error('Error rolling back client', error.stack);
-          }
-          // release the client back to the pool (not done yet)
-        });
+  public async generateCopyInCommands(client: any, height: number, block: bsv.Block): Promise<any> {
+    const txs = block.transactions;
+
+    const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(client, height, block);
+    return new Promise(async (resolve, reject) => {
+      console.error('Ecopy in commandsn');
+      if (!blockTxRecords.length) {
+        return;
       }
-      return !!err;
-    };
-    const tx = await client.query('BEGIN', async (err) => {
-      try {
-        if (shouldAbort(err)) {
-          return;
+      const stream = client.query(from('COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, seq, unlockscript, scripthash) FROM STDIN'));
+      console.error('stream', stream);
+      var rs = new Readable;
+      let currentIndex = 0;
+      rs._read = () => {
+        if (currentIndex === txs.length) {
+          rs.push(null);
+        } else {
+          let txo = blockTxRecords[currentIndex];
+          rs.push(
+            txo.version + '\t' + txo.assetid + '\t' + txo.assettypeid + txo.assettypeid + '\t' + txo.issuer + '\t' +
+            txo.owner + '\t' + txo.size + '\t'  + txo.height + '\t' + txo.txid + '\t' + txo.blockhash + '\t'  +
+            txo.locktime + '\t' + txo.ins + '\t' + txo.outs + '\t' + txo.txindex + '\t' + txo.n + '\t' +
+            txo.prevtxid + '\t' + txo.seq + '\t' + txo.unlockscript + '\t' + txo.scripthash +
+            '\n');
+          currentIndex = currentIndex+1;
         }
+      };
+      let onError = strErr => {
+        console.error('Something went wrong:', strErr);
+        reject(strErr);
+        return;
+      };
+      rs.on('error', onError);
+      stream.on('error', onError);
+      stream.on('end', resolve);
+      rs.pipe(stream);
+    });
+  }
 
-        await this.generateCopyInCommands(client, height, block);
+  public async saveBlockData(accountContext: IAccountContext, height: number, block: bsv.Block): Promise<any> {
+    const pool = await this.db.getAssetDbClient(accountContext);
+    console.error('saveBlockDatan', height);
+    return pool.connect(async (err, client, done) => {
+      console.error('pool connect', height);
+      const shouldAbort = err => {
+        if (err) {
+          console.error('Error in transaction', err.stack)
+          client.query('ROLLBACK', err => {
+            if (err) {
+              console.error('Error rolling back client', err.stack)
+            }
+            // release the client back to the pool
+            done()
+          })
+        }
+        return !!err
+      };
 
-        const q = `
-        INSERT INTO block_header(height, hash, hashbytes, size, version, merkleroot, time, nonce, bits, difficulty, previousblockhash)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-        `;
-        console.log('q', q, block.header, block.hash);
-        let result: any = await client.query(q, [
-            height,
-            block.hash,
-            block.hash, // Buffer.from(block.hash, 'hex'),
-            block.header.size,
-            block.header.version,
-            block.header.merkleRoot.toString('hex'),
-            block.header.time,
-            block.header.nonce,
-            block.header.bits,
-            block.header.getTargetDifficulty(),
-            block.header.prevHash.toString('hex')
-          ]);
-        await client.query('COMMIT');
-        return result.rows;
-      } catch (err) {
-        if (shouldAbort(err)) {
+      console.error('saveBlockDatan', height);
+      const tx = await client.query('BEGIN', async (err) => {
+        try {
+          if (shouldAbort(err)) {
+            return;
+          }
+          console.error('saveBlockData copyin', height);
+          await this.generateCopyInCommands(client, height, block);
+
+          const q = `
+          INSERT INTO block_header(height, hash, hashbytes, size, version, merkleroot, time, nonce, bits, difficulty, previousblockhash)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+          `;
+          console.log('q', q, block.header, block.hash);
+          let result: any = await client.query(q, [
+              height,
+              block.hash,
+              block.hash, // Buffer.from(block.hash, 'hex'),
+              block.header.size,
+              block.header.version,
+              block.header.merkleRoot.toString('hex'),
+              block.header.time,
+              block.header.nonce,
+              block.header.bits,
+              block.header.getTargetDifficulty(),
+              block.header.prevHash.toString('hex')
+            ]);
+          await client.query('COMMIT');
+          return result.rows;
+        } catch (err) {
+          shouldAbort(err);
           throw err;
         }
-      }
-    });
+      });
 
-    return tx;
+      return tx;
+    });
   }
 
   private getOutputFragments(txOutpoints: any[]) {
