@@ -98,5 +98,6 @@ export interface IConfig {
   api?: IApi;
   logs?: ILog;
   interceptors?: any;
+  assets?: any;
 }
 

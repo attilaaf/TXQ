@@ -13,9 +13,16 @@ import { from } from 'pg-copy-streams';
 import { ITxOutRecord } from '@interfaces/ITxOutRecord';
 import * as bytea from 'postgres-bytea';
 import { size } from 'lodash';
+import cfg from './../../cfg';
+import { AssetFactory } from '../../services/helpers/AssetFactory';
+import { IAssetData } from '@interfaces/IAssetData';
+
+
 
 @Service('txassetModel')
 class TxassetModel {
+
+  static assetData = cfg.assets;
 
   constructor(@Inject('db') private db: ContextFactory) {}
 
@@ -471,15 +478,19 @@ class TxassetModel {
     return result.rows;
   }
 
-  public getBlockTxRecords(client: any, height: number, block: bsv.Block): ITxOutRecord[] {
+
+  public getBlockTxRecords(height: number, block: bsv.Block): ITxOutRecord[] {
     // Get all transactions that have at least one input that matches
-    var txIndex = 0;
-    var txSkippedCount = 0;
-    var txTotalCount = 0;
+    let txIndex = 0;
+    let txMatchCount = 0;
+    let txTotalCount = 0;
     const txidset = [];
     const blockRecords = [];
+    const assetFactory = new AssetFactory();
     for (const tx of block.transactions) {
-      const size = tx.toString().length / 2;
+      let shouldIndex = false;
+      txMatchCount++;
+      const txsize = tx.toString().length / 2;
       const txhash = tx.hash;
       txidset.push(txhash);
       const maxN = Math.max(tx.inputs.length, tx.outputs.length);
@@ -488,7 +499,7 @@ class TxassetModel {
           txid: Buffer.from(tx.hash, 'hex'),
           height,
           n: i,
-          size,
+          size: txsize,
           version: tx.version,
           assettypeid: 0,
           assetid: null,
@@ -505,6 +516,7 @@ class TxassetModel {
           scripthash: null,
           locktime: null,
           txindex: null,
+          data: null,
           blockhash: Buffer.from(block.header.hash, 'hex')
         };
 
@@ -514,12 +526,38 @@ class TxassetModel {
             blockRecord.prevtxid = tx.inputs[i].prevTxId;
             blockRecord.seq = tx.inputs[i].sequenceNumber;
             blockRecord.unlockscript = tx.inputs[i].script.toBuffer();
+            if (assetFactory.matchesValidInput(tx.hash, blockRecord.prevtxid, blockRecord.prevn)) {
+              shouldIndex = true;
+            }
             // Check if utxo found here
 					} else if (txIndex === 0) {
-						; // Do nothing for coinbae
+						; // Do nothing for coinbase
 					}
         }
+
         if (i < tx.outputs.length) {
+          if (assetFactory.matchesCoinbaseType(tx, tx.outputs[i])) {
+            shouldIndex = true;
+            const asset: IAssetData = assetFactory.fromTxout(tx.outputs[i].script.toBuffer(), tx);
+            if (asset) {
+              blockRecord.assetid = asset.assetid;
+              blockRecord.assettypeid = asset.assettypeid;
+              blockRecord.issuer = asset.issuer;
+              blockRecord.owner = asset.owner;
+              blockRecord.data = asset.data;
+            }
+          }
+          if (assetFactory.matchesPrefixCode(tx, tx.outputs[i])) {
+            shouldIndex = true;
+            const asset: IAssetData = assetFactory.fromTxout(tx.outputs[i].script.toBuffer(), tx);
+            if (asset) {
+              blockRecord.assetid = asset.assetid;
+              blockRecord.assettypeid = asset.assettypeid;
+              blockRecord.issuer = asset.issuer;
+              blockRecord.owner = asset.owner;
+              blockRecord.data = asset.data;
+            }
+          }
 					blockRecord.satoshis = tx.outputs[i].satoshis;
           blockRecord.lockscript = tx.outputs[i].script.toBuffer();
           const sh = bsv.crypto.Hash.sha256(blockRecord.lockscript);
@@ -532,19 +570,23 @@ class TxassetModel {
 					blockRecord.outs = tx.outputs.length;
 					blockRecord.blockhash = Buffer.from(block.header.hash, 'hex');
 					blockRecord.txindex = txIndex;
-				  //	blockRecord.unlockscript = tx.inputs[i].script;
-					// blockRecord.size = tx.toString().length / 2;
 					txIndex++;
 					// Fall through for first
         }
-        blockRecords.push(blockRecord);
+
+        if (shouldIndex === true) {
+          blockRecords.push(blockRecord);
+        }
       }
       txTotalCount++;
     }
     return blockRecords;
   }
 
-  public async generateCopyInCommands(client: any, height: number, block: bsv.Block): Promise<any> {
+  public async generateCopyInCommands(client: any, height: number, blockTxRecords: any[]): Promise<any> {
+    if (!blockTxRecords.length) {
+      throw new Error('Illegal argument blockTxRecords');
+    }
     function enc(buf: Buffer | any) {
       if (buf === null || buf === undefined) {
         return 'null';
@@ -563,11 +605,6 @@ class TxassetModel {
       return buf;
     }
     return new Promise((resolve, reject) => {
-      const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(client, height, block);
-      if (!blockTxRecords.length) {
-        console.log('Empty block');
-        return;
-      }
       const stream = client.query(from(`COPY txasset (version, assetid, assettypeid, issuer, owner, size, height, txid, blockhash, locktime, ins, outs, txindex, n, prevtxid, prevn, seq, lockscript, unlockscript, scripthash) FROM STDIN WITH NULL as \'null\'`));
       var rs = new Readable;
       let currentIndex = 0;
@@ -601,6 +638,11 @@ class TxassetModel {
   }
 
   public async saveBlockData(accountContext: IAccountContext, height: number, block: bsv.Block): Promise<any> {
+    const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(height, block);
+    if (!blockTxRecords.length) {
+      console.log('Empty block');
+      return;
+    }
     const pool = await this.db.getAssetDbClient(accountContext);
     await (async () => {
       // note: we don't try/catch this because if connecting throws an exception
@@ -608,24 +650,24 @@ class TxassetModel {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        await this.generateCopyInCommands(client, height, block);
+        await this.generateCopyInCommands(client, height, blockTxRecords);
           const q = `
           INSERT INTO block_header(height, hash, hashbytes, size, version, merkleroot, time, nonce, bits, difficulty, previousblockhash)
           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
           `;
           console.log('q', q, block.header, block.hash);
-        let result: any = await client.query(q, [
-          height,
-          block.hash,
-          block.hash, // Buffer.from(block.hash, 'hex'),
-          block.header.size,
-          block.header.version,
-          block.header.merkleRoot.toString('hex'),
-          block.header.time,
-          block.header.nonce,
-          block.header.bits,
-          block.header.getTargetDifficulty(),
-          block.header.prevHash.toString('hex')
+          await client.query(q, [
+            height,
+            block.hash,
+            block.hash, // Buffer.from(block.hash, 'hex'),
+            block.header.size,
+            block.header.version,
+            block.header.merkleRoot.toString('hex'),
+            block.header.time,
+            block.header.nonce,
+            block.header.bits,
+            block.header.getTargetDifficulty(),
+            block.header.prevHash.toString('hex')
         ]);
         await client.query('COMMIT');
       } catch (e) {

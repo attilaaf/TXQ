@@ -7,6 +7,7 @@ import bitcoinAgent from '../../../bootstrap/middleware/di/diBitcoinAgent';
 import Axios from 'axios';
 import * as bsv from 'bsv';
 import * as rocksdb from 'level-rocksdb';
+import cfg from '../../../cfg';
 
 @Service('startAssetAgent')
 export default class StartAssetAgent extends UseCase {
@@ -47,13 +48,27 @@ export default class StartAssetAgent extends UseCase {
       };
     }
 
+    const getEarliestStartHeight = () => {
+      const infinity = 999999999999;
+      let seenMin = infinity;
+      for (const item in cfg.assets) {
+        if (!cfg.assets.hasOwnProperty(item)) {
+          continue;
+        }
+        if (cfg.assets[item].height < seenMin) {
+          seenMin = cfg.assets[item].height;
+        }
+      }
+      return seenMin !== infinity ? seenMin : 0;
+    };
+
     bitcoinAgent.start({
       //
       // Get starting options to be used as defaults
       getConfig: async (): Promise<{ startHeight: number, ctx: IAccountContext}> => {
         return new Promise((resolve, reject) => {
           return resolve({
-            startHeight: 343322,
+            startHeight: getEarliestStartHeight(),
             ctx,
           });
         });
