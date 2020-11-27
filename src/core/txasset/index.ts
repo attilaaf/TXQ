@@ -478,7 +478,6 @@ class TxassetModel {
     return result.rows;
   }
 
-
   public getBlockTxRecords(height: number, block: bsv.Block): ITxOutRecord[] {
     // Get all transactions that have at least one input that matches
     let txIndex = 0;
@@ -487,7 +486,6 @@ class TxassetModel {
     const txidset = [];
     const blockRecords = [];
     const assetFactory = new AssetFactory();
-    let txsToIndex = [];
     for (const tx of block.transactions) {
       const assetFoundMap = {};
       txMatchCount++;
@@ -513,11 +511,11 @@ class TxassetModel {
           break;
         }
       }
-
-      if (shouldIndex) {
-        txsToIndex.push(tx);
+      if (!shouldIndex) {
+        continue;
       }
-
+      // We have at least a valid spending asset input or a valid coinbase output
+      // Index the entire transaction and set the color by matching up color
       for (let i = 0; i < maxN; i++) {
         const blockRecord: any= {
           txid: Buffer.from(tx.hash, 'hex'),
@@ -544,6 +542,7 @@ class TxassetModel {
           blockhash: Buffer.from(block.header.hash, 'hex')
         };
 
+        // Build input fields
         if (i < tx.inputs.length) {
           if (txIndex > 0) {
             blockRecord.prevn = tx.inputs[i].outputIndex;
@@ -555,10 +554,10 @@ class TxassetModel {
 						; // Do nothing for coinbase
 					}
         }
-
+        // Build output fields
         if (i < tx.outputs.length) {
+          // Thisi must be a new asset mint event
           if (assetFactory.matchesCoinbaseType(tx, tx.outputs[i])) {
-            shouldIndex = true;
             const asset: IAssetData = assetFactory.fromCoinbaseTxout(tx.outputs[i].script.toBuffer(), tx);
             if (asset) {
               blockRecord.assetid = asset.assetid;
@@ -567,10 +566,11 @@ class TxassetModel {
               blockRecord.owner = asset.owner;
               blockRecord.data = asset.data;
             }
+          // Otherwise it must be a transition of an existing asset
           } else if (assetFactory.matchesPrefixCode(tx, tx.outputs[i])) {
-            shouldIndex = true;
             const asset: IAssetData = assetFactory.fromNonCoinbaseTxout(tx.outputs[i].script.toBuffer(), tx);
-            // If this output asset is part of the input being spent and it is valid, then allow it
+            // If this output asset is part of the input being spent and it is valid, then extract the fields
+            // It's important to check again so we validate the asset is infact being spent correctly.
             if (asset && this.validAssetTransition(assetInputMap, asset)) {
               // Note that melted or invalid assets will be stripped of their identity because they are not valid in the utxo set
               blockRecord.assetid = asset.assetid;
