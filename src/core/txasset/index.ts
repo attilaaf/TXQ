@@ -487,16 +487,38 @@ class TxassetModel {
     const txidset = [];
     const blockRecords = [];
     const assetFactory = new AssetFactory();
+    let txsToIndex = [];
     for (const tx of block.transactions) {
       const assetFoundMap = {};
-      let shouldIndex = false;
       txMatchCount++;
       const txsize = tx.toString().length / 2;
       const txhash = tx.hash;
       txidset.push(txhash);
       const maxN = Math.max(tx.inputs.length, tx.outputs.length);
+      let shouldIndex = false;
+      let assetInputMap = [];
+      for (const input of tx.inputs) {
+        const unlockscript = tx.inputs.script.toBuffer();
+        const asset: IAssetData = assetFactory.getAssetData(unlockscript);
+        assetInputMap.push(asset);
+        if (this.isValidSpendingAssetOutpoint(asset, input.prevTxId, input.outputIndex)) {
+          shouldIndex = true;
+          break;
+        }
+      }
 
-      for (let i = 0; i  < maxN; i++) {
+      for (const output of tx.outputs) {
+        if (assetFactory.matchesCoinbaseType(tx, output)) {
+          shouldIndex = true;
+          break;
+        }
+      }
+
+      if (shouldIndex) {
+        txsToIndex.push(tx);
+      }
+
+      for (let i = 0; i < maxN; i++) {
         const blockRecord: any= {
           txid: Buffer.from(tx.hash, 'hex'),
           height,
@@ -528,11 +550,6 @@ class TxassetModel {
             blockRecord.prevtxid = tx.inputs[i].prevTxId;
             blockRecord.seq = tx.inputs[i].sequenceNumber;
             blockRecord.unlockscript = tx.inputs[i].script.toBuffer();
-            const asset: IAssetData = assetFactory.getAssetBeingSpent(blockRecord.unlockscript, tx.hash, blockRecord.prevtxid, blockRecord.prevn);
-            if (asset) {
-              shouldIndex = true;
-              assetFoundMap[asset.assettypeid + 'ID' + asset.assetid] = asset;
-            }
             // Check if utxo found here
 					} else if (txIndex === 0) {
 						; // Do nothing for coinbase
@@ -542,7 +559,7 @@ class TxassetModel {
         if (i < tx.outputs.length) {
           if (assetFactory.matchesCoinbaseType(tx, tx.outputs[i])) {
             shouldIndex = true;
-            const asset: IAssetData = assetFactory.fromTxout(tx.outputs[i].script.toBuffer(), tx);
+            const asset: IAssetData = assetFactory.fromCoinbaseTxout(tx.outputs[i].script.toBuffer(), tx);
             if (asset) {
               blockRecord.assetid = asset.assetid;
               blockRecord.assettypeid = asset.assettypeid;
@@ -550,11 +567,12 @@ class TxassetModel {
               blockRecord.owner = asset.owner;
               blockRecord.data = asset.data;
             }
-          }
-          if (assetFactory.matchesPrefixCode(tx, tx.outputs[i])) {
+          } else if (assetFactory.matchesPrefixCode(tx, tx.outputs[i])) {
             shouldIndex = true;
-            const asset: IAssetData = assetFactory.fromTxout(tx.outputs[i].script.toBuffer(), tx);
-            if (asset) {
+            const asset: IAssetData = assetFactory.fromNonCoinbaseTxout(tx.outputs[i].script.toBuffer(), tx);
+            // If this output asset is part of the input being spent and it is valid, then allow it
+            if (asset && this.validAssetTransition(assetInputMap, asset)) {
+              // Note that melted or invalid assets will be stripped of their identity because they are not valid in the utxo set
               blockRecord.assetid = asset.assetid;
               blockRecord.assettypeid = asset.assettypeid;
               blockRecord.issuer = asset.issuer;
