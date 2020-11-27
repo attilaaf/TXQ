@@ -7,8 +7,9 @@ import * as bsv from 'bsv';
 export class AssetFactory {
 
 
+
     constructor(private assetData?: IAssetDefine) {
-        if (!assetData) {
+        if (assetData) {
             for (const i in cfg.assets) {
                 if (!cfg.assets.hasOwnProperty(i)) {
                     continue;
@@ -20,6 +21,14 @@ export class AssetFactory {
                 };
             }
         }
+    }
+
+    fromCoinbaseTxout(unlockscript) {
+        return null;
+    }
+
+    fromNonCoinbaseTxout(unlockscript) {
+        return null;
     }
 
     matchesCoinbaseType(tx: bsv.Transaction, txOutput: bsv.Output): boolean {
@@ -83,4 +92,9 @@ export class AssetFactory {
         }
         return assetData;
     }
+
+    getAssetData(buf: Buffer): IAssetData {
+        return null;
+    }
+
 }

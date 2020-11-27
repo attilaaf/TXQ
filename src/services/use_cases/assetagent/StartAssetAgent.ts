@@ -124,7 +124,7 @@ export default class StartAssetAgent extends UseCase {
       },
       // Invoked in order for each block at starting point or after the `getKnownBlockheader`
       onBlock: async (kvstore: any, db: any, height: number, block: bsv.Block, config: { startHeight: number, ctx: IAccountContext}) => {
-          return this.txassetModel.saveBlockData(ctx, height, block);
+          return this.txassetModel.saveBlockData(kvstore, db, ctx, height, block);
       },
       // We know after this point that the next `onBlock` that is invoked will be _after_ lastCommonBlockHash
       // Delete after thing after corrrespondingHeight

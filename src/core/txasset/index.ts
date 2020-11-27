@@ -478,17 +478,35 @@ class TxassetModel {
     return result.rows;
   }
 
-  public getBlockTxRecords(height: number, block: bsv.Block): ITxOutRecord[] {
+  public async isValidSpendingAssetOutpoint(kvstore: any, asset: IAssetData, prevTxid, outputIndex) {
+    if (!asset) {
+      return false;
+    }
+    const value = await kvstore.get(prevTxid + outputIndex);
+    return value === asset.assetid;
+  }
+
+  public async validAssetTransition(assetInputMap, asset) {
+
+    return false;
+  }
+
+
+  public async getBlockTxRecords(kvstore: any, db: any, height: number, block: bsv.Block): Promise<ITxOutRecord[]> {
     // Get all transactions that have at least one input that matches
-    let txIndex = 0;
+    let txIndex = -1;
     let txMatchCount = 0;
     let txTotalCount = 0;
     const txidset = [];
     const blockRecords = [];
     const assetFactory = new AssetFactory();
+    const allNewOutpoints: Array<{ assetid: any, txid: any, index: any }> = [];
+
     for (const tx of block.transactions) {
-      const assetFoundMap = {};
-      txMatchCount++;
+      txIndex++;
+      if (txIndex === 0) {
+        continue;
+      }
       const txsize = tx.toString().length / 2;
       const txhash = tx.hash;
       txidset.push(txhash);
@@ -496,12 +514,11 @@ class TxassetModel {
       let shouldIndex = false;
       let assetInputMap = [];
       for (const input of tx.inputs) {
-        const unlockscript = tx.inputs.script.toBuffer();
+        const unlockscript = input.script.toBuffer();
         const asset: IAssetData = assetFactory.getAssetData(unlockscript);
-        assetInputMap.push(asset);
-        if (this.isValidSpendingAssetOutpoint(asset, input.prevTxId, input.outputIndex)) {
+        if (await this.isValidSpendingAssetOutpoint(kvstore, asset, input.prevTxId, input.outputIndex)) {
           shouldIndex = true;
-          break;
+          assetInputMap.push(asset);
         }
       }
 
@@ -556,19 +573,29 @@ class TxassetModel {
         }
         // Build output fields
         if (i < tx.outputs.length) {
+          blockRecord.satoshis = tx.outputs[i].satoshis;
+          blockRecord.lockscript = tx.outputs[i].script.toBuffer();
+          const sh = bsv.crypto.Hash.sha256(blockRecord.lockscript);
+          sh.reverse();
+          blockRecord.scripthash = sh;
           // Thisi must be a new asset mint event
           if (assetFactory.matchesCoinbaseType(tx, tx.outputs[i])) {
-            const asset: IAssetData = assetFactory.fromCoinbaseTxout(tx.outputs[i].script.toBuffer(), tx);
+            const asset: IAssetData = assetFactory.fromCoinbaseTxout(tx.outputs[i].script.toBuffer());
             if (asset) {
               blockRecord.assetid = asset.assetid;
               blockRecord.assettypeid = asset.assettypeid;
               blockRecord.issuer = asset.issuer;
               blockRecord.owner = asset.owner;
               blockRecord.data = asset.data;
+              allNewOutpoints.push({
+                assetid: blockRecord.assetid,
+                txid: tx.hash,
+                index: i,
+              });
             }
           // Otherwise it must be a transition of an existing asset
           } else if (assetFactory.matchesPrefixCode(tx, tx.outputs[i])) {
-            const asset: IAssetData = assetFactory.fromNonCoinbaseTxout(tx.outputs[i].script.toBuffer(), tx);
+            const asset: IAssetData = assetFactory.fromNonCoinbaseTxout(tx.outputs[i].script.toBuffer());
             // If this output asset is part of the input being spent and it is valid, then extract the fields
             // It's important to check again so we validate the asset is infact being spent correctly.
             if (asset && this.validAssetTransition(assetInputMap, asset)) {
@@ -578,23 +605,21 @@ class TxassetModel {
               blockRecord.issuer = asset.issuer;
               blockRecord.owner = asset.owner;
               blockRecord.data = asset.data;
+              allNewOutpoints.push({
+                assetid: blockRecord.assetid,
+                txid: tx.hash,
+                index: i,
+              });
             }
           }
-					blockRecord.satoshis = tx.outputs[i].satoshis;
-          blockRecord.lockscript = tx.outputs[i].script.toBuffer();
-          const sh = bsv.crypto.Hash.sha256(blockRecord.lockscript);
-          sh.reverse();
-          blockRecord.scripthash = sh;
         }
-        if (i === 0) {
-					blockRecord.locktime = tx.nLockTime;
-					blockRecord.ins = tx.inputs.length;
-					blockRecord.outs = tx.outputs.length;
-					blockRecord.blockhash = Buffer.from(block.header.hash, 'hex');
-					blockRecord.txindex = txIndex;
-					txIndex++;
-					// Fall through for first
-        }
+
+        blockRecord.locktime = tx.nLockTime;
+        blockRecord.ins = tx.inputs.length;
+        blockRecord.outs = tx.outputs.length;
+        blockRecord.blockhash = Buffer.from(block.header.hash, 'hex');
+        blockRecord.txindex = txIndex;
+        blockRecord.txsize = txsize;
 
         if (shouldIndex === true) {
           blockRecords.push(blockRecord);
@@ -602,6 +627,14 @@ class TxassetModel {
       }
       txTotalCount++;
     }
+    const ops = [];
+    for (const newOut of allNewOutpoints) {
+      ops.push({
+        type: 'put', key: newOut.txid + newOut.index, value: newOut.assetid
+      });
+    }
+    // Commit the new outpoiints
+    await kvstore.batch(ops);
     return blockRecords;
   }
 
@@ -659,8 +692,8 @@ class TxassetModel {
     });
   }
 
-  public async saveBlockData(accountContext: IAccountContext, height: number, block: bsv.Block): Promise<any> {
-    const blockTxRecords: ITxOutRecord[] = this.getBlockTxRecords(height, block);
+  public async saveBlockData(kvstore: any, db: any, accountContext: IAccountContext, height: number, block: bsv.Block): Promise<any> {
+    const blockTxRecords: ITxOutRecord[] = await this.getBlockTxRecords(kvstore, db, height, block);
     if (!blockTxRecords.length) {
       console.log('Empty block');
       return;
