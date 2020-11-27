@@ -488,12 +488,14 @@ class TxassetModel {
     const blockRecords = [];
     const assetFactory = new AssetFactory();
     for (const tx of block.transactions) {
+      const assetFoundMap = {};
       let shouldIndex = false;
       txMatchCount++;
       const txsize = tx.toString().length / 2;
       const txhash = tx.hash;
       txidset.push(txhash);
       const maxN = Math.max(tx.inputs.length, tx.outputs.length);
+
       for (let i = 0; i  < maxN; i++) {
         const blockRecord: any= {
           txid: Buffer.from(tx.hash, 'hex'),
@@ -526,8 +528,10 @@ class TxassetModel {
             blockRecord.prevtxid = tx.inputs[i].prevTxId;
             blockRecord.seq = tx.inputs[i].sequenceNumber;
             blockRecord.unlockscript = tx.inputs[i].script.toBuffer();
-            if (assetFactory.matchesValidInput(tx.hash, blockRecord.prevtxid, blockRecord.prevn)) {
+            const asset: IAssetData = assetFactory.getAssetBeingSpent(blockRecord.unlockscript, tx.hash, blockRecord.prevtxid, blockRecord.prevn);
+            if (asset) {
               shouldIndex = true;
+              assetFoundMap[asset.assettypeid + 'ID' + asset.assetid] = asset;
             }
             // Check if utxo found here
 					} else if (txIndex === 0) {
