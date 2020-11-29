@@ -1,6 +1,6 @@
 import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
-import { ITransactionMeta } from '../../interfaces/ITransactionData';
+import { ITransactionMeta, TransactionStatusType } from '../../interfaces/ITransactionData';
 
 @Service('txmetaService')
 export default class TxmetaService {
@@ -15,8 +15,8 @@ export default class TxmetaService {
     return tx;
   }
 
-  public async getTxsByChannel(accountContext: IAccountContext, channel: string, afterId: number, limit: number, rawtx?: boolean) {
-    return this.txmetaModel.getTxsByChannel(accountContext, channel, afterId, limit, rawtx);
+  public async getTxsByChannel(accountContext: IAccountContext, channel: string, afterId: number, limit: number, status: TransactionStatusType, rawtx?: boolean) {
+    return this.txmetaModel.getTxsByChannel(accountContext, channel, afterId, limit, status, rawtx);
   }
 
   public async saveTxmeta(accountContext: IAccountContext, txid: string, channel: string | undefined | null, txmeta: ITransactionMeta, tags: any, extracted: any) {
