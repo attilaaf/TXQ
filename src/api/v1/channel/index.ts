@@ -22,6 +22,7 @@ export default [
             // tags: Req.query.tags,
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
+            status: Req.query.status || 'all',
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
@@ -51,6 +52,7 @@ export default [
             // tags: Req.query.tags,
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
+            status: Req.query.status || 'all',
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
