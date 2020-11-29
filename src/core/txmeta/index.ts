@@ -1,6 +1,6 @@
 import { Service, Inject } from 'typedi';
 import { DateUtil } from '../../services/helpers/DateUtil';
-import { ITransactionMeta } from '../../interfaces/ITransactionData';
+import { ITransactionMeta, TransactionStatusType } from '../../interfaces/ITransactionData';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
 
@@ -22,10 +22,41 @@ class TxmetaModel {
     return result.rows[0];
   }
 
-  public async getTxsByChannel(accountContext: IAccountContext, channel: string | null | undefined, afterId: number, limit: number, rawtx?: boolean): Promise<string[]> {
+  public async getTxsByChannel(accountContext: IAccountContext, channel: string | null | undefined, afterId: number, limit: number, status: TransactionStatusType, rawtx?: boolean): Promise<string[]> {
     const client = await this.db.getClient(accountContext);
     let result: any;
     let channelStr = channel ? channel : '';
+
+    let statusCondition = '';
+    switch (status) {
+      case 'confirmed':
+        statusCondition = ` 
+          AND txsync.dlq IS NULL 
+          AND tx.completed = TRUE 
+          AND tx.i IS NOT NULL 
+        `;
+        break;
+
+      case 'unconfirmed':
+        statusCondition = ` 
+          AND txsync.dlq IS NULL 
+          AND (
+            tx.completed = FALSE 
+            OR tx.i IS NULL
+          ) 
+        `;
+        break;
+
+      case 'dead':
+        statusCondition = ` 
+          AND txsync.dlq IS NOT NULL 
+        `;
+        break;
+
+      case 'all':
+      default:
+        break;
+    }
 
     result = await client.query(
       `SELECT 
@@ -56,6 +87,7 @@ class TxmetaModel {
           : `channel = $1 `
         } 
         AND tx.txid = txmeta.txid 
+        ${statusCondition}
       ORDER BY txmeta.created_at DESC 
       ${
         afterId 
