@@ -40,3 +40,5 @@ export interface ITransactionData {
   metadata: ITransactionMeta,
   tags: any[]
 }
+
+export type TransactionStatusType = 'all' | 'confirmed' | 'unconfirmed' | 'dead';
