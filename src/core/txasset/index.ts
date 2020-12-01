@@ -1,6 +1,5 @@
 import { Service, Inject } from 'typedi';
 import { ITxOutpoint } from '@interfaces/ITxOutpoint';
-import { Pool } from 'pg';
 import { ITXOutput } from '@interfaces/ITxOutput';
 import { ITXSpendInfo } from '@interfaces/ISpendInfo';
 import InvalidParamError from '../../services/error/InvalidParamError';
@@ -8,22 +7,16 @@ import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import * as bsv from 'bsv';
 import { Readable } from 'stream';
-
 import { from } from 'pg-copy-streams';
 import { ITxOutRecord } from '@interfaces/ITxOutRecord';
-import * as bytea from 'postgres-bytea';
-import { size } from 'lodash';
 import cfg from './../../cfg';
 import { AssetFactory } from '../../services/helpers/AssetFactory';
 import { IAssetData } from '@interfaces/IAssetData';
-
-
 
 @Service('txassetModel')
 class TxassetModel {
 
   static assetData = cfg.assets;
-
   constructor(@Inject('db') private db: ContextFactory) {}
 
   public async isTxExist(accountContext: IAccountContext, assetid: string): Promise<boolean> {
@@ -129,8 +122,6 @@ class TxassetModel {
     OFFSET ${offset}
     LIMIT ${limit}
     `;
-    console.log('q', q);
-
     let result = await client.query(q);
 
 
@@ -491,7 +482,6 @@ class TxassetModel {
     return false;
   }
 
-
   public async getBlockTxRecords(kvstore: any, db: any, height: number, block: bsv.Block): Promise<ITxOutRecord[]> {
     // Get all transactions that have at least one input that matches
     let txIndex = -1;
@@ -694,10 +684,7 @@ class TxassetModel {
 
   public async saveBlockData(kvstore: any, db: any, accountContext: IAccountContext, height: number, block: bsv.Block): Promise<any> {
     const blockTxRecords: ITxOutRecord[] = await this.getBlockTxRecords(kvstore, db, height, block);
-    if (!blockTxRecords.length) {
-      console.log('Empty block');
-      return;
-    }
+
     const pool = await this.db.getAssetDbClient(accountContext);
     await (async () => {
       // note: we don't try/catch this because if connecting throws an exception
@@ -705,24 +692,27 @@ class TxassetModel {
       const client = await pool.connect();
       try {
         await client.query('BEGIN');
-        await this.generateCopyInCommands(client, height, blockTxRecords);
-          const q = `
-          INSERT INTO block_header(height, hash, hashbytes, size, version, merkleroot, time, nonce, bits, difficulty, previousblockhash)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-          `;
-          console.log('q', q, block.header, block.hash);
-          await client.query(q, [
-            height,
-            block.hash,
-            block.hash, // Buffer.from(block.hash, 'hex'),
-            block.header.size,
-            block.header.version,
-            block.header.merkleRoot.toString('hex'),
-            block.header.time,
-            block.header.nonce,
-            block.header.bits,
-            block.header.getTargetDifficulty(),
-            block.header.prevHash.toString('hex')
+        if (blockTxRecords.length) {
+          await this.generateCopyInCommands(client, height, blockTxRecords);
+        } else {
+          console.log('Empty block');
+        }
+        const q = `
+        INSERT INTO block_header(height, hash, hashbytes, size, version, merkleroot, time, nonce, bits, difficulty, previousblockhash)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        `;
+        await client.query(q, [
+          height,
+          block.hash,
+          block.hash, // Buffer.from(block.hash, 'hex'),
+          block.header.size,
+          block.header.version,
+          block.header.merkleRoot.toString('hex'),
+          block.header.time,
+          block.header.nonce,
+          block.header.bits,
+          block.header.getTargetDifficulty(),
+          block.header.prevHash.toString('hex')
         ]);
         await client.query('COMMIT');
       } catch (e) {
