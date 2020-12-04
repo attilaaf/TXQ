@@ -118,18 +118,20 @@ export class ContextFactory {
 
   public async initialize() {
     // Always load the cache first if available, if not then default to config.js
-    await jsonFileReader(cacheConfigPath)
-    .then(async (data: any) => {
-        if (data) {
-            this.loadCtx(data);
-            return;
-        }
-    }).catch((error) => {
-        console.log('Cache config file error, falling back to default config.js', error);
-        if (cfg.configMode === 'file') {
-          this.loadCtx(contextsConfig);
-        }
-    });
+    try {
+      await jsonFileReader(cacheConfigPath)
+      .then(async (data: any) => {
+          if (data) {
+              this.loadCtx(data);
+              return;
+          }
+      });
+    } catch (err) {
+      console.log('Cache config file error, falling back to default config.js', err);
+      if (cfg.configMode === 'file' || cfg.configMode === 'database') {
+        this.loadCtx(contextsConfig);
+      }
+    }
 
     // Try to load from database if it's also set
     if (cfg.configMode === 'database') {

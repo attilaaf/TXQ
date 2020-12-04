@@ -50,8 +50,8 @@ var cfg = {
             } : {}
           },
           {
-            name: "merchantapi.matterpool.io",
-            url: "https://merchantapi.matterpool.io",
+            name: "mapi.mattercloud.io",
+            url: "https://mapi.mattercloud.io",
             headers: {
               api_key: process.env.MERCHANTAPI_KEY_MATTERPOOL || null
             }
@@ -60,7 +60,7 @@ var cfg = {
             name: "mempool.io",
             url: "https://www.ddpurse.com/openapi",
             headers: {
-              token: process.env.MERCHANTAPI_KEY_MEMPOOL || "561b756d12572020ea9a104c3441b71790acbbce95a6ddbf7e0630971af9424b"
+              token: process.env.MERCHANTAPI_KEY_MEMPOOL || null
             }
           }
         ],
