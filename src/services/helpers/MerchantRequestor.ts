@@ -103,7 +103,6 @@ const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
   });
 };
 
-// Todo: make actually parallel with promsie.race
 const parallelRaceMultiSender = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
   let responseReturnList = [];
   let validResponseWithSuccessPayload = null;
@@ -230,6 +229,7 @@ const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
               maxBodyLength: 52428890
           });
         }
+
         if (responseSaver) {
           await responseSaver(endpoints[i].name, eventType, response.data);
         }
@@ -368,7 +368,7 @@ export class MerchantRequestorFeeQuotePolicySerialBackup extends MerchantRequest
     super(endpointConfigGroup, logger, responseSaver);
   }
   execute(params: any): Promise<any> {
-    return backupMultiSenderFeeQuote('/mapi/feeQuote', 'get', MerchantapilogEventTypes.FEEQUOTE, this.endpointConfigGroup[this.network], (miner, evt, res) => {
+    return backupMultiSenderFeeQuote('/mapi/feeQuote', 'get', MerchantapilogEventTypes.FEEQUOTE, this.endpointConfigGroup[this.network], params, (miner, evt, res) => {
       return this.responseSaver(miner, evt, res);
     });
   }
@@ -388,7 +388,7 @@ export class MerchantRequestorStatusPolicySerialBackup extends MerchantRequestor
    * @param rawtx Tx to broadcast
    */
   execute(params: {txid: string}): Promise<any> {
-    return backupMultiSender(`/mapi/tx/${params.txid}`, 'get', MerchantapilogEventTypes.STATUSTX, this.endpointConfigGroup[this.network], (miner, evt, res) => {
+    return backupMultiSender(`/mapi/tx/${params.txid}`, 'get', MerchantapilogEventTypes.STATUSTX, this.endpointConfigGroup[this.network], params, (miner, evt, res) => {
       return this.responseSaver(miner, evt, res, params.txid);
     });
   }
@@ -410,7 +410,7 @@ export class MerchantRequestorStatusPolicyRaceToFinishSuccess extends MerchantRe
    * @param rawtx Tx to broadcast
    */
   execute(params: { txid: string, rawtx: string }): Promise<any> {
-    return parallelRaceMultiSender(`/mapi/tx/${params.txid}`, 'get', MerchantapilogEventTypes.STATUSTX, this.endpointConfigGroup[this.network], (miner, evt, res) => {
+    return parallelRaceMultiSender(`/mapi/tx/${params.txid}`, 'get', MerchantapilogEventTypes.STATUSTX, this.endpointConfigGroup[this.network], params, (miner, evt, res) => {
       return this.responseSaver(miner, evt, res, params.txid);
     });
   }
@@ -459,8 +459,6 @@ export class MerchantRequestorSendPolicySendRaceToFinishSuccess extends Merchant
   }
 }
 
-
-
 // tslint:disable-next-line: max-classes-per-file
 export class MerchantRequestorPolicyFactory {
 
@@ -473,7 +471,6 @@ export class MerchantRequestorPolicyFactory {
     if (config.sendPolicy === 'RACE_FIRST_SUCCESS') {
       return new MerchantRequestorSendPolicySendRaceToFinishSuccess(network, config.endpoints, logger, responseSaver);
     }
-
     if (config.sendPolicy === undefined || config.sendPolicy === 'SERIAL_BACKUP') {
       // do nothing as it is the default
     }
@@ -501,7 +498,6 @@ export class MerchantRequestorPolicyFactory {
     if (config.statusPolicy === undefined || config.statusPolicy === 'SERIAL_BACKUP') {
       // do nothing as it is the default
     }
-
     // Default
     return new MerchantRequestorFeeQuotePolicySerialBackup(network, config.endpoints, logger, responseSaver);
   }
@@ -514,7 +510,7 @@ export class MerchantRequestor {
   private feeQuotePolicy;
 
   constructor(private network: string, private config: IMerchantConfig, private logger: any, private responseSaver: Function) {
-    this.config.sendPolicy = this.config.sendPolicy || 'ALL_FIRST_PRIORITY_SUCCESS';
+    this.config.sendPolicy = this.config.sendPolicy || 'SERIAL_BACKUP';
     this.config.statusPolicy = this.config.statusPolicy || 'SERIAL_BACKUP';
     this.sendPolicy = this.sendPolicy || MerchantRequestorPolicyFactory.getSendPolicy(network, this.config, this.logger, this.responseSaver);
     this.statusPolicy = this.statusPolicy || MerchantRequestorPolicyFactory.getStatusPolicy(network, this.config, this.logger, this.responseSaver);

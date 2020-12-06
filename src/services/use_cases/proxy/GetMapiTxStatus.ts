@@ -29,7 +29,6 @@ export default class GetMapiTxStatus extends UseCase {
       return;
     }
     await contextFactory.getClient(params.accountContext);
-
     const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
       await this.merchantapilogService.saveNoError(params.accountContext, miner, eventType, response, txid);
       return true;
@@ -41,10 +40,8 @@ export default class GetMapiTxStatus extends UseCase {
       this.logger,
       saveResponseTask
     );
-
     try {
       const status = await this.merchantRequestor.statusTx(params.txid);
-
       // Conform to mapi spec
       if (status.payload) {
         status.payload = JSON.stringify(status.payload);

@@ -17,20 +17,17 @@ export default class GetMapiTxFeeQuote extends UseCase {
 
   }
   async run(params: { accountContext?: IAccountContext }): Promise<UseCaseOutcome> {
-
     const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
       await this.merchantapilogService.saveNoError(params.accountContext, miner, eventType, response, txid);
       return true;
     };
     await contextFactory.getClient(params.accountContext);
-
     const merchantRequestor = new MerchantRequestor(
       contextFactory.getNetwork(params.accountContext),
       contextFactory.getMapiEndpoints(params.accountContext),
       this.logger,
       saveResponseTask
     );
-
     try {
       const feeQuote = await merchantRequestor.feeQuote();
       // Conform to mapi spec
