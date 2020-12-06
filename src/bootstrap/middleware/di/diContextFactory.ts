@@ -214,23 +214,17 @@ export class ContextFactory {
 
   public async getClient(accountContext?: IAccountContext) {
     // Will throw exception if not found
-
     const ctx = this.getAccountContextConfig(accountContext).dbConnection;
-
-    if (!ctx) {
-      throw new AccessForbiddenError();
-    }
-
     if (!this.dbPoolMap[accountContext.projectId]) {
       const pool = new Pool(ctx);
       try {
         await pool.query('SELECT 1');
         this.dbPoolMap[accountContext.projectId] = pool;
       } catch (err) {
+        console.log('db connect fail', accountContext.projectId, err, err.stack);
         throw new Error('DB connect fail: ' + JSON.stringify(ctx) + ' , ' + JSON.stringify(accountContext));
       }
     }
-
     return this.dbPoolMap[accountContext.projectId];
   }
 

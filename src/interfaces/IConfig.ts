@@ -32,8 +32,8 @@ export interface IMerchantApiEndpointGroupConfig {
 }
 
 export interface IMerchantConfig {
-  sendPolicy: string | 'SERIAL_BACKUP' | 'ALL_FIRST_PRIORITY_SUCCESS';
-  statusPolicy: string | 'SERIAL_BACKUP';
+  sendPolicy: string | 'SERIAL_BACKUP' | 'ALL_FIRST_PRIORITY_SUCCESS' | 'RACE_FIRST_SUCCESS';
+  statusPolicy: string | 'SERIAL_BACKUP' | 'RACE_FIRST_SUCCESS';
   enableResponseLogging: boolean;
   enableProxy?: boolean;
   endpoints: IMerchantApiEndpointGroupConfig;

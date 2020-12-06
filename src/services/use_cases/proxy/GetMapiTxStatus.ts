@@ -8,6 +8,7 @@ import { BitcoinRegex } from '../../helpers/BitcoinRegex';
 import MapiServiceError from '../../error/MapiServiceError';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import contextFactory from '../../../bootstrap/middleware/di/diContextFactory';
+import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 
 @Service('getMapiTxStatus')
 export default class GetMapiTxStatus extends UseCase {
@@ -27,6 +28,7 @@ export default class GetMapiTxStatus extends UseCase {
     if (!txRegex.test(params.txid)) {
       return;
     }
+    await contextFactory.getClient(params.accountContext);
 
     const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
       await this.merchantapilogService.saveNoError(params.accountContext, miner, eventType, response, txid);

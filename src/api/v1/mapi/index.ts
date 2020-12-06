@@ -22,10 +22,10 @@ export default [
           sendMapiResponseWrapper(Req, res, data.result.mapiStatusCode ? data.result.mapiStatusCode : 200, data.result);
         } catch (error) {
           if (error instanceof MapiServiceError) {
-            sendMapiErrorWrapper(res, 500, error.toString());
+            sendMapiErrorWrapper(res, 500, error, AccountContextHelper.getContext(Req));
             return;
           } else if (error instanceof AccessForbiddenError) {
-            sendMapiErrorWrapper(res, 403, error.toString());
+            sendMapiErrorWrapper(res, 403, error, AccountContextHelper.getContext(Req));
             return;
           }
           next(error);
@@ -44,10 +44,10 @@ export default [
           sendMapiResponseWrapper(Req, res, data.result.mapiStatusCode ? data.result.mapiStatusCode : 200, data.result);
         } catch (error) {
           if (error instanceof MapiServiceError) {
-            sendMapiErrorWrapper(res, 500, error.toString());
+            sendMapiErrorWrapper(res, 500, error, AccountContextHelper.getContext(Req));
             return;
           } else if (error instanceof AccessForbiddenError) {
-            sendMapiErrorWrapper(res, 403, error.toString());
+            sendMapiErrorWrapper(res, 403, error, AccountContextHelper.getContext(Req));
             return;
           }
           next(error);
@@ -67,10 +67,10 @@ export default [
           sendMapiResponseWrapper(Req, res, data.result.mapiStatusCode ? data.result.mapiStatusCode : 200, data.result);
         } catch (error) {
           if (error instanceof MapiServiceError) {
-            sendMapiErrorWrapper(res, 500, error.toString());
+            sendMapiErrorWrapper(res, 500, error, AccountContextHelper.getContext(Req));
             return;
           } else if (error instanceof AccessForbiddenError) {
-            sendMapiErrorWrapper(res, 403, error.toString());
+            sendMapiErrorWrapper(res, 403, error, AccountContextHelper.getContext(Req));
             return;
           }
           next(error);

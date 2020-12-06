@@ -6,6 +6,7 @@ import { MerchantRequestor } from '../../helpers/MerchantRequestor';
 import MapiServiceError from '../../error/MapiServiceError';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import contextFactory from '../../../bootstrap/middleware/di/diContextFactory';
+import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 
 @Service('getMapiTxFeeQuote')
 export default class GetMapiTxFeeQuote extends UseCase {
@@ -21,6 +22,7 @@ export default class GetMapiTxFeeQuote extends UseCase {
       await this.merchantapilogService.saveNoError(params.accountContext, miner, eventType, response, txid);
       return true;
     };
+    await contextFactory.getClient(params.accountContext);
 
     const merchantRequestor = new MerchantRequestor(
       contextFactory.getNetwork(params.accountContext),

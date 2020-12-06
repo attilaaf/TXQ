@@ -11,6 +11,9 @@ export class StatusTxUtil {
     }
 
     static isAcceptedPush(statusObj: any): boolean {
+        if (!statusObj) {
+            return false;
+        }
         try {
             const payload = statusObj.payload;
             const txRegex = new RegExp(BitcoinRegex.TXID_REGEX);

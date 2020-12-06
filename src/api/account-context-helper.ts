@@ -16,6 +16,8 @@ export class AccountContextHelper {
     }
 
     static getByHost(req: Request): string {
-        return contextFactory.getMatchedHost(req.headers.host);
+        const h = contextFactory.getMatchedHost(req.headers.host);
+        console.log('h', h);
+        return h;
     }
 }

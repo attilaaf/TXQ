@@ -103,6 +103,104 @@ const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
   });
 };
 
+// Todo: make actually parallel with promsie.race
+const parallelRaceMultiSender = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
+  let responseReturnList = [];
+  let validResponseWithSuccessPayload = null;
+  let firstValidResponseWithAnyPayload = null;
+  const promises = [];
+  return new Promise(async (masterResolve, masterReject) => {
+    let succeededAtLeastOne = false;
+    for (let i = 0; i < endpoints.length; i++) {
+      const newPromise = new Promise(async (resolve, reject) => {
+        try {
+        let response = null;
+          if (httpVerb === 'get') {
+            response = await axios.default.get(`${endpoints[i].url}${url}`, {
+              headers: {
+              ...(endpoints[i].headers),
+              'content-type': 'application/json',
+              },
+              maxContentLength: 52428890,
+              maxBodyLength: 52428890
+            });
+          }
+          if (httpVerb === 'post') {
+            response = await axios.default.post(`${endpoints[i].url}${url}`, payload, {
+              headers: {
+                ...(endpoints[i].headers),
+                'content-type': 'application/json',
+                },
+                maxContentLength: 52428890,
+                maxBodyLength: 52428890
+            });
+          }
+          if (responseSaver) {
+            await responseSaver(endpoints[i].name, eventType, response.data);
+          }
+          const sleeper = (async (sec) => {
+            return new Promise((resolve, reject) => {
+              setTimeout(()=> {
+                resolve();
+              }, sec * 1000);
+            });
+          });
+
+          if (typeof response.data.payload === 'string') {
+            response.data.payload = JSON.parse(response.data.payload);
+          }
+          if (response && response.data && response.data.payload && response.data.payload.returnResult === 'success') {
+            const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
+            responseReturnList.push(toSave);
+            validResponseWithSuccessPayload = toSave;
+            if (!firstValidResponseWithAnyPayload) {
+              firstValidResponseWithAnyPayload = toSave;
+              succeededAtLeastOne = true;
+              // Do not break, this ensures all endpoints are sent to
+              masterResolve(firstValidResponseWithAnyPayload);
+            }
+            return resolve(toSave);
+          } else if (response && response.data && response.data.payload) {
+            const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
+            responseReturnList.push(toSave);
+            if (!firstValidResponseWithAnyPayload) {
+              firstValidResponseWithAnyPayload = toSave;
+            }
+            return resolve(toSave);
+          } else {
+            const toSave = { error: JSON.stringify(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
+            responseReturnList.push(toSave);
+            return reject(toSave);
+          }
+        } catch (err) {
+          return reject(err);
+        }
+      });
+      promises.push(newPromise);
+    }
+  
+    let promiseSettled =  null;
+    Promise.allSettled(promises).then((r) => {
+      for (const item of r) {
+        if (item.status === 'fulfilled' && item.value && item.value.payload && item.value.payload.result === 'success') {
+          return masterResolve(item.value);
+        }
+      }
+      for (const item of r) {
+        if (item.status === 'fulfilled' && item.value && item.value.payload && item.value.payload.result !== 'success') {
+          return masterResolve(item.value);
+        }
+      }
+      for (const item of r) {
+        if (item.status === 'rejected') {
+          return masterReject(item.reason);
+        }
+      }
+    });
+    return promiseSettled;
+  });
+};
+
 const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
   return new Promise(async (resolve, reject) => {
     let responseReturnList = [];
@@ -296,6 +394,28 @@ export class MerchantRequestorStatusPolicySerialBackup extends MerchantRequestor
   }
 }
 
+
+/**
+ * Sends Status API requests in parallel, logs them async (if enabled), but it returns client response immediately after first reply
+ *
+ * From the client it will appear as this behaves like a single merchant-api (albet might return different miner id info)
+ */
+// tslint:disable-next-line: max-classes-per-file
+export class MerchantRequestorStatusPolicyRaceToFinishSuccess extends MerchantRequestorPolicy {
+  constructor(private network: string, private endpointConfigGroup: IMerchantApiEndpointGroupConfig, logger: any, responseSaver?: Function) {
+    super(endpointConfigGroup, logger, responseSaver);
+  }
+  /**
+   * Execute this policy for broadcasting
+   * @param rawtx Tx to broadcast
+   */
+  execute(params: { txid: string, rawtx: string }): Promise<any> {
+    return parallelRaceMultiSender(`/mapi/tx/${params.txid}`, 'get', MerchantapilogEventTypes.STATUSTX, this.endpointConfigGroup[this.network], (miner, evt, res) => {
+      return this.responseSaver(miner, evt, res, params.txid);
+    });
+  }
+}
+
 /**
  * Sends API requests in parallel, logs them (if enabled) and then returns the authorative result by priority ordering
  *
@@ -316,6 +436,31 @@ export class MerchantRequestorSendPolicySendAllTakeFirstPrioritySuccess extends 
     });
   }
 }
+
+
+/**
+ * Sends API requests in parallel, logs them async (if enabled), but it returns client response immediately after first reply
+ *
+ * From the client it will appear as this behaves like a single merchant-api (albet might return different miner id info)
+ */
+// tslint:disable-next-line: max-classes-per-file
+export class MerchantRequestorSendPolicySendRaceToFinishSuccess extends MerchantRequestorPolicy {
+  constructor(private network: string, private endpointConfigGroup: IMerchantApiEndpointGroupConfig, logger: any, responseSaver?: Function) {
+    super(endpointConfigGroup, logger, responseSaver);
+  }
+  /**
+   * Execute this policy for broadcasting
+   * @param rawtx Tx to broadcast
+   */
+  execute(params: { txid: string, rawtx: string }): Promise<any> {
+    return parallelRaceMultiSender(`/mapi/tx`, 'post', MerchantapilogEventTypes.PUSHTX, this.endpointConfigGroup[this.network], params, (miner, evt, res) => {
+      return this.responseSaver(miner, evt, res, params.txid);
+    });
+  }
+}
+
+
+
 // tslint:disable-next-line: max-classes-per-file
 export class MerchantRequestorPolicyFactory {
 
@@ -323,6 +468,10 @@ export class MerchantRequestorPolicyFactory {
 
     if (config.sendPolicy === 'ALL_FIRST_PRIORITY_SUCCESS') {
       return new MerchantRequestorSendPolicySendAllTakeFirstPrioritySuccess(network, config.endpoints, logger, responseSaver);
+    }
+
+    if (config.sendPolicy === 'RACE_FIRST_SUCCESS') {
+      return new MerchantRequestorSendPolicySendRaceToFinishSuccess(network, config.endpoints, logger, responseSaver);
     }
 
     if (config.sendPolicy === undefined || config.sendPolicy === 'SERIAL_BACKUP') {
@@ -337,6 +486,10 @@ export class MerchantRequestorPolicyFactory {
     // Only 1 policy supported now
     if (config.statusPolicy === undefined || config.statusPolicy === 'SERIAL_BACKUP') {
       // do nothing as it is the default
+    }
+
+    if (config.statusPolicy === 'RACE_FIRST_SUCCESS') {
+      return new MerchantRequestorStatusPolicyRaceToFinishSuccess(network, config.endpoints, logger, responseSaver);
     }
 
     // Default
@@ -369,9 +522,9 @@ export class MerchantRequestor {
   }
 
   public async pushTx(rawtx: string): Promise<any> {
-    const tx = new bsv.Transaction(rawtx);
+    let tx = new bsv.Transaction(rawtx);
     return new Promise(async (resolve, reject) => {
-      this.sendPolicy.execute({txid: tx.hash, rawtx})
+      this.sendPolicy.execute({txid: tx.hash, rawtx: tx.toString()})
       .then((result) => {
         resolve(result);
       }).catch((err) => {

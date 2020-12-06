@@ -10,6 +10,8 @@ import * as bsv from 'bsv';
 import { ChannelMetaUtil } from '../../helpers/ChannelMetaUtil';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import contextFactory from '../../../bootstrap/middleware/di/diContextFactory';
+import InvalidParamError from '../../../services/error/InvalidParamError';
+import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 
 @Service('pushMapiTx')
 export default class PushMapiTx extends UseCase {
@@ -26,8 +28,8 @@ export default class PushMapiTx extends UseCase {
     headers?: any,
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
-    try {
-      const tx = new bsv.Transaction(params.rawtx);
+    await contextFactory.getClient(params.accountContext);
+    try { 
       const saveResponseTask = async (miner: string, eventType: string, response: any, txid: string) => {
         await this.merchantapilogService.saveNoError(params.accountContext, miner, eventType, response, txid)
         return true;
@@ -39,9 +41,17 @@ export default class PushMapiTx extends UseCase {
         this.logger,
         saveResponseTask
       );
-
+      let tx;
+      try {
+        tx = new bsv.Transaction(params.rawtx);
+      } catch (ex) {
+        throw new InvalidParamError('Invalid rawtx');
+      }
+      console.log('1');
       const send = await merchantRequestor.pushTx(params.rawtx);
+      console.log('2');
       setTimeout(async () => {
+        const tx = new bsv.Transaction(params.rawtx);
         let txStatus = null;
         // If it's not accepted, check if it's because the miner already knows about the transaction
         if (!StatusTxUtil.isAcceptedPush(send)) {
@@ -61,9 +71,9 @@ export default class PushMapiTx extends UseCase {
             accountContext: params.accountContext
           });
         }
-      }, 50);
+      }, 0);
       // Conform to mapi spec
-      if (send.payload) {
+      if (send && send.payload) {
         send.payload = JSON.stringify(send.payload);
       }
       return {
