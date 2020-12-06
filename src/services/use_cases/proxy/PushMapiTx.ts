@@ -47,9 +47,7 @@ export default class PushMapiTx extends UseCase {
       } catch (ex) {
         throw new InvalidParamError('Invalid rawtx');
       }
-      console.log('1');
       const send = await merchantRequestor.pushTx(params.rawtx);
-      console.log('2');
       setTimeout(async () => {
         const tx = new bsv.Transaction(params.rawtx);
         let txStatus = null;
