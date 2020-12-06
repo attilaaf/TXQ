@@ -23,7 +23,10 @@ export default [
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
             status: Req.query.status || 'all',
-            accountContext: AccountContextHelper.getContext(Req)
+            accountContext: AccountContextHelper.getContext(Req),
+            address: Req.query.address || '',
+            scripthash: Req.query.scripthash || '',
+            txid: Req.query.txid || '',
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -53,7 +56,10 @@ export default [
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
             status: Req.query.status || 'all',
-            accountContext: AccountContextHelper.getContext(Req)
+            accountContext: AccountContextHelper.getContext(Req),
+            address: Req.query.address || '',
+            scripthash: Req.query.scripthash || '',
+            txid: Req.query.txid || '',
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
