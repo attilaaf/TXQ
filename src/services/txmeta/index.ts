@@ -15,8 +15,8 @@ export default class TxmetaService {
     return tx;
   }
 
-  public async getTxsByChannel(accountContext: IAccountContext, channel: string, afterId: number, limit: number, status: TransactionStatusType, rawtx?: boolean) {
-    return this.txmetaModel.getTxsByChannel(accountContext, channel, afterId, limit, status, rawtx);
+  public async getTxsByChannel(accountContext: IAccountContext, channel: string, afterId: number, limit: number, status: TransactionStatusType, addresses: string[], scripthashes: string[], txids: string[], rawtx?: boolean) {
+    return this.txmetaModel.getTxsByChannel(accountContext, channel, afterId, limit, status, addresses, scripthashes, txids, rawtx);
   }
 
   public async saveTxmeta(accountContext: IAccountContext, txid: string, channel: string | undefined | null, txmeta: ITransactionMeta, tags: any, extracted: any) {
