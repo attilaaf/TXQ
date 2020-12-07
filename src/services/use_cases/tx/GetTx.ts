@@ -22,10 +22,10 @@ export default class GetTx extends UseCase {
 
     let txmeta = await this.txmetaService.getTxmeta(params.accountContext, params.txid, params.channel);
 
-    // Cannot find second part (ie: not for channel)
+    // Cannot find second part (ie: not for channel), just leaving it blank then
     if (!txmeta) {
-      throw new ResourceNotFoundError();
-    }
+      txmeta = {};
+    } 
 
     return {
       success: true,
