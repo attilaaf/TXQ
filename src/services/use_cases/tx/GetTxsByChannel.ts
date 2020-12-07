@@ -19,11 +19,11 @@ export default class GetTxsDlq extends UseCase {
     rawtx: boolean,
     status: any,
     accountContext?: IAccountContext,
-    address: string | string[],
-    scripthash: string | string[],
-    txid: string | string[],
+    addresses: string[],
+    scripthashes: string[],
+    txids: string[],
   }): Promise<UseCaseOutcome> {
-    let txs = await this.txmetaService.getTxsByChannel(params.accountContext, params.channel, params.id, params.limit, params.status, params.rawtx);
+    let txs = await this.txmetaService.getTxsByChannel(params.accountContext, params.channel, params.id, params.limit, params.status, params.addresses, params.scripthashes, params.txids, params.rawtx);
     return {
       success: true,
       result: txs
