@@ -22,10 +22,30 @@ class TxmetaModel {
     return result.rows[0];
   }
 
-  public async getTxsByChannel(accountContext: IAccountContext, channel: string | null | undefined, afterId: number, limit: number, status: TransactionStatusType, rawtx?: boolean): Promise<string[]> {
+  public async getTxsByChannel(accountContext: IAccountContext, channel: string | null | undefined, afterId: number, limit: number, status: TransactionStatusType, addresses: string[], scripthashes: string[], txids: string[], rawtx?: boolean): Promise<string[]> {
     const client = await this.db.getClient(accountContext);
     let result: any;
     let channelStr = channel ? channel : '';
+
+    let addressesCondition = '';
+    if (addresses.length > 0) {
+      addressesCondition = ` 
+        AND txout.address IN (${this.joinQuote(addresses)}) 
+      `;
+    }
+
+    let scriptHashesCondition = '';
+    const scripthashesAndTXIDs = scripthashes.concat(txids);
+    if (scripthashesAndTXIDs.length > 0) {
+      const joinedItems = this.joinQuote(scripthashesAndTXIDs);
+
+      scriptHashesCondition = ` 
+        AND (
+          txout.scripthash IN (${joinedItems}) 
+          OR tx.txid IN (${joinedItems})
+        ) 
+      `;
+    }
 
     let statusCondition = '';
     switch (status) {
@@ -58,37 +78,48 @@ class TxmetaModel {
         break;
     }
 
+    const columns = `
+      txmeta.id
+      ,${rawtx ? 'tx.rawtx,' : '' } tx.txid
+      ,i
+      ,h
+      ,tx.send
+      ,status
+      ,completed
+      ,tx.updated_at
+      ,tx.created_at
+      ,channel
+      ,metadata
+      ,tags
+      ,extracted 
+      ,txsync.dlq 
+    `;
+
     result = await client.query(
       `SELECT 
-        txmeta.id
-        ,${rawtx ? 'tx.rawtx,' : '' } tx.txid
-        ,i
-        ,h
-        ,tx.send
-        ,status
-        ,completed
-        ,tx.updated_at
-        ,tx.created_at
-        ,channel
-        ,metadata
-        ,tags
-        ,extracted 
-        ,txsync.dlq
+        ${columns}
+        ,ARRAY_AGG(txout.address) as addresses
+        ,ARRAY_AGG(txout.scripthash) as scripthashes 
       FROM 
         tx 
       INNER JOIN 
         txmeta ON (tx.txid = txmeta.txid) 
       INNER JOIN 
-        txsync ON (txmeta.txid = txsync.txid) 
+        txsync ON (tx.txid = txsync.txid) 
+      INNER JOIN 
+        txout ON (tx.txid = txout.txid) 
       WHERE 
         ${
           afterId 
           ? `id < $1 AND channel = $2 ` 
           : `channel = $1 `
         } 
-        AND tx.txid = txmeta.txid 
-        ${statusCondition}
-      ORDER BY txmeta.created_at DESC 
+        ${addressesCondition} 
+        ${scriptHashesCondition} 
+        ${statusCondition} 
+      GROUP BY ${columns} 
+      ORDER BY 
+        txmeta.created_at DESC 
       ${
         afterId 
         ? `LIMIT $3` 
@@ -116,6 +147,10 @@ class TxmetaModel {
       txid,channelStr, txmetainsert,now, now, tagsinsert,datainsert
     ]);
     return result;
+  }
+
+  private joinQuote(arr: string[]): string {
+    return "'" + arr.join("','") + "'";
   }
 }
 
