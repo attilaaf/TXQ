@@ -7,6 +7,9 @@ import ResourceNotFoundError from '../../../services/error/ResourceNotFoundError
 import { sendErrorWrapper } from '../../../util/sendErrorWrapper';
 import { AccountContextHelper } from '../../account-context-helper';
 import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
+import { ChannelHelper } from '../../../services/helpers/ChannelHelper';
+import InvalidAddressError from '../../../services/error/InvalidAddressError';
+import InvalidScriptHashOrTXIDError from '../../../services/error/InvalidScriptHashOrTXIDError';
 
 export default [
   {
@@ -23,7 +26,22 @@ export default [
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
             status: Req.query.status || 'all',
-            accountContext: AccountContextHelper.getContext(Req)
+            accountContext: AccountContextHelper.getContext(Req),
+            addresses: ChannelHelper.checkAddresses(
+              ChannelHelper.getParamStringArray(
+                (Req.query.address as string | string[]) || [],
+              ),
+            ),
+            scripthashes: ChannelHelper.checkScriptHashesOrTXIDs(
+              ChannelHelper.getParamStringArray(
+                (Req.query.scripthash as string | string[]) || [],
+              ),
+            ),
+            txids: ChannelHelper.checkScriptHashesOrTXIDs(
+              ChannelHelper.getParamStringArray(
+                (Req.query.txid as string | string[]) || [],
+              ),
+            ),
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -32,6 +50,9 @@ export default [
             return;
           } else if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
+            return;
+          } else if (error instanceof InvalidAddressError || error instanceof InvalidScriptHashOrTXIDError) {
+            sendErrorWrapper(res, 400, error.toString());
             return;
           }
           next(error);
@@ -53,7 +74,22 @@ export default [
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
             status: Req.query.status || 'all',
-            accountContext: AccountContextHelper.getContext(Req)
+            accountContext: AccountContextHelper.getContext(Req),
+            addresses: ChannelHelper.checkAddresses(
+              ChannelHelper.getParamStringArray(
+                (Req.query.address as string | string[]) || [],
+              ),
+            ),
+            scripthashes: ChannelHelper.checkScriptHashesOrTXIDs(
+              ChannelHelper.getParamStringArray(
+                (Req.query.scripthash as string | string[]) || [],
+              ),
+            ),
+            txids: ChannelHelper.checkScriptHashesOrTXIDs(
+              ChannelHelper.getParamStringArray(
+                (Req.query.txid as string | string[]) || [],
+              ),
+            ),
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -62,6 +98,9 @@ export default [
             return;
           } else if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
+            return;
+          } else if (error instanceof InvalidAddressError || error instanceof InvalidScriptHashOrTXIDError) {
+            sendErrorWrapper(res, 400, error.toString());
             return;
           }
           next(error);
