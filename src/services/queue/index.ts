@@ -121,7 +121,7 @@ export default class QueueService {
           maxDelay: queueSettings.syncBackoff.maxDelay, // 1000 * 60 * 60 * 16, // 16 hour max
           numOfAttempts: queueSettings.syncBackoff.numOfAttempts,
           delayFirstAttempt: true,
-          startingDelay: queueSettings.syncBackoff.startingDelay,
+          startingDelay: 0, // queueSettings.syncBackoff.startingDelay,
           jitter: queueSettings.syncBackoff.jitter,
           timeMultiple: queueSettings.syncBackoff.timeMultiple,
           retry: (lastError: any, attemptNumber: number) => {
