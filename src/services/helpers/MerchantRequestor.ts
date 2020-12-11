@@ -569,7 +569,7 @@ export class MerchantRequestor {
 
   public async statusTx(txid: string): Promise<any> {
     return new Promise(async (resolve, reject) => {
-      this.statusPolicy.execute({txid})
+      this.statusPolicy.execute(txid)
       .then((result) => {
         resolve(result);
       }).catch((err) => {
