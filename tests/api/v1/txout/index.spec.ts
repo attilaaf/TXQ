@@ -153,7 +153,6 @@ describe('txout', () => {
         .expect(200)
         .end((err, res) => {
           expect(res.body.status).toBe(200);
-          console.log('res body---', res.body);
           expect(res.body).toEqual({ status: 200, errors: [], result: [
             {
               "address": "1FmSNBWW2m6d6FDUWxDjaJo9jhNAs9Pekr",

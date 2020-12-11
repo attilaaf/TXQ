@@ -7,7 +7,7 @@ import * as axios from 'axios';
  * A policy interface for how to execute broadcasts against merchantapi endpoints
  */
 // tslint:disable-next-line: max-classes-per-file
-export class MerchantRequestorPolicy {
+export class MapiGetRequestor {
   constructor(private merchantConfig: IMerchantApiEndpointGroupConfig, protected logger: any, protected responseSaver?: Function) {
   }
 
@@ -28,7 +28,29 @@ export class MerchantRequestorPolicy {
   }
 }
 
-const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
+export class MapiSendRequestor {
+  constructor(private merchantConfig: IMerchantApiEndpointGroupConfig, protected logger: any, protected responseSaver?: Function) {
+  }
+
+  execute(txid: string, contentType: string, rawtx: Buffer | string): Promise<any> {
+    throw new Error('Missing implementation');
+  }
+
+  logError(name, data) {
+    if (this.logger) {
+      this.logger.error(name, data);
+    }
+  }
+
+  logInfo(name, data) {
+    if (this.logger) {
+      this.logger.info(name, data);
+    }
+  }
+}
+
+
+const serialMultiSender = async (contentType: string, url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
   return new Promise(async (resolve, reject) => {
     let responseReturnList = [];
     let validResponseWithSuccessPayload = null;
@@ -51,7 +73,7 @@ const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
           response = await axios.default.post(`${endpoints[i].url}${url}`, payload, {
             headers: {
               ...(endpoints[i].headers),
-              'content-type': 'application/json',
+              'content-type': 'application/octet-stream',
               },
               maxContentLength: 52428890,
               maxBodyLength: 52428890
@@ -103,7 +125,7 @@ const serialMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
   });
 };
 
-const parallelRaceMultiSender = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
+const parallelRaceMultiSender = async (contentType: string, url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
   let responseReturnList = [];
   let validResponseWithSuccessPayload = null;
   let firstValidResponseWithAnyPayload = null;
@@ -118,7 +140,7 @@ const parallelRaceMultiSender = async (url: string, httpVerb: 'post' | 'get', ev
             response = await axios.default.get(`${endpoints[i].url}${url}`, {
               headers: {
               ...(endpoints[i].headers),
-              'content-type': 'application/json',
+              'content-type': contentType,
               },
               maxContentLength: 52428890,
               maxBodyLength: 52428890
@@ -128,7 +150,7 @@ const parallelRaceMultiSender = async (url: string, httpVerb: 'post' | 'get', ev
             response = await axios.default.post(`${endpoints[i].url}${url}`, payload, {
               headers: {
                 ...(endpoints[i].headers),
-                'content-type': 'application/json',
+                'content-type': contentType,
                 },
                 maxContentLength: 52428890,
                 maxBodyLength: 52428890
@@ -200,7 +222,7 @@ const parallelRaceMultiSender = async (url: string, httpVerb: 'post' | 'get', ev
   });
 };
 
-const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
+const backupMultiSender = async (contentType: string, url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
   return new Promise(async (resolve, reject) => {
     let responseReturnList = [];
     let validResponseWithSuccessPayload = null;
@@ -213,7 +235,7 @@ const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
           response = await axios.default.get(`${endpoints[i].url}${url}`, {
             headers: {
               ...(endpoints[i].headers),
-              'content-type': 'application/json',
+              'content-type': contentType,
               },
               maxContentLength: 52428890,
               maxBodyLength: 52428890
@@ -223,7 +245,7 @@ const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
           response = await axios.default.post(`${endpoints[i].url}${url}`, payload, {
             headers: {
               ...(endpoints[i].headers),
-              'content-type': 'application/json',
+              'content-type': contentType,
               },
               maxContentLength: 52428890,
               maxBodyLength: 52428890
@@ -270,7 +292,7 @@ const backupMultiSender = async (url: string, httpVerb: 'post' | 'get', eventTyp
   });
 };
 
-const backupMultiSenderFeeQuote = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: any, responseSaver?: Function) => {
+const backupMultiSenderFeeQuote = async (url: string, httpVerb: 'post' | 'get', eventType: MerchantapilogEventTypes, endpoints: any[], payload?: { rawtx?: string }, responseSaver?: Function) => {
   return new Promise(async (resolve, reject) => {
     let responseReturnList = [];
     let validResponseWithSuccessPayload = null;
@@ -290,6 +312,7 @@ const backupMultiSenderFeeQuote = async (url: string, httpVerb: 'post' | 'get', 
           });
         }
         if (httpVerb === 'post') {
+           
           response = await axios.default.post(`${endpoints[i].url}${url}`, payload, {
             headers: {
               ...(endpoints[i].headers),
@@ -343,7 +366,7 @@ const backupMultiSenderFeeQuote = async (url: string, httpVerb: 'post' | 'get', 
  * Does a sequential loop over all merchantapi's until 1 is successful
  */
 // tslint:disable-next-line: max-classes-per-file
-export class MerchantRequestorSendPolicySerialBackup extends MerchantRequestorPolicy {
+export class MapiSendPolicySerialBackup extends MapiSendRequestor {
 
   constructor(private network: string, private endpointConfigGroup: IMerchantApiEndpointGroupConfig, logger: any, responseSaver?: Function) {
     super(endpointConfigGroup, logger, responseSaver);
@@ -352,9 +375,13 @@ export class MerchantRequestorSendPolicySerialBackup extends MerchantRequestorPo
    * Execute this policy for broadcasting
    * @param rawtx Tx to broadcast
    */
-  execute(params: { txid: string, rawtx: string }): Promise<any> {
-    return backupMultiSender(`/mapi/tx`, 'post', MerchantapilogEventTypes.PUSHTX, this.endpointConfigGroup[this.network], params, (miner, evt, res) => {
-        return this.responseSaver(miner, evt, res, params.txid);
+  execute(txid: string, contentType: string, rawtx: Buffer | string): Promise<any> {
+    let dataPayload: any = { rawtx: rawtx };
+    if (contentType === 'application/octet-stream') {
+      dataPayload = rawtx;
+    }
+    return backupMultiSender(contentType, `/mapi/tx`, 'post', MerchantapilogEventTypes.PUSHTX, this.endpointConfigGroup[this.network], dataPayload, (miner, evt, res) => {
+        return this.responseSaver(miner, evt, res, txid);
     });
   }
 }
@@ -363,12 +390,12 @@ export class MerchantRequestorSendPolicySerialBackup extends MerchantRequestorPo
  * Does a sequential loop over all merchantapi's until 1 is successful
  */
 // tslint:disable-next-line: max-classes-per-file
-export class MerchantRequestorFeeQuotePolicySerialBackup extends MerchantRequestorPolicy {
+export class MerchantRequestorFeeQuotePolicySerialBackup extends MapiGetRequestor {
   constructor(private network: string, private endpointConfigGroup: IMerchantApiEndpointGroupConfig, logger: any, responseSaver?: Function) {
     super(endpointConfigGroup, logger, responseSaver);
   }
-  execute(params: any): Promise<any> {
-    return backupMultiSenderFeeQuote('/mapi/feeQuote', 'get', MerchantapilogEventTypes.FEEQUOTE, this.endpointConfigGroup[this.network], params, (miner, evt, res) => {
+  execute(): Promise<any> {
+    return backupMultiSenderFeeQuote('/mapi/feeQuote', 'get', MerchantapilogEventTypes.FEEQUOTE, this.endpointConfigGroup[this.network], null, (miner, evt, res) => {
       return this.responseSaver(miner, evt, res);
     });
   }
@@ -378,7 +405,7 @@ export class MerchantRequestorFeeQuotePolicySerialBackup extends MerchantRequest
  * Does a sequential loop over all merchantapi's until 1 is successful
  */
 // tslint:disable-next-line: max-classes-per-file
-export class MerchantRequestorStatusPolicySerialBackup extends MerchantRequestorPolicy {
+export class MerchantRequestorStatusPolicySerialBackup extends MapiGetRequestor {
   constructor(private network: string, private endpointConfigGroup: IMerchantApiEndpointGroupConfig, logger: any, responseSaver?: Function) {
     super(endpointConfigGroup, logger, responseSaver);
   }
@@ -387,9 +414,10 @@ export class MerchantRequestorStatusPolicySerialBackup extends MerchantRequestor
    * Execute this policy for broadcasting
    * @param rawtx Tx to broadcast
    */
-  execute(params: {txid: string}): Promise<any> {
-    return backupMultiSender(`/mapi/tx/${params.txid}`, 'get', MerchantapilogEventTypes.STATUSTX, this.endpointConfigGroup[this.network], params, (miner, evt, res) => {
-      return this.responseSaver(miner, evt, res, params.txid);
+  execute(txid: string): Promise<any> {
+    
+    return backupMultiSender('application/octet-stream', `/mapi/tx/${txid}`, 'get', MerchantapilogEventTypes.STATUSTX, this.endpointConfigGroup[this.network], null, (miner, evt, res) => {
+      return this.responseSaver(miner, evt, res, txid);
     });
   }
 }
@@ -401,7 +429,7 @@ export class MerchantRequestorStatusPolicySerialBackup extends MerchantRequestor
  * From the client it will appear as this behaves like a single merchant-api (albet might return different miner id info)
  */
 // tslint:disable-next-line: max-classes-per-file
-export class MerchantRequestorStatusPolicyRaceToFinishSuccess extends MerchantRequestorPolicy {
+export class MerchantRequestorStatusPolicyRaceToFinishSuccess extends MapiGetRequestor {
   constructor(private network: string, private endpointConfigGroup: IMerchantApiEndpointGroupConfig, logger: any, responseSaver?: Function) {
     super(endpointConfigGroup, logger, responseSaver);
   }
@@ -409,9 +437,9 @@ export class MerchantRequestorStatusPolicyRaceToFinishSuccess extends MerchantRe
    * Execute this policy for broadcasting
    * @param rawtx Tx to broadcast
    */
-  execute(params: { txid: string, rawtx: string }): Promise<any> {
-    return parallelRaceMultiSender(`/mapi/tx/${params.txid}`, 'get', MerchantapilogEventTypes.STATUSTX, this.endpointConfigGroup[this.network], params, (miner, evt, res) => {
-      return this.responseSaver(miner, evt, res, params.txid);
+  execute(txid: string): Promise<any> {
+    return parallelRaceMultiSender('application/json', `/mapi/tx/${txid}`, 'get', MerchantapilogEventTypes.STATUSTX, this.endpointConfigGroup[this.network], null , (miner, evt, res) => {
+      return this.responseSaver(miner, evt, res, txid);
     });
   }
 }
@@ -422,7 +450,7 @@ export class MerchantRequestorStatusPolicyRaceToFinishSuccess extends MerchantRe
  * From the client it will appear as this behaves like a single merchant-api (albet might return different miner id info)
  */
 // tslint:disable-next-line: max-classes-per-file
-export class MerchantRequestorSendPolicySendAllTakeFirstPrioritySuccess extends MerchantRequestorPolicy {
+export class MapiSendPolicySendAllTakeFirstPrioritySuccess extends MapiSendRequestor {
   constructor(private network: string, private endpointConfigGroup: IMerchantApiEndpointGroupConfig, logger: any, responseSaver?: Function) {
     super(endpointConfigGroup, logger, responseSaver);
   }
@@ -430,9 +458,13 @@ export class MerchantRequestorSendPolicySendAllTakeFirstPrioritySuccess extends 
    * Execute this policy for broadcasting
    * @param rawtx Tx to broadcast
    */
-  execute(params: { txid: string, rawtx: string }): Promise<any> {
-    return serialMultiSender(`/mapi/tx`, 'post', MerchantapilogEventTypes.PUSHTX, this.endpointConfigGroup[this.network], params, (miner, evt, res) => {
-      return this.responseSaver(miner, evt, res, params.txid);
+  execute(txid: string, contentType: string, rawtx: Buffer | string): Promise<any> {
+    let dataPayload: any = { rawtx: rawtx };
+    if (contentType === 'application/octet-stream') {
+      dataPayload = rawtx;
+    }
+    return serialMultiSender(contentType, `/mapi/tx`, 'post', MerchantapilogEventTypes.PUSHTX, this.endpointConfigGroup[this.network], dataPayload, (miner, evt, res) => {
+      return this.responseSaver(miner, evt, res, txid);
     });
   }
 }
@@ -444,7 +476,7 @@ export class MerchantRequestorSendPolicySendAllTakeFirstPrioritySuccess extends 
  * From the client it will appear as this behaves like a single merchant-api (albet might return different miner id info)
  */
 // tslint:disable-next-line: max-classes-per-file
-export class MerchantRequestorSendPolicySendRaceToFinishSuccess extends MerchantRequestorPolicy {
+export class MapiSendPolicySendRaceToFinishSuccess extends MapiSendRequestor {
   constructor(private network: string, private endpointConfigGroup: IMerchantApiEndpointGroupConfig, logger: any, responseSaver?: Function) {
     super(endpointConfigGroup, logger, responseSaver);
   }
@@ -452,34 +484,40 @@ export class MerchantRequestorSendPolicySendRaceToFinishSuccess extends Merchant
    * Execute this policy for broadcasting
    * @param rawtx Tx to broadcast
    */
-  execute(params: { txid: string, rawtx: string }): Promise<any> {
-    return parallelRaceMultiSender(`/mapi/tx`, 'post', MerchantapilogEventTypes.PUSHTX, this.endpointConfigGroup[this.network], params, (miner, evt, res) => {
-      return this.responseSaver(miner, evt, res, params.txid);
+  execute(txid: string, contentType: string, rawtx: Buffer | string): Promise<any> {
+    let dataPayload: any = { rawtx: rawtx };
+    if (contentType === 'application/octet-stream') {
+      dataPayload = rawtx;
+    }
+    return parallelRaceMultiSender(contentType, `/mapi/tx`, 'post', MerchantapilogEventTypes.PUSHTX, this.endpointConfigGroup[this.network], dataPayload, (miner, evt, res) => {
+      return this.responseSaver(miner, evt, res, txid);
     });
   }
 }
+ 
 
 // tslint:disable-next-line: max-classes-per-file
-export class MerchantRequestorPolicyFactory {
+export class MapiPolicyFactory {
 
-  static getSendPolicy(network: string, config: IMerchantConfig, logger: any, responseSaver?: Function): MerchantRequestorPolicy {
+  static getSendPolicy(network: string, config: IMerchantConfig, logger: any, responseSaver?: Function): MapiSendRequestor {
 
     if (config.sendPolicy === 'ALL_FIRST_PRIORITY_SUCCESS') {
-      return new MerchantRequestorSendPolicySendAllTakeFirstPrioritySuccess(network, config.endpoints, logger, responseSaver);
+      return new MapiSendPolicySendAllTakeFirstPrioritySuccess(network, config.endpoints, logger, responseSaver);
     }
 
     if (config.sendPolicy === 'RACE_FIRST_SUCCESS') {
-      return new MerchantRequestorSendPolicySendRaceToFinishSuccess(network, config.endpoints, logger, responseSaver);
+      return new MapiSendPolicySendRaceToFinishSuccess(network, config.endpoints, logger, responseSaver);
     }
+
     if (config.sendPolicy === undefined || config.sendPolicy === 'SERIAL_BACKUP') {
       // do nothing as it is the default
     }
 
     // Default
-    return new MerchantRequestorSendPolicySerialBackup(network, config.endpoints, logger, responseSaver);
+    return new MapiSendPolicySerialBackup(network, config.endpoints, logger, responseSaver);
   }
 
-  static getStatusPolicy(network: string, config: IMerchantConfig, logger: any, responseSaver?: Function): MerchantRequestorPolicy {
+  static getStatusPolicy(network: string, config: IMerchantConfig, logger: any, responseSaver?: Function): MapiGetRequestor {
     // Only 1 policy supported now
     if (config.statusPolicy === undefined || config.statusPolicy === 'SERIAL_BACKUP') {
       // do nothing as it is the default
@@ -493,7 +531,7 @@ export class MerchantRequestorPolicyFactory {
     return new MerchantRequestorStatusPolicySerialBackup(network, config.endpoints, logger, responseSaver);
   }
 
-  static getFeeQuotePolicy(network: string, config: IMerchantConfig, logger: any, responseSaver?: Function): MerchantRequestorPolicy {
+  static getFeeQuotePolicy(network: string, config: IMerchantConfig, logger: any, responseSaver?: Function): MapiGetRequestor {
     // Only 1 policy supported now
     if (config.statusPolicy === undefined || config.statusPolicy === 'SERIAL_BACKUP') {
       // do nothing as it is the default
@@ -512,15 +550,15 @@ export class MerchantRequestor {
   constructor(private network: string, private config: IMerchantConfig, private logger: any, private responseSaver: Function) {
     this.config.sendPolicy = this.config.sendPolicy || 'SERIAL_BACKUP';
     this.config.statusPolicy = this.config.statusPolicy || 'SERIAL_BACKUP';
-    this.sendPolicy = this.sendPolicy || MerchantRequestorPolicyFactory.getSendPolicy(network, this.config, this.logger, this.responseSaver);
-    this.statusPolicy = this.statusPolicy || MerchantRequestorPolicyFactory.getStatusPolicy(network, this.config, this.logger, this.responseSaver);
-    this.feeQuotePolicy = this.feeQuotePolicy || MerchantRequestorPolicyFactory.getFeeQuotePolicy(network, this.config, this.logger, this.responseSaver);
+    this.sendPolicy = this.sendPolicy || MapiPolicyFactory.getSendPolicy(network, this.config, this.logger, this.responseSaver);
+    this.statusPolicy = this.statusPolicy || MapiPolicyFactory.getStatusPolicy(network, this.config, this.logger, this.responseSaver);
+    this.feeQuotePolicy = this.feeQuotePolicy || MapiPolicyFactory.getFeeQuotePolicy(network, this.config, this.logger, this.responseSaver);
   }
 
-  public async pushTx(rawtx: string): Promise<any> {
+  public async pushTx(rawtx: string | Buffer, contentType: 'application/json' | 'application/octet-stream' = 'application/json'): Promise<any> {
     let tx = new bsv.Transaction(rawtx);
     return new Promise(async (resolve, reject) => {
-      this.sendPolicy.execute({txid: tx.hash, rawtx: tx.toString()})
+      this.sendPolicy.execute(tx.hash, contentType, rawtx)
       .then((result) => {
         resolve(result);
       }).catch((err) => {

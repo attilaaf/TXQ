@@ -146,7 +146,8 @@ export default class SyncTxStatus extends UseCase {
           trace: 5
         });
         try {
-          response = await merchantRequestor.pushTx(tx.rawtx);
+          const b = Buffer.from(tx.rawtx, 'hex');
+          response = await merchantRequestor.pushTx(b, 'application/octet-stream');
           this.logger.info('sync', {
             txid: params.txid,
             trace: 6

@@ -24,7 +24,7 @@ export default class PushMapiTx extends UseCase {
   }
 
   async run(params: {
-    rawtx: string,
+    rawtx: string | Buffer,
     headers?: any,
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
@@ -47,7 +47,11 @@ export default class PushMapiTx extends UseCase {
       } catch (ex) {
         throw new InvalidParamError('Invalid rawtx');
       }
-      const send = await merchantRequestor.pushTx(params.rawtx);
+      
+      let contentType = params.headers['content-type'];
+      let p: any = params.rawtx;
+      const send = await merchantRequestor.pushTx(p, contentType);
+        
       setTimeout(async () => {
         const tx = new bsv.Transaction(params.rawtx);
         let txStatus = null;

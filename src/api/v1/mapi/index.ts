@@ -40,7 +40,13 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let uc = Container.get(PushMapiTx);
-          let data = await uc.run({ rawtx: Req.body.rawtx, headers: Req.headers, accountContext: AccountContextHelper.getContext(Req)});
+          let data = null;
+          if (Req.headers['content-type'] === 'application/octet-stream') {
+            data = await uc.run({ rawtx: Req.body, headers: Req.headers, accountContext: AccountContextHelper.getContext(Req)});
+          } else {
+            data = await uc.run({ rawtx: Req.body.rawtx, headers: Req.headers, accountContext: AccountContextHelper.getContext(Req)});
+          }
+    
           sendMapiResponseWrapper(Req, res, data.result.mapiStatusCode ? data.result.mapiStatusCode : 200, data.result);
         } catch (error) {
           if (error instanceof MapiServiceError) {
