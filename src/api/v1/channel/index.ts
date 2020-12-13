@@ -10,6 +10,7 @@ import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 import { ChannelHelper } from '../../../services/helpers/ChannelHelper';
 import InvalidAddressError from '../../../services/error/InvalidAddressError';
 import InvalidScriptHashOrTXIDError from '../../../services/error/InvalidScriptHashOrTXIDError';
+import { QueryOrderType } from '../../../interfaces/IQueryOrder';
 
 export default [
   {
@@ -26,6 +27,7 @@ export default [
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
             status: Req.query.status || 'all',
+            order: ChannelHelper.getOrderMode(Req.query.order),
             accountContext: AccountContextHelper.getContext(Req),
             addresses: ChannelHelper.checkAddresses(
               ChannelHelper.getParamStringArray(
@@ -74,6 +76,7 @@ export default [
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
             status: Req.query.status || 'all',
+            order: ChannelHelper.getOrderMode(Req.query.order),
             accountContext: AccountContextHelper.getContext(Req),
             addresses: ChannelHelper.checkAddresses(
               ChannelHelper.getParamStringArray(

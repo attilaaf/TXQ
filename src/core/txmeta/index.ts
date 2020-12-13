@@ -3,6 +3,7 @@ import { DateUtil } from '../../services/helpers/DateUtil';
 import { ITransactionMeta, TransactionStatusType } from '../../interfaces/ITransactionData';
 import { IAccountContext } from '@interfaces/IAccountContext';
 import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
+import { QueryOrderType } from '../../interfaces/IQueryOrder';
 
 @Service('txmetaModel')
 class TxmetaModel {
@@ -22,7 +23,7 @@ class TxmetaModel {
     return result.rows[0];
   }
 
-  public async getTxsByChannel(accountContext: IAccountContext, channel: string | null | undefined, afterId: number, limit: number, status: TransactionStatusType, addresses: string[], scripthashes: string[], txids: string[], rawtx?: boolean): Promise<string[]> {
+  public async getTxsByChannel(accountContext: IAccountContext, channel: string | null | undefined, afterId: number, limit: number, status: TransactionStatusType, order: QueryOrderType, addresses: string[], scripthashes: string[], txids: string[], rawtx?: boolean): Promise<string[]> {
     const client = await this.db.getClient(accountContext);
     let result: any;
     let channelStr = channel ? channel : '';
@@ -119,7 +120,7 @@ class TxmetaModel {
         ${statusCondition} 
       GROUP BY ${columns} 
       ORDER BY 
-        txmeta.created_at DESC 
+        txmeta.created_at ${order} 
       ${
         afterId 
         ? `LIMIT $3` 

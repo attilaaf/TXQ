@@ -1,4 +1,5 @@
 import * as bsv from 'bsv';
+import { QueryOrderType } from '../../interfaces/IQueryOrder';
 import InvalidAddressError from '../error/InvalidAddressError';
 import InvalidScriptHashOrTXIDError from '../error/InvalidScriptHashOrTXIDError';
 
@@ -45,5 +46,19 @@ export class ChannelHelper {
     }
 
     return items;
+  }
+
+  public static getOrderMode(param: any): QueryOrderType {
+    let orderMode : QueryOrderType = 'DESC';
+    
+    if (param) {
+      orderMode = (param as string).length > 0 ? ((param as string).toUpperCase() as QueryOrderType) : 'DESC';
+
+      if (!['ASC', 'DESC'].includes(orderMode)) {
+        orderMode = 'DESC';
+      }
+    }
+
+    return orderMode;
   }
 }
