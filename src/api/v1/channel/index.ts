@@ -27,7 +27,7 @@ export default [
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
             status: Req.query.status || 'all',
-            order: Req.query.order ? ((Req.query.order as string).toUpperCase() as QueryOrderType) : 'DESC',
+            order: ChannelHelper.getOrderMode(Req.query.order),
             accountContext: AccountContextHelper.getContext(Req),
             addresses: ChannelHelper.checkAddresses(
               ChannelHelper.getParamStringArray(
@@ -76,7 +76,7 @@ export default [
             limit: Req.query.limit ? Req.query.limit : 1000,
             rawtx: Req.query.rawtx === '1' ? true : false,
             status: Req.query.status || 'all',
-            order: Req.query.order ? ((Req.query.order as string).toUpperCase() as QueryOrderType) : 'DESC',
+            order: ChannelHelper.getOrderMode(Req.query.order),
             accountContext: AccountContextHelper.getContext(Req),
             addresses: ChannelHelper.checkAddresses(
               ChannelHelper.getParamStringArray(
