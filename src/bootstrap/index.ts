@@ -98,12 +98,7 @@ async function startPendingTaskPoller() {
 
 setInterval(() => {
   startPendingTaskPoller();
-}, 60 * 60 * 1000);
+}, 5 * 60 * 1000);
 
-setTimeout(() => {
-  startPendingTaskPoller();
-}, 10 * 60 * 1000);
-
-
-
+ 
 
