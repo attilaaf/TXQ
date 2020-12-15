@@ -10,7 +10,6 @@ import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 import { ChannelHelper } from '../../../services/helpers/ChannelHelper';
 import InvalidAddressError from '../../../services/error/InvalidAddressError';
 import InvalidScriptHashOrTXIDError from '../../../services/error/InvalidScriptHashOrTXIDError';
-import { QueryOrderType } from '../../../interfaces/IQueryOrder';
 
 export default [
   {
@@ -31,17 +30,17 @@ export default [
             accountContext: AccountContextHelper.getContext(Req),
             addresses: ChannelHelper.checkAddresses(
               ChannelHelper.getParamStringArray(
-                (Req.query.address as string | string[]) || [],
+                (Req.query.addresses as string | string[]) || [],
               ),
             ),
             scripthashes: ChannelHelper.checkScriptHashesOrTXIDs(
               ChannelHelper.getParamStringArray(
-                (Req.query.scripthash as string | string[]) || [],
+                (Req.query.scripthashes as string | string[]) || [],
               ),
             ),
             txids: ChannelHelper.checkScriptHashesOrTXIDs(
               ChannelHelper.getParamStringArray(
-                (Req.query.txid as string | string[]) || [],
+                (Req.query.txids as string | string[]) || [],
               ),
             ),
           });
@@ -80,17 +79,17 @@ export default [
             accountContext: AccountContextHelper.getContext(Req),
             addresses: ChannelHelper.checkAddresses(
               ChannelHelper.getParamStringArray(
-                (Req.query.address as string | string[]) || [],
+                (Req.query.addresses as string | string[]) || [],
               ),
             ),
             scripthashes: ChannelHelper.checkScriptHashesOrTXIDs(
               ChannelHelper.getParamStringArray(
-                (Req.query.scripthash as string | string[]) || [],
+                (Req.query.scripthashes as string | string[]) || [],
               ),
             ),
             txids: ChannelHelper.checkScriptHashesOrTXIDs(
               ChannelHelper.getParamStringArray(
-                (Req.query.txid as string | string[]) || [],
+                (Req.query.txids as string | string[]) || [],
               ),
             ),
           });
