@@ -74,15 +74,15 @@ export default [
     handler: [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
+          console.log('gropu creation-------------------------', Req.body);
           let uc = Container.get(AddGroupScriptIds);
           let data = await uc.run({
-            groupname: Req.params.groupname,
+            groupname: Req.params.groupname || Req.body.groupname,
             items: Req.body.items,
             accountContext: AccountContextHelper.getContext(Req)
           });
-
+          console.log('gropu creation', Req.body);
           sendResponseWrapper(Req, res, 200, data.result);
-
         } catch (error) {
           if (error instanceof ResourceNotFoundError) {
             sendErrorWrapper(res, 404, error.toString());

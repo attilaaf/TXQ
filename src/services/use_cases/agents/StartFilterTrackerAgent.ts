@@ -52,6 +52,7 @@ export default class StartFilterTrackerAgent extends UseCase {
         this.logger.debug("bitcoinAgent.getKnownBlockHeaders", { limit: params.limit });
         return this.blockheaderService.getBlockHeaders(params.limit).
           then((rows) => {
+            this.logger.debug("bitcoinAgent.getKnownBlockHeaders", { first: rows[0] });
               return rows;
           });
       },
@@ -81,6 +82,7 @@ export default class StartFilterTrackerAgent extends UseCase {
         this.logger.debug("bitcoinAgent.getBeaconHeaders", { height: params.height });
         return Axios.get(`https://txdb.mattercloud.io/api/v1/blockheader/${params.height}?limit=${params.limit}`)
           .then((result) => {
+            this.logger.debug("bitcoinAgent.getBeaconHeaders", { height: params.height, first: result.data.result[0] });
             return result.data.result;
           });
       },

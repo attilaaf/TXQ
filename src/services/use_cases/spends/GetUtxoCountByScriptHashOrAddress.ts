@@ -1,13 +1,14 @@
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
-import { Address, Hash, Script } from 'bsv';
+import { TxFormatter } from '../../helpers/TxFormatter';
+import { IAccountContext } from '@interfaces/IAccountContext';
 import * as bsv from 'bsv';
 import { isNull } from 'util';
-import { IAccountContext } from '@interfaces/IAccountContext';
+import InvalidParamError from '../../../services/error/InvalidParamError';
 
-@Service('getTxHistoryByScriptHashOrAddressArray')
-export default class GetTxHistoryByScriptHashOrAddressArray extends UseCase {
+@Service('getUtxoCountByScriptHashOrAddress')
+export default class GetUtxoCountByScriptHashOrAddress extends UseCase {
 
   constructor(
     @Inject('txoutService') private txoutService,
@@ -15,8 +16,11 @@ export default class GetTxHistoryByScriptHashOrAddressArray extends UseCase {
     super();
   }
 
-  public async run(params: { scripts: string, limit?: any, offset?: any, order?: any, fromblockheight?: any, accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
+  public async run(params: { scripts: string, accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
     const scriptHashToAddress = {};
+    if (!params.scripts) {
+      throw new InvalidParamError();
+    }
     const split = [...new Set(params.scripts.split(','))];
     let scripthashes = split.map(script => {
       if(script.match(/^[a-f\d]{64}$/i)!==null) {
@@ -28,7 +32,6 @@ export default class GetTxHistoryByScriptHashOrAddressArray extends UseCase {
         const buffer = s.toBuffer();
         const scripthash = bsv.crypto.Hash.sha256(buffer).reverse().toString('hex');
         scriptHashToAddress[scripthash] = bsv.Address.fromString(script).toString();
-       
         return scripthash;
       }
       catch (ex)  {
@@ -37,18 +40,13 @@ export default class GetTxHistoryByScriptHashOrAddressArray extends UseCase {
       }
       return null; //return null if neither address nor script hash to filter out result
     }).filter(n => !isNull(n));
- 
-    const items = await this.txoutService.getTxHistoryByScriptHash(params.accountContext, scripthashes, params);
 
-    for (const item of items) {
-      if (scriptHashToAddress[item.scripthash]) {
-        item.address = scriptHashToAddress[item.scripthash];
-      }
-    }
-
+    let counter = await this.txoutService.getTxoutCountByScriptHashOrAddress(params.accountContext, scripthashes, true);
     return {
       success: true,
-      result: items
+      result: {
+        count: Number(counter)
+      }
     };
   }
 }

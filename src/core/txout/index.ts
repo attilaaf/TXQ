@@ -3,6 +3,7 @@ import { IAccountContext } from '@interfaces/IAccountContext';
 import { ContextFactory } from '../../bootstrap/middleware/di/diContextFactory';
 import InvalidParamError from '../../services/error/InvalidParamError';
 import { DBUtils } from '../../services/helpers/DBUtils';
+import ResourceNotFoundError from '../../services/error/ResourceNotFoundError';
  
 @Service('txoutModel')
 class TxoutModel {
@@ -31,7 +32,27 @@ class TxoutModel {
     result = await client.query(q, [ split, offset, limit ]);
     return result.rows;
   }
- 
+
+  public async getTxoutCountByScriptHashOrAddress(accountContext: IAccountContext, split: string[], unspent?: boolean): Promise<string> {
+    const client = await this.db.getClient(accountContext);
+    let result: any;
+    let q = `
+    SELECT count(*) as utxos
+    FROM 
+      txout 
+    JOIN 
+      tx ON (txout.txid = tx.txid)
+    LEFT OUTER JOIN 
+      txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
+    WHERE
+    scripthash = ANY($1::varchar[]) AND
+    tx.orphaned IS NOT TRUE 
+    ${unspent ? 'AND txin.prevtxid IS NULL' : ''}
+    `;
+    result = await client.query(q, [ split ]);
+    return result.rows[0].utxos;
+  }
+
   public async getTxoutByAddress(accountContext: IAccountContext, address: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
     const client = await this.db.getClient(accountContext);
     let result: any;
@@ -54,7 +75,42 @@ class TxoutModel {
     result = await client.query(q, [ split, offset, limit ]);
     return result.rows;
   }
+
+  public async getTxoutCountByGroup(accountContext: IAccountContext, params: { groupname: string, unspent?: boolean}): Promise<any> {
+    const client = await this.db.getClient(accountContext);
+    let result: any;
+
+    let q1 = `
+    SELECT groupname
+    FROM 
+      txoutgroup
+    WHERE
+      txoutgroup.groupname = $1
+    `;
  
+    let foundGroup = await client.query(q1, [ params.groupname ]);
+    if (!foundGroup.rows.length) {
+      throw new ResourceNotFoundError();
+    }
+ 
+    let q = `
+    SELECT count(*) as counter
+    FROM 
+      txoutgroup
+    JOIN
+      txout ON (txoutgroup.scriptid = txout.address OR txoutgroup.scriptid = txout.scripthash)
+    JOIN 
+      tx ON (txout.txid = tx.txid)
+    LEFT OUTER JOIN 
+      txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
+    WHERE
+    txoutgroup.groupname = $1
+    ${params.unspent ? 'AND txin.prevtxid IS NULL' : ''}
+    AND tx.orphaned IS NOT TRUE`;
+    result = await client.query(q, [ params.groupname ]);
+    return result.rows[0] ? result.rows[0].counter : 0;
+  }
+
   public async getTxoutsByGroup(accountContext: IAccountContext, params: { groupname: string, script?: boolean, limit: any, offset: any, unspent?: boolean}): Promise<any> {
     const client = await this.db.getClient(accountContext);
     let result: any;
@@ -72,7 +128,6 @@ class TxoutModel {
     WHERE
     txoutgroup.groupname = $1 AND
     ${params.unspent ? 'AND txin.prevtxid IS NULL' : ''}
-    tx.txid = txout.txid
     AND tx.orphaned IS NOT TRUE
     OFFSET $2
     LIMIT $3`;

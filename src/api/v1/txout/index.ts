@@ -19,6 +19,8 @@ import { AccountContextHelper } from '../../account-context-helper';
 import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 import InvalidParamError from '../../../services/error/InvalidParamError';
 import GetTxHistoryByScriptHashOrAddressArray from '../../../services/use_cases/spends/GetTxHistoryByScriptHashOrAddressArray';
+import GetUtxoCountByScriptHashOrAddress from '../../../services/use_cases/spends/GetUtxoCountByScriptHashOrAddress';
+import GetUtxoCountByGroup from '../../../services/use_cases/spends/GetUtxoCountByGroup';
 
 export default [
   {
@@ -283,6 +285,110 @@ export default [
         } catch (error) {
           if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/scripthash/utxo/count/:scripts`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetUtxoCountByScriptHashOrAddress);
+          let data = await uc.run({
+            scripts: Req.params.scripts,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          if (error instanceof InvalidParamError) {
+            sendErrorWrapper(res, 422, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/scripthash/:scripts/utxo/count`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetUtxoCountByScriptHashOrAddress);
+          let data = await uc.run({
+            scripts: Req.params.scripts,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          if (error instanceof InvalidParamError) {
+            sendErrorWrapper(res, 422, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/address/utxo/count/:scripts`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetUtxoCountByScriptHashOrAddress);
+          let data = await uc.run({
+            scripts: Req.params.scripts,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          if (error instanceof InvalidParamError) {
+            sendErrorWrapper(res, 422, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/address/:scripts/utxo/count`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetUtxoCountByScriptHashOrAddress);
+          let data = await uc.run({
+            scripts: Req.params.scripts,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          if (error instanceof InvalidParamError) {
+            sendErrorWrapper(res, 422, error.toString());
             return;
           }
           next(error);
@@ -690,6 +796,11 @@ export default [
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
+
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
           next(error);
         }
       },
@@ -715,6 +826,62 @@ export default [
             sendErrorWrapper(res, 403, error.toString());
             return;
           }
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/group/utxo/count/:groupname`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetUtxoCountByGroup);
+          let data = await uc.run({
+            groupname: Req.params.groupname,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/group/:groupname/utxo/count`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetUtxoCountByGroup);
+          let data = await uc.run({
+            groupname: Req.params.groupname,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
+            return;
+          }
           next(error);
         }
       },
@@ -735,6 +902,10 @@ export default [
         } catch (error) {
           if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          if (error instanceof ResourceNotFoundError) {
+            sendErrorWrapper(res, 404, error.toString());
             return;
           }
           next(error);

@@ -26,7 +26,7 @@ const config: IConfig = {
   enableDefault: true,
   enableAssetAgent: process.env.ENABLE_ASSET_AGENT === 'true' ? true : false,
   enableFilterTrackerAgent: process.env.ENABLE_FILTER_TRACKER_AGENT === 'true' ? true : false,
-  filterTrackerAgentStartHeight: 664854,// 606734 td
+  filterTrackerAgentStartHeight: 606734, // 606736td
   configMode: process.env.CONFIG_MODE || 'file',
   databaseModeConfig: {
     host: process.env.DBCFG_HOST,

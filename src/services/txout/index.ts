@@ -12,6 +12,14 @@ export default class TxoutService {
       throw new ResourceNotFoundError();
     }
     return entity;
+  } 
+
+  public async getTxoutCountByScriptHashOrAddress(accountContext: IAccountContext, scripthash: string[], unspent?: boolean) {
+    let entity = await this.txoutModel.getTxoutCountByScriptHashOrAddress(accountContext, scripthash, unspent);
+    if (!entity) {
+      throw new ResourceNotFoundError();
+    }
+    return entity;
   }
 
   public async getTxoutByAddress(accountContext: IAccountContext, address: string, offset: number, limit: number, script?: boolean, unspent?: boolean) {
@@ -24,6 +32,10 @@ export default class TxoutService {
 
   public async getTxoutsByGroup(accountContext: IAccountContext, params: { groupname: string, script?: boolean, limit: any, offset: any, unspent?: boolean}) {
     return this.txoutModel.getTxoutsByGroup(accountContext, params);
+  }
+
+  public async getTxoutCountByGroup(accountContext: IAccountContext, params: { groupname: string, unspent?: boolean}) {
+    return this.txoutModel.getTxoutCountByGroup(accountContext, params);
   }
 
   public async getBalanceByAddresses(accountContext: IAccountContext, addresses: string[]) {

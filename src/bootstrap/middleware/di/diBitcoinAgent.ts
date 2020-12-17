@@ -87,6 +87,8 @@ export class BitcoinAgent {
     const { kvstore, db } = await params.open(config);
     while (true) {
       try {
+        const timeSec = config.blockPollTime ? config.blockPollTime : 10;
+        await sleeper(timeSec);
         const knownBlockHeaders = await params.getKnownBlockHeaders({kvstore, db, reorgLimit}, config);
         if (knownBlockHeaders.length === 0) {
           blockToVerify.height = null;
@@ -150,8 +152,6 @@ export class BitcoinAgent {
         console.log('err', err, err.stack);
         ;// Silently continue
       }
-      const timeSec = config.blockPollTime ? config.blockPollTime : 10;
-      await sleeper(timeSec);
     }
   }
 }

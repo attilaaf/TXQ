@@ -10,6 +10,7 @@ const boot = async () => {
 };
 boot();
 describe('txout', () => {
+
   test('txid/index 200', async (done) => {
 
       api
@@ -77,7 +78,7 @@ describe('txout', () => {
       });
     });
 
-  test('txid_oIndex 200 CURRENTTEST', async (done) => {
+  test('txid_oIndex 200', async (done) => {
     api
       .get(`${version.path}/txout/txid/3191c8f14fd1171d974f965963924966de49d15bad910a38e33dc44af14929e6_o0`)
       .expect(200)
@@ -103,6 +104,46 @@ describe('txout', () => {
         done();
       });
     });
+
+
+  test('/txout/scripthash/utxo/count/:scripthash 200', async (done) => {
+
+    api
+      .get(`${version.path}/txout/scripthash/utxo/count/ee7beac2fcc315b37f190530d743769f255b1d413edd6e51bbc003022753f909`)
+      .expect(200)
+      .end((err, res) => {
+        expect(res.body.status).toBe(200);
+        expect(res.body).toEqual({
+          status: 200, errors: [], 
+          result: 
+          {
+            count: 0
+          }
+        })
+        done();
+      });
+    }
+  );
+
+  test('/txout/scripthash/:scripthash/utxo/count 200', async (done) => {
+
+    api
+      .get(`${version.path}/txout/scripthash/ee7beac2fcc315b37f190530d743769f255b1d413edd6e51bbc003022753f909/utxo/count`)
+      .expect(200)
+      .end((err, res) => {
+        expect(res.body.status).toBe(200);
+        expect(res.body).toEqual({
+          status: 200, errors: [], 
+          result: 
+          {
+            count: 0
+          }
+        })
+        done();
+      });
+    }
+  );
+
 
     test('address balance 200', async (done) => {
       api
@@ -176,6 +217,93 @@ describe('txout', () => {
           done();
         });
     });
+
+    test('/txout/group/utxo/count/:groupname 200 ', async (done) => {
+
+      api
+        .get(`${version.path}/txout/group/utxo/count/groupname1`)
+        .expect(404)
+        .end((err, res) => {
+          expect(res.body.status).toBe(404);
+          expect(res.body).toEqual({
+            status: 404, errors: [
+              "ResourceNotFoundError",
+            ],
+            result: []
+          })
+          done();
+        });
+      }
+    );
+
+    test('/txout/group/:groupname/utxo/count 200 CURRENTS', async (done) => {
+      api
+        .get(`${version.path}/txout/group/unknowngroup/utxo/count`)
+        .expect(404)
+        .end((err, res) => {
+          expect(res.body.status).toBe(404);
+          expect(res.body.result).toEqual([])
+          done();
+        });
+      }
+    );
+
+    test('/txout/group/:groupname/utxo/count 200 CURRENTS', async (done) => {
+
+      api
+        .get(`${version.path}/txout/group/mygroup1/utxo/count`)
+        .expect(200)
+        .end((err, res) => {
+          expect(res.body.status).toBe(200);
+          expect(res.body).toEqual({
+            status: 200, errors: [], 
+            result: 
+            {
+              count: 1
+            }
+          })
+          done();
+        });
+      }
+    );
+
+    test('/txout/address/utxo/count/:address 200 CURRENTS', async (done) => {
+
+      api
+        .get(`${version.path}/txout/address/utxo/count/1Hw2k2iuhzcrA1Rvm6EuCoiCSp7Sc6mdrv`)
+        .expect(200)
+        .end((err, res) => {
+          expect(res.body.status).toBe(200);
+          expect(res.body).toEqual({
+            status: 200, errors: [], 
+            result: 
+            {
+              count: 1
+            }
+          })
+          done();
+        });
+      }
+    );
+
+    test('/txout/address/:address/utxo/count 200', async (done) => {
+
+      api
+        .get(`${version.path}/txout/address/1Hw2k2iuhzcrA1Rvm6EuCoiCSp7Sc6mdrv/utxo/count`)
+        .expect(200)
+        .end((err, res) => {
+          expect(res.body.status).toBe(200);
+          expect(res.body).toEqual({
+            status: 200, errors: [], 
+            result: 
+            {
+              count: 1
+            }
+          })
+          done();
+        });
+      }
+    );
 
     test('scripthash utxo 200 empty ', async (done) => {
       api

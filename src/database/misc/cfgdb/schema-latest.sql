@@ -11,25 +11,19 @@ SET default_tablespace = '';
 SET default_with_oids = false;
  
 CREATE TABLE block_header (
-    height int NOT NULL,
+    height int PRIMARY KEY,
     hash varchar NOT NULL,
-    size int NULL,
+    header bytea NOT NULL,
     version int NULL,
-    versionhex varchar NULL,
     merkleroot varchar NOT NULL,
     time int NOT NULL,
     nonce bigint NOT NULL,
     bits varchar NOT NULL,
     difficulty varchar NOT NULL,
-    previousblockhash varchar NULL,
-    txcnt int NULL,
-    coinbaseinfo bytea NULL,
-    coinbasetxid varchar NULL
+    previousblockhash varchar NULL
 );
 
-CREATE INDEX idx_key_block_header_height ON block_header USING btree (height);
-CREATE INDEX idx_key_block_header_hash ON block_header USING btree (hash);
-CREATE INDEX idx_key_block_header_time ON block_header USING btree (time);
+CREATE UNIQUE INDEX idx_key_block_header_hash ON block_header USING btree (hash);
 
 CREATE TABLE project
 (

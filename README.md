@@ -130,11 +130,11 @@ jest
 
 Initial Schema:
 
-`src/database/202006210000-init-schema.sql`
+`src/database/schema-latest.sql`
 
 Migrations:
 
-- None
+- Initial (Note: 2.0.0 is a new schema, not compatible with prior versions of TXQ)
 
 ## Configuration
 

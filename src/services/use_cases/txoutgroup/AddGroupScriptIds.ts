@@ -14,6 +14,7 @@ export default class AddGroupScriptIds extends UseCase {
   }
 
   public async run(params: { groupname: string, items: IOutputGroupEntry[], accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
+    console.log('params----------------------', params);
     await this.txoutgroupService.saveTxoutgroups(params.accountContext, params.groupname, params.items);
     return {
       success: true,
