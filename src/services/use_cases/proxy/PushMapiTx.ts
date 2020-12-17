@@ -47,33 +47,35 @@ export default class PushMapiTx extends UseCase {
       } catch (ex) {
         throw new InvalidParamError('Invalid rawtx');
       }
-      
       let contentType = params.headers['content-type'];
+      if (contentType !== 'application/octet-stream') {
+        contentType = 'application/json';
+      }
       let p: any = params.rawtx;
       const send = await merchantRequestor.pushTx(p, contentType);
-        
-      setTimeout(async () => {
-        const tx = new bsv.Transaction(params.rawtx);
-        let txStatus = null;
-        // If it's not accepted, check if it's because the miner already knows about the transaction
-        if (!StatusTxUtil.isAcceptedPush(send)) {
-          txStatus = await merchantRequestor.statusTx(tx.hash);
-        }
-        if (StatusTxUtil.isAcceptedPush(send) || StatusTxUtil.isAcceptedStatus(txStatus)) {
-          const channelMeta = ChannelMetaUtil.getChannnelMetaData(params.headers);
-          await this.saveTxs.run({
-            channel: channelMeta.channel ? channelMeta.channel : null,
-            set: {
-              [tx.hash]: {
-                rawtx: tx.toString(),
-                metadata: channelMeta.metadata,
-                tags: channelMeta.tags
-              }
-            },
-            accountContext: params.accountContext
-          });
-        }
-      }, 0);
+      this.logger.debug({ ctx: params.accountContext, send});
+       
+      let txStatus = null;
+      // If it's not accepted, check if it's because the miner already knows about the transaction
+      if (!StatusTxUtil.isAcceptedStatus(send)) {
+        this.logger.debug({ projectId: params.accountContext.projectId, send, status: "!isAcceptedStatus"});
+        txStatus = await merchantRequestor.statusTx(tx.hash);
+      }
+      if (StatusTxUtil.isAcceptedPush(send) || StatusTxUtil.isAcceptedStatus(txStatus)) {
+        this.logger.debug({ projectId: params.accountContext.projectId, send, status: "Accepted"});
+        const channelMeta = ChannelMetaUtil.getChannnelMetaData(params.headers);
+        await this.saveTxs.run({
+          channel: channelMeta.channel ? channelMeta.channel : null,
+          set: {
+            [tx.hash]: {
+              rawtx: tx.toString(),
+              metadata: channelMeta.metadata,
+              tags: channelMeta.tags
+            }
+          },
+          accountContext: params.accountContext
+        });
+      }
       // Conform to mapi spec
       if (send && send.payload) {
         send.payload = JSON.stringify(send.payload);

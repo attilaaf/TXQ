@@ -15,13 +15,17 @@ export class StatusTxUtil {
             return false;
         }
         try {
-            const payload = statusObj.payload;
+            let payload = statusObj.payload;
+            if (typeof statusObj.payload === 'string') {
+                payload = JSON.parse(statusObj.payload);
+            }
             const txRegex = new RegExp(BitcoinRegex.TXID_REGEX);
-            return StatusTxUtil.isAcceptedBeforePush(statusObj) || (
+            const r = StatusTxUtil.isAcceptedBeforePush(statusObj) || (
                 payload &&
                 payload.returnResult === 'success' &&
                 txRegex.test(payload.txid)
             );
+            return r;
         } catch (err) {
             console.log('isAcceptedPush', err);
         }
