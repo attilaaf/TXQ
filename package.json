@@ -65,6 +65,7 @@
     "express-sse": "^0.5.3",
     "helmet": "^3.23.1",
     "http": "^0.0.0",
+    "level-rocksdb": "^4.0.0",
     "module-alias": "^2.2.0",
     "morgan": "^1.9.1",
     "pg": "^8.3.0",
