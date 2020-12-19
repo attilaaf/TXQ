@@ -2,7 +2,7 @@
 USERNAME=ubuntu
 KEYFILEPATH="/Users/atman/bpkey.pem"
  
-HOSTNAME=ec2-35-162-7-102.us-west-2.compute.amazonaws.com
+HOSTNAME=ec2-54-218-251-1.us-west-2.compute.amazonaws.com
 echo "Starting deploy to server... $HOSTNAME"
 rsync -rav -e "ssh -i $KEYFILEPATH"  --progress --exclude-from='./excludefiles.txt' ./ ubuntu@$HOSTNAME:~/txq
 
