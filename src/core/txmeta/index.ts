@@ -31,7 +31,16 @@ class TxmetaModel {
     let addressesCondition = '';
     if (addresses.length > 0) {
       addressesCondition = ` 
-        AND txout.address IN (${this.joinQuote(addresses)}) 
+        AND (
+          SELECT 
+            COUNT(address) as address_found 
+          FROM 
+            txout 
+          WHERE 
+            txout.txid = tx.txid 
+            AND txout.address IN (${this.joinQuote(addresses)}) 
+          LIMIT 1
+        ) > 0 
       `;
     }
 
@@ -42,8 +51,17 @@ class TxmetaModel {
 
       scriptHashesCondition = ` 
         AND (
-          txout.scripthash IN (${joinedItems}) 
-          OR tx.txid IN (${joinedItems})
+          tx.txid IN (${joinedItems})
+          OR (
+            SELECT 
+              COUNT(scripthash) as scripthash_found 
+            FROM 
+              txout 
+            WHERE 
+              txout.txid = tx.txid 
+              AND txout.scripthash IN (${joinedItems}) 
+            LIMIT 1
+          ) > 0 
         ) 
       `;
     }
@@ -86,34 +104,42 @@ class TxmetaModel {
         break;
     }
 
-    const columns = `
-      txmeta.id
-      ,${rawtx ?  `encode(tx.rawtx, 'hex') as rawtx, `: '' } tx.txid
-      ,i
-      ,h
-      ,tx.send
-      ,status
-      ,completed
-      ,tx.updated_at
-      ,tx.created_at
-      ,channel
-      ,metadata
-      ,tags
-      ,extracted 
-      ,tx.dlq 
-    `;
-
     result = await client.query(
       `SELECT 
-        ${columns}
-        ,ARRAY_AGG(txout.address) as addresses
-        ,ARRAY_AGG(txout.scripthash) as scripthashes 
+        txmeta.id
+        ,${rawtx ?  `encode(tx.rawtx, 'hex') as rawtx, `: '' } tx.txid
+        ,i
+        ,h
+        ,tx.send
+        ,status
+        ,completed
+        ,tx.updated_at
+        ,tx.created_at
+        ,channel
+        ,metadata
+        ,tags
+        ,extracted 
+        ,tx.dlq 
+        ,(
+          SELECT 
+            ARRAY_AGG(txout.address) as addresses 
+          FROM 
+            txout 
+          WHERE 
+            txid = tx.txid 
+        )
+        ,(
+          SELECT 
+            ARRAY_AGG(txout.scripthash) as scripthashes 
+          FROM 
+            txout 
+          WHERE 
+            txid = tx.txid 
+        )
       FROM 
         tx 
       INNER JOIN 
         txmeta ON (tx.txid = txmeta.txid) 
-      INNER JOIN 
-        txout ON (tx.txid = txout.txid) 
       WHERE 
         ${
           afterId 
@@ -123,7 +149,6 @@ class TxmetaModel {
         ${addressesCondition} 
         ${scriptHashesCondition} 
         ${statusCondition} 
-      GROUP BY ${columns} 
       ORDER BY 
         txmeta.created_at ${order} 
       ${
