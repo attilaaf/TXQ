@@ -117,10 +117,10 @@ async function startPendingTaskPoller() {
   enqInitialTxsForSync.run();
 }
 
-setInterval(() => {
+setTimeout(() => {
   startPendingTaskPoller();
  
-}, 5 * 60 * 1000);
+}, 1 * 60 * 1000);
 
  
 if (cfg.enableAssetAgent) {

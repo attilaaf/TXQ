@@ -66,11 +66,13 @@ export default class SyncTxStatus extends UseCase {
 
     this.logger.debug('sync', {
       txid: params.txid,
+      txsync: txsync.sync,
       trace: 2
     });
     if (!tx || !txsync) {
       this.logger.error('sync', {
         txid: params.txid,
+        txsync: txsync.sync,
         info: 'ResourceNotFoundError',
       });
       throw new ResourceNotFoundError();
@@ -81,6 +83,7 @@ export default class SyncTxStatus extends UseCase {
 
       this.logger.debug('sync', {
         txid: params.txid,
+        txsync: txsync.sync,
         info: 'already_completed',
       });
       // It should be a 2 for sync_success
@@ -112,6 +115,7 @@ export default class SyncTxStatus extends UseCase {
       this.logger.debug('sync', {
         txid: params.txid,
         info: 'status_success',
+        txsync: txsync.sync,
       });
       if (txsync.sync !== 2) {
         await this.txService.setTxCompleted(params.accountContext, tx.txid);
@@ -123,56 +127,80 @@ export default class SyncTxStatus extends UseCase {
     }
     this.logger.debug('sync', {
       txid: params.txid,
-      trace: 3
+      trace: 3,
+      txsync: txsync.sync,
     });
     // Check various error conditions and check whether we need to resend or halt
     if (status && status.payload && status.payload.returnResult === 'failure' &&
       status.payload.resultDescription === 'ERROR: No such mempool or blockchain transaction. Use gettransaction for wallet transactions.') {
-        this.logger.info('sync', {
+        this.logger.debug('sync', {
           txid: params.txid,
-          trace: 4
+          trace: 4,
+          txsync: txsync.sync,
         });
       // Now load rawtx
       tx = await this.txService.getTx(params.accountContext, params.txid, true);
       if (tx.rawtx) {
-        this.logger.info('send', {
-          txid: tx.txid
+        this.logger.debug('send', {
+          txid: tx.txid,
+          txsync: txsync.sync,
         });
         let response;
-        this.logger.info('sync', {
+        this.logger.debug('sync', {
           txid: params.txid,
-          trace: 5
+          trace: 5,
+          txsync: txsync.sync,
         });
         try {
           const b = Buffer.from(tx.rawtx, 'hex');
           response = await merchantRequestor.pushTx(b, 'application/octet-stream');
           this.logger.info('sync', {
             txid: params.txid,
-            trace: 6
+            trace: 6,
+            txsync: txsync.sync,
+            response
           });
         } catch (err) {
           this.logger.error('push_error', {
             err: JSON.stringify(err),
+            stack: err.stack,
+            txid: params.txid,
+            txsync: txsync.sync,
           });
           throw err;
         }
-        this.logger.info('send_result', {
+        this.logger.debug('send_result', {
           response
         });
         await this.txService.saveTxSend(params.accountContext, params.txid, response);
 
         if (response.payload.returnResult === 'failure') {
-          this.logger.error('send_error', {
-            txid: tx.txid,
-            sendPayload: response.payload
-          });
-          // Something bad, cannot recover
-          await this.txsyncService.updateTxsync(params.accountContext, params.txid, sync_state.sync_fail);
+          if (response.payload.resultDescription !== 'ERROR: No such mempool or blockchain transaction. Use gettransaction for wallet transactions.') {
+            this.logger.error('send_error', {
+              txid: tx.txid,
+              sendPayload: response.payload,
+              txsync: txsync.sync,
+            });
+   
+            this.logger.error('Updating_tx_sync_fail', {
+              txid: params.txid,
+              txsync: txsync.sync,
+              response
+            });
+            // Something bad, cannot recover
+            await this.txsyncService.updateTxsync(params.accountContext, params.txid, sync_state.sync_fail);
 
-          return {
-            success: true,
-            result: status
-          };
+            return {
+              success: true,
+              result: status
+            };
+          } else {
+            this.logger.debug('Updating_race_condition_recovered', {
+              txid: params.txid,
+              txsync: txsync.sync,
+              response
+            });
+          }
         }
         // Try to update status again since we just broadcasted
         // Update in the background
@@ -185,6 +213,7 @@ export default class SyncTxStatus extends UseCase {
         // We might want to throw an exception so we can allow user to keep retrying tx's
         this.logger.debug('sync', {
           txid: params.txid,
+          txsync: txsync.sync,
           info: 'TransactionDataMissingError',
         });
         throw new TransactionDataMissingError();
@@ -193,6 +222,7 @@ export default class SyncTxStatus extends UseCase {
     this.logger.debug('sync', {
       txid: params.txid,
       status: status,
+      txsync: txsync.sync,
       info: 'TransactionStillProcessing',
     });
 
