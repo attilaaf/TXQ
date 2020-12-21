@@ -23,10 +23,24 @@ class TxmetaModel {
     return result.rows[0];
   }
 
-  public async getTxsByChannel(accountContext: IAccountContext, channel: string | null | undefined, afterId: number, limit: number, status: TransactionStatusType, order: QueryOrderType, addresses: string[], scripthashes: string[], txids: string[], rawtx?: boolean): Promise<string[]> {
+  public async getTxsByChannel(accountContext: IAccountContext, channel: string | null | undefined, afterId: number, limit: number, status: TransactionStatusType, order: QueryOrderType, addresses: string[], scripthashes: string[], txids: string[], from?: number, to?: number, rawtx?: boolean): Promise<string[]> {
     const client = await this.db.getClient(accountContext);
     let result: any;
     let channelStr = channel ? channel : '';
+
+    let fromCondition = '';
+    if (from) {
+      fromCondition = ` 
+        AND tx.created_at >= ${from} 
+      `;
+    }
+
+    let toCondition = '';
+    if (to) {
+      toCondition = ` 
+        AND tx.created_at <= ${to} 
+      `;
+    }
 
     let addressesCondition = '';
     if (addresses.length > 0) {
@@ -146,6 +160,8 @@ class TxmetaModel {
           ? `txmeta.id ${order === 'DESC' ? '<' : '>'} $1 AND channel = $2 ` 
           : `channel = $1 `
         } 
+        ${fromCondition} 
+        ${toCondition} 
         ${addressesCondition} 
         ${scriptHashesCondition} 
         ${statusCondition} 
