@@ -43,6 +43,8 @@ export default [
                 (Req.query.txids as string | string[]) || [],
               ),
             ),
+            from: Req.query.from ? parseInt(Req.query.from as string, 10) : undefined,
+            to: Req.query.to ? parseInt(Req.query.to as string, 10) : undefined,
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
@@ -92,6 +94,8 @@ export default [
                 (Req.query.txids as string | string[]) || [],
               ),
             ),
+            from: Req.query.from ? parseInt(Req.query.from as string, 10) : undefined,
+            to: Req.query.to ? parseInt(Req.query.to as string, 10) : undefined,
           });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
