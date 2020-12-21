@@ -143,7 +143,7 @@ class TxmetaModel {
       WHERE 
         ${
           afterId 
-          ? `txmeta.id < $1 AND channel = $2 ` 
+          ? `txmeta.id ${order === 'DESC' ? '<' : '>'} $1 AND channel = $2 ` 
           : `channel = $1 `
         } 
         ${addressesCondition} 
