@@ -139,10 +139,9 @@ class TxoutModel {
   public async getUtxoBalanceByScriptHashes(accountContext: IAccountContext, scripthashes: string[]): Promise<any> {
     const client = await this.db.getClient(accountContext);
     let result: any;
+ 
     const str = `
-      SELECT * FROM
-      (
-        SELECT sum(satoshis) as balance
+      SELECT txout.scripthash, sum(satoshis) as balance, tx.completed
         FROM 
           txout 
         JOIN 
@@ -152,76 +151,38 @@ class TxoutModel {
         WHERE
         txout.scripthash = ANY($1::varchar[]) AND
         txin.prevtxid IS NULL AND
-        tx.completed IS TRUE AND
         tx.orphaned IS NOT TRUE
-
-        UNION
-
-        SELECT sum(satoshis) as balance 
-        FROM 
-          txout  
-        JOIN 
-          tx ON (txout.txid = tx.txid)
-        LEFT OUTER JOIN 
-          txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
-        WHERE
-        txout.scripthash = ANY($2::varchar[]) AND
-        txin.prevtxid IS NULL AND
-        tx.completed IS FALSE AND
-        tx.orphaned IS NOT TRUE
-      ) AS q1
+        group by txout.scripthash, tx.completed
     `;
-    result = await client.query(str, [scripthashes, scripthashes]);
-    let balance = {
-      confirmed: result.rows[0].balance ? Number(result.rows[0].balance) : 0,
-      unconfirmed: result.rows[1] && result.rows[1].balance ? Number(result.rows[1].balance) : 0,
-    };
-    return balance;
+    result = await client.query(str, [scripthashes]);
+
+    let byScriptHashBalances = {};
+    for (const item of result.rows) {
+      byScriptHashBalances[item.scripthash] = byScriptHashBalances[item.scripthash] || {
+        scripthash: item.scripthash,
+        confirmed: 0,
+        unconfirmed: 0,
+      }
+      if (item.completed) {
+        byScriptHashBalances[item.scripthash].confirmed = Number(item.balance);
+      } else {
+        byScriptHashBalances[item.scripthash].unconfirmed = Number(item.balance);
+      }
+
+    }
+    let formattedArray = [];
+    for (const prop in byScriptHashBalances) {
+      if (!byScriptHashBalances.hasOwnProperty(prop)) {
+        continue;
+      }
+
+      formattedArray.push({
+        ...byScriptHashBalances[prop]
+      });
+    }
+    return formattedArray;
   }
-
-  public async getUtxoBalanceByAddresses(accountContext: IAccountContext, addresses: string[]): Promise<any> {
-    const client = await this.db.getClient(accountContext);
-    let result: any;
-    const str = `
-      SELECT * FROM
-      (
-        SELECT sum(satoshis) as balance
-        FROM 
-          txout
-        JOIN 
-          tx ON (txout.txid = tx.txid)
-        LEFT OUTER JOIN 
-          txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
-        WHERE
-        txout.address = ANY($1::varchar[]) AND
-        txin.prevtxid IS NULL AND
-        tx.completed IS TRUE AND
-        tx.orphaned IS NOT TRUE
-
-        UNION
-
-        SELECT sum(satoshis) as balance
-        FROM 
-          txout  
-        JOIN 
-          tx ON (txout.txid = tx.txid)
-        LEFT OUTER JOIN 
-          txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
-        WHERE
-        txout.address = ANY($2::varchar[]) AND
-        txin.prevtxid IS NULL AND
-        tx.completed IS FALSE AND
-        tx.orphaned IS NOT TRUE
-      ) AS q1
-    `;
-    result = await client.query(str, [ addresses, addresses]);
-    let balance = {
-      confirmed: result.rows[0].balance ? Number(result.rows[0].balance) : 0,
-      unconfirmed: result.rows[1] && result.rows[1].balance ? Number(result.rows[1].balance) : 0,
-    };
-    return balance;
-  }
-
+ 
   /**
    * Todo: Refactor to not repeat queries
    */

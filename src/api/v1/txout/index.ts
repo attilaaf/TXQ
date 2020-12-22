@@ -13,7 +13,6 @@ import GetTxoutsByOutpointArray from '../../../services/use_cases/spends/GetTxou
 import GetTxoutsByGroup from '../../../services/use_cases/spends/GetTxoutsByGroup';
 import GetUtxosByGroup from '../../../services/use_cases/spends/GetUtxosByGroup';
 import GetBalanceByGroup from '../../../services/use_cases/spends/GetBalanceByGroup';
-import GetBalanceByAddresses from '../../../services/use_cases/spends/GetBalanceByAddresses';
 import GetBalanceByScriptHashes from '../../../services/use_cases/spends/GetBalanceByScriptHashes';
 import { AccountContextHelper } from '../../account-context-helper';
 import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
@@ -230,7 +229,7 @@ export default [
         try {
           let uc = Container.get(GetBalanceByScriptHashes);
           let data = await uc.run({
-            scripthash: Req.params.scripthash,
+            scripts: Req.params.scripthash,
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
@@ -252,7 +251,7 @@ export default [
         try {
           let uc = Container.get(GetBalanceByScriptHashes);
           let data = await uc.run({
-            scripthash: Req.params.scripthash,
+            scripts: Req.params.scripthash,
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
@@ -556,9 +555,9 @@ export default [
     handler: [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
-          let uc = Container.get(GetBalanceByAddresses);
+          let uc = Container.get(GetBalanceByScriptHashes);
           let data = await uc.run({
-            address: Req.params.address,
+            scripts: Req.params.address,
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
@@ -578,9 +577,9 @@ export default [
     handler: [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
-          let uc = Container.get(GetBalanceByAddresses);
+          let uc = Container.get(GetBalanceByScriptHashes);
           let data = await uc.run({
-            address: Req.params.address,
+            scripts: Req.params.address,
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);

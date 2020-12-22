@@ -120,7 +120,7 @@ async function startPendingTaskPoller() {
 setTimeout(() => {
   startPendingTaskPoller();
  
-}, 1 * 60 * 1000);
+}, 10 * 60 * 1000);
 
  
 if (cfg.enableAssetAgent) {
