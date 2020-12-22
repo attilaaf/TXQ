@@ -69,6 +69,7 @@ export default class StartFilterTrackerAgent extends UseCase {
         this.logger.debug("bitcoinAgent.getBlockByHeight", { height: height });
         return Axios.get(`https://media.bitcoinfiles.org/height/${height}`)
           .then((result) => {
+            this.logger.debug("bitcoinAgent.getBlockByHeight response: ", { response: result.data } );
             return Axios.get(`https://media.bitcoinfiles.org/rawblock/${result.data.blockhash}`)
             .then((resultblock) => {
               return resultblock.data;

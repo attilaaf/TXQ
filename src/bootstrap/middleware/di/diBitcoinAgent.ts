@@ -95,6 +95,7 @@ export class BitcoinAgent {
           blockToVerify.hash = null;
           const firstRawBlock = await params.getBlockByHeight(config.startHeight, config);
           const firstBlock = bsv.Block.fromString(firstRawBlock)
+          console.log('start onBlock');
           await params.onBlock({kvstore, db, height: config.startHeight, block: firstBlock }, config);
           continue;
         } else {
@@ -115,6 +116,7 @@ export class BitcoinAgent {
           for (let i = 0; i < beaconHeaders.length; i++) {
  
             if (blockToVerify.height === beaconHeaders[i].height && blockToVerify.hash !== beaconHeaders[i].hash) {
+              console.log('reorg', blockToVerify, beaconHeaders, i);
               reorgPoint =  {
                 height: beaconHeaders[i].height
               };
@@ -137,8 +139,10 @@ export class BitcoinAgent {
         let rawblock = null;
         const nextBlockToFetch = beaconHeaders[0].height + 1;
         try {
+          console.log('about getBlockByHeight', nextBlockToFetch, config);
           rawblock = await params.getBlockByHeight(nextBlockToFetch, config);
           const block = bsv.Block.fromString(rawblock);
+          console.log('getBlockByHeightreturned with a block with hash ', nextBlockToFetch, block.hash);
           // Now we have a block
           await params.onBlock({kvstore, db, height: nextBlockToFetch, block}, config);
         } catch (err) {

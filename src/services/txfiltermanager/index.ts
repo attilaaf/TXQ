@@ -133,6 +133,9 @@ export default class TxfiltermanagerService {
     for (const tx of block.transactions) {
       txIndex++;
 
+      if (txIndex % 100 === 0) {
+        console.log('filter block txIndex', txIndex);
+      }
       // Filter by txids (ie: check unconfirmed txs)
       for (const projectId in req.txidFilters) {
         if (!req.txidFilters.hasOwnProperty(projectId)) {
@@ -233,10 +236,12 @@ export default class TxfiltermanagerService {
 
   private async perforrmProjectTenantUpdates(block: bsv.Block, height: number, filterRules: ITxFilterResultSet): Promise<any> {
     const results = {};
+
     for (const projectId in filterRules) {
       if (!filterRules.hasOwnProperty(projectId)) {
         continue;
       }
+      console.log('perforrmProjectTenantUpdates', (new Date()).getTime() / 1000, projectId);
       // Flatten duplicate transactions from results
       const txsToSave = {};
       for (const match of filterRules[projectId].matchedMonitoredOutpointFilters) {
@@ -254,6 +259,7 @@ export default class TxfiltermanagerService {
           rawtx: match.rawtx
         };
       }
+      console.log('perforrmProjectTenantUpdates saveTxsStarting', (new Date()).getTime() / 1000, projectId);
       const uc = await this.saveTxsFromBlock.run({
         set: txsToSave, 
         newOutpointMonitorRecords: filterRules[projectId].newOutpointMonitorRecords, // Save all new outpoints to monitor
@@ -261,6 +267,7 @@ export default class TxfiltermanagerService {
         block,
         height
       });
+      console.log('perforrmProjectTenantUpdates saveTxsStartingDone', (new Date()).getTime() / 1000, projectId);
       results[projectId] = uc.result;
     }
     return results;
@@ -337,9 +344,11 @@ export default class TxfiltermanagerService {
   public async processUpdatesForFilteredBlock(filterRules: ITxFilterResultSet, params: { height: any, block: any, db: any }): Promise<any> {
     const block = params.block;
     let results: any = {};
+    console.log('processUpdatesForFilteredBlock');
     await (async () => {
       const client = await params.db.connect();
       try {
+        console.log('processUpdatesForFilteredBlock', (new Date()).getTime() / 1000);
         await client.query('BEGIN');
         results = await this.perforrmProjectTenantUpdates(block, params.height, filterRules);
         const q = `
@@ -368,7 +377,9 @@ export default class TxfiltermanagerService {
           block.header.toBuffer(),
           Buffer.from(block.header.prevHash.toString('hex'), 'hex').reverse().toString('hex')
         ]);
+        console.log('processUpdatesForFilteredBlock about to commited', (new Date()).getTime() / 1000);
         await client.query('COMMIT');
+        console.log('processUpdatesForFilteredBlock commited', (new Date()).getTime() / 1000);
       } catch (e) {
         await client.query('ROLLBACK');
         throw e;
