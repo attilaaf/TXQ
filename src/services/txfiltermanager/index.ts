@@ -126,36 +126,57 @@ export default class TxfiltermanagerService {
    * @param block Block data
    */
   public async filterBlock(req: ITxFilterRequest, height: number, block: bsv.Block) : Promise<ITxFilterResultSet> {
+     
     const results: ITxFilterResultSet = {
     };
+    // Create txid map
+    // Filter by txids (ie: check unconfirmed txs)
+    let txMap = {};
 
+    for (const projectId in req.ctxs) {
+      if (!req.ctxs.hasOwnProperty(projectId)) {
+        continue;
+      }
+      results[projectId] = results[projectId] || {
+        ctx: req.ctxs[projectId],
+        matchedMonitoredOutpointFilters: [],
+        matchedTxidFilters: [],
+        matchedOutputFilters: [],
+        newOutpointMonitorRecords: {}
+      }
+    }
+
+    
+    for (const projectId in req.txidFilters) {
+      if (!req.txidFilters.hasOwnProperty(projectId)) {
+        continue;
+      }
+      
+      for (const filterRule of req.txidFilters[projectId]) {
+        txMap[filterRule.txid] = txMap[filterRule.txid] || {
+          projectIds: [],
+          filterRules: []
+        }
+        txMap[filterRule.txid].projectIds.push(projectId);
+        txMap[filterRule.txid].filterRules.push(filterRule);
+      }
+    }
+     
     let txIndex = -1;
     for (const tx of block.transactions) {
       txIndex++;
-
-      // Filter by txids (ie: check unconfirmed txs)
-      for (const projectId in req.txidFilters) {
-        if (!req.txidFilters.hasOwnProperty(projectId)) {
-          continue;
-        }
-
-        results[projectId] = results[projectId] || {
-          ctx: req.ctxs[projectId],
-          matchedMonitoredOutpointFilters: [],
-          matchedTxidFilters: [],
-          matchedOutputFilters: []
-        }
-
-        for (const filterRule of req.txidFilters[projectId]) {
-          if (tx.hash === filterRule.txid) {
-            results[projectId].matchedTxidFilters.push({
-              txid: tx.hash,
-              rawtx: tx.toString(), 
-            });
-          }
+      if (txMap[tx.hash]) {
+        for (let i = 0; i < txMap[tx.hash].projectIds.length; i++) {
+          const projectId = txMap[tx.hash].projectIds[i];
+          const filterRule = txMap[tx.hash].filterRules[i];
+          
+          results[projectId].matchedTxidFilters.push({
+            txid: tx.hash,
+            rawtx: tx.toString(), 
+          });
         }
       }
-
+      
       // filter output pattern match, make sure to track spends in THIS block by updating the outpoint filter if trackSpends=true
       let o = 0;
       for (const output of tx.outputs) {
@@ -192,7 +213,7 @@ export default class TxfiltermanagerService {
         }
         o++;
       }
-
+ 
       // filter inputs for outpoint pattern match
       // Note this must come after general filter output matching because we may track spends and must detect it
       let i = 0;
@@ -206,7 +227,7 @@ export default class TxfiltermanagerService {
           const monFilter = req.monitoredOutpointFilters[projectId][`${prevTxid}${prevIndex}`];
           if (monFilter) {
             // Update the newOutpointMonitorRecords (this applies to when output is spent in same block as output matcher)
-            if (results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`]) {
+            if (results[projectId] && results[projectId].newOutpointMonitorRecords && results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`]) {
               this.logger.debug('spendDetectedCurrentBlock', { projectId, txid: tx.hash, prevTxid, prevIndex });
               results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`] = {
                 ...results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`],
@@ -228,15 +249,18 @@ export default class TxfiltermanagerService {
       }
  
     }
+ 
     return results;
   }
 
   private async perforrmProjectTenantUpdates(block: bsv.Block, height: number, filterRules: ITxFilterResultSet): Promise<any> {
     const results = {};
+
     for (const projectId in filterRules) {
       if (!filterRules.hasOwnProperty(projectId)) {
         continue;
       }
+      console.log('perforrmProjectTenantUpdates', (new Date()).getTime() / 1000, projectId);
       // Flatten duplicate transactions from results
       const txsToSave = {};
       for (const match of filterRules[projectId].matchedMonitoredOutpointFilters) {
@@ -254,6 +278,7 @@ export default class TxfiltermanagerService {
           rawtx: match.rawtx
         };
       }
+      console.log('perforrmProjectTenantUpdates saveTxsStarting', (new Date()).getTime() / 1000, projectId);
       const uc = await this.saveTxsFromBlock.run({
         set: txsToSave, 
         newOutpointMonitorRecords: filterRules[projectId].newOutpointMonitorRecords, // Save all new outpoints to monitor
@@ -261,12 +286,14 @@ export default class TxfiltermanagerService {
         block,
         height
       });
+      console.log('perforrmProjectTenantUpdates saveTxsStartingDone', (new Date()).getTime() / 1000, projectId);
       results[projectId] = uc.result;
     }
     return results;
   }
 
   private async processReorgForProject(ctx: IAccountContext, height: number): Promise<any> {
+    console.log('processReorgForProject 1', height);
     const pool = await this.db.getClient(ctx);
     const client = await pool.connect();
     try {
@@ -302,6 +329,7 @@ export default class TxfiltermanagerService {
       await client.query('ROLLBACK');
       throw e;
     } finally {
+      console.log('processReorgForProject 2 DONE', height);
       client.release();
     }
   }
@@ -337,9 +365,11 @@ export default class TxfiltermanagerService {
   public async processUpdatesForFilteredBlock(filterRules: ITxFilterResultSet, params: { height: any, block: any, db: any }): Promise<any> {
     const block = params.block;
     let results: any = {};
+    console.log('processUpdatesForFilteredBlock');
     await (async () => {
       const client = await params.db.connect();
       try {
+        console.log('processUpdatesForFilteredBlock', (new Date()).getTime() / 1000);
         await client.query('BEGIN');
         results = await this.perforrmProjectTenantUpdates(block, params.height, filterRules);
         const q = `
@@ -368,7 +398,9 @@ export default class TxfiltermanagerService {
           block.header.toBuffer(),
           Buffer.from(block.header.prevHash.toString('hex'), 'hex').reverse().toString('hex')
         ]);
+        console.log('processUpdatesForFilteredBlock about to commited', (new Date()).getTime() / 1000);
         await client.query('COMMIT');
+        console.log('processUpdatesForFilteredBlock commited', (new Date()).getTime() / 1000);
       } catch (e) {
         await client.query('ROLLBACK');
         throw e;

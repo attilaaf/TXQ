@@ -61,6 +61,7 @@ import "../services/use_cases/spends/GetBalanceByGroup";
 import "../services/use_cases/spends/GetTxHistoryByScriptHashOrAddressArray";
 import "../services/use_cases/spends/GetUtxoCountByScriptHashOrAddress";
 import "../services/use_cases/spends/GetUtxoCountByGroup";
+import "../services/use_cases/spends/GetUnspentTxidsByScriptHash";
 
 import "../services/use_cases/events/ConnectChannelClientSSE";
 import "../services/use_cases/txoutgroup/GetTxoutgroupByName";

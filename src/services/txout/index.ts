@@ -6,6 +6,14 @@ import ResourceNotFoundError from '../error/ResourceNotFoundError';
 export default class TxoutService {
   constructor(@Inject('txoutModel') private txoutModel, @Inject('logger') private logger) {}
 
+  public async getUnspentTxidsByScriptHash(accountContext: IAccountContext, scripthash: string[]) {
+    let entity = await this.txoutModel.getUnspentTxidsByScriptHash(accountContext, scripthash);
+    if (!entity) {
+      throw new ResourceNotFoundError();
+    }
+    return entity;
+  } 
+
   public async getTxoutByScriptHash(accountContext: IAccountContext, scripthash: string, offset: number, limit: number, script?: boolean, unspent?: boolean) {
     let entity = await this.txoutModel.getTxoutByScriptHash(accountContext, scripthash, offset, limit, script, unspent);
     if (!entity) {

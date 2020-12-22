@@ -21,7 +21,9 @@ export default class IngestFilterBlock extends UseCase {
     const start = (new Date()).getTime();
     this.logger.debug("ingestFilterBlock", { start, height: params.height, blockhash: params.block.hash });
     const txFilterSet: ITxFilterRequest = await this.txfiltermanagerService.getAllFilters();
+    this.logger.debug("ingestFilterBlock got filteres", { start, height: params.height, blockhash: params.block.hash });
     const filterResultSet: ITxFilterResultSet = await this.txfiltermanagerService.filterBlock(txFilterSet, params.height, params.block);
+    this.logger.debug("ingestFilterBlock block filtered", { start, height: params.height, blockhash: params.block.hash, filters: true});
     const results = await this.txfiltermanagerService.processUpdatesForFilteredBlock(filterResultSet, params);
     const end = (new Date()).getTime();
     const duration = (end - start) / 1000;
