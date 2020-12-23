@@ -85,18 +85,24 @@ export class BitcoinAgent {
     };
     const reorgLimit = 20;
     const { kvstore, db } = await params.open(config);
+
+    let blockRecentlyProcessed = false;
     while (true) {
       try {
         const timeSec = config.blockPollTime ? config.blockPollTime : 10;
-        await sleeper(timeSec);
+
+        if (!blockRecentlyProcessed) {
+          await sleeper(timeSec);
+        }
+
         const knownBlockHeaders = await params.getKnownBlockHeaders({kvstore, db, reorgLimit}, config);
         if (knownBlockHeaders.length === 0) {
           blockToVerify.height = null;
           blockToVerify.hash = null;
           const firstRawBlock = await params.getBlockByHeight(config.startHeight, config);
           const firstBlock = bsv.Block.fromString(firstRawBlock)
-          console.log('start onBlock');
           await params.onBlock({kvstore, db, height: config.startHeight, block: firstBlock }, config);
+          blockRecentlyProcessed = true;
           continue;
         } else {
           blockToVerify.height = knownBlockHeaders[0].height;
@@ -107,6 +113,7 @@ export class BitcoinAgent {
         const beaconHeaders = await params.getBeaconHeaders({ kvstore, db, height: blockToVerify.height, reorgLimit, limit: 20}, config);
         // If there are no known headers, then just loop
         if (!beaconHeaders.length) {
+          blockRecentlyProcessed = false;
           continue;
         }
         let reorgPoint = null;
@@ -132,6 +139,7 @@ export class BitcoinAgent {
         }
         if (reorgPoint) {
           await params.onReorg({kvstore, db, height: reorgPoint.height}, config);
+          blockRecentlyProcessed = false;
           continue;
         }
  
@@ -145,6 +153,7 @@ export class BitcoinAgent {
           console.log('getBlockByHeightreturned with a block with hash ', nextBlockToFetch, block.hash);
           // Now we have a block
           await params.onBlock({kvstore, db, height: nextBlockToFetch, block}, config);
+          blockRecentlyProcessed = true;
         } catch (err) {
             if (err.response && err.response.status === 404) {
               console.log('rawblock 404, trying again later...', nextBlockToFetch);
@@ -154,6 +163,7 @@ export class BitcoinAgent {
         }
       } catch (err) {
         console.log('err', err, err.stack);
+        blockRecentlyProcessed = false;
         ;// Silently continue
       }
     }

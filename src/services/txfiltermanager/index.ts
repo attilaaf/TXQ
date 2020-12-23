@@ -126,39 +126,56 @@ export default class TxfiltermanagerService {
    * @param block Block data
    */
   public async filterBlock(req: ITxFilterRequest, height: number, block: bsv.Block) : Promise<ITxFilterResultSet> {
+     
     const results: ITxFilterResultSet = {
     };
+    // Create txid map
+    // Filter by txids (ie: check unconfirmed txs)
+    let txMap = {};
 
+    for (const projectId in req.ctxs) {
+      if (!req.ctxs.hasOwnProperty(projectId)) {
+        continue;
+      }
+      results[projectId] = results[projectId] || {
+        ctx: req.ctxs[projectId],
+        matchedMonitoredOutpointFilters: [],
+        matchedTxidFilters: [],
+        matchedOutputFilters: []
+      }
+    }
+
+    
+    for (const projectId in req.txidFilters) {
+      if (!req.txidFilters.hasOwnProperty(projectId)) {
+        continue;
+      }
+      
+      for (const filterRule of req.txidFilters[projectId]) {
+        txMap[filterRule.txid] = txMap[filterRule.txid] || {
+          projectIds: [],
+          filterRules: []
+        }
+        txMap[filterRule.txid].projectIds.push(projectId);
+        txMap[filterRule.txid].filterRules.push(filterRule);
+      }
+    }
+     
     let txIndex = -1;
     for (const tx of block.transactions) {
       txIndex++;
-
-      if (txIndex % 100 === 0) {
-        console.log('filter block txIndex', txIndex);
-      }
-      // Filter by txids (ie: check unconfirmed txs)
-      for (const projectId in req.txidFilters) {
-        if (!req.txidFilters.hasOwnProperty(projectId)) {
-          continue;
-        }
-
-        results[projectId] = results[projectId] || {
-          ctx: req.ctxs[projectId],
-          matchedMonitoredOutpointFilters: [],
-          matchedTxidFilters: [],
-          matchedOutputFilters: []
-        }
-
-        for (const filterRule of req.txidFilters[projectId]) {
-          if (tx.hash === filterRule.txid) {
-            results[projectId].matchedTxidFilters.push({
-              txid: tx.hash,
-              rawtx: tx.toString(), 
-            });
-          }
+      if (txMap[tx.hash]) {
+        for (let i = 0; i < txMap[tx.hash].projectIds.length; i++) {
+          const projectId = txMap[tx.hash].projectIds[i];
+          const filterRule = txMap[tx.hash].filterRules[i];
+          
+          results[projectId].matchedTxidFilters.push({
+            txid: tx.hash,
+            rawtx: tx.toString(), 
+          });
         }
       }
-
+      
       // filter output pattern match, make sure to track spends in THIS block by updating the outpoint filter if trackSpends=true
       let o = 0;
       for (const output of tx.outputs) {
@@ -195,7 +212,7 @@ export default class TxfiltermanagerService {
         }
         o++;
       }
-
+ 
       // filter inputs for outpoint pattern match
       // Note this must come after general filter output matching because we may track spends and must detect it
       let i = 0;
@@ -231,6 +248,7 @@ export default class TxfiltermanagerService {
       }
  
     }
+ 
     return results;
   }
 
@@ -274,6 +292,7 @@ export default class TxfiltermanagerService {
   }
 
   private async processReorgForProject(ctx: IAccountContext, height: number): Promise<any> {
+    console.log('processReorgForProject 1', height);
     const pool = await this.db.getClient(ctx);
     const client = await pool.connect();
     try {
@@ -309,6 +328,7 @@ export default class TxfiltermanagerService {
       await client.query('ROLLBACK');
       throw e;
     } finally {
+      console.log('processReorgForProject 2 DONE', height);
       client.release();
     }
   }
