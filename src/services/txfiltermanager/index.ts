@@ -141,7 +141,8 @@ export default class TxfiltermanagerService {
         ctx: req.ctxs[projectId],
         matchedMonitoredOutpointFilters: [],
         matchedTxidFilters: [],
-        matchedOutputFilters: []
+        matchedOutputFilters: [],
+        newOutpointMonitorRecords: {}
       }
     }
 
@@ -226,7 +227,7 @@ export default class TxfiltermanagerService {
           const monFilter = req.monitoredOutpointFilters[projectId][`${prevTxid}${prevIndex}`];
           if (monFilter) {
             // Update the newOutpointMonitorRecords (this applies to when output is spent in same block as output matcher)
-            if (results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`]) {
+            if (results[projectId] && results[projectId].newOutpointMonitorRecords && results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`]) {
               this.logger.debug('spendDetectedCurrentBlock', { projectId, txid: tx.hash, prevTxid, prevIndex });
               results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`] = {
                 ...results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`],

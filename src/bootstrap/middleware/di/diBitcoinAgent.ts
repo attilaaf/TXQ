@@ -157,8 +157,10 @@ export class BitcoinAgent {
         } catch (err) {
             if (err.response && err.response.status === 404) {
               console.log('rawblock 404, trying again later...', nextBlockToFetch);
+              blockRecentlyProcessed = false;
             } else {
               console.log('rawblock err', err, nextBlockToFetch);
+              blockRecentlyProcessed = false;
             }
         }
       } catch (err) {

@@ -1,6 +1,6 @@
 {
   "name": "txq",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "TXQ: Bitcoin Transaction Storage Queue",
   "main": "src/bootstrap/index",
   "license": "MIT",
@@ -12,6 +12,7 @@
     "test": "mocha --require ts-node/register --require ts-jest --require source-map-support/register --watch-extensions ts --forbid-only --full-trace --bail --check-leaks --reporter list --timeout 10000 --recursive  tests",
     "jest": "jest",
     "jest_c": "jest -t 'CURRENTS'",
+    "jest_s": "jest -t 'SCRATCH'",
     "format": "prettier --write './src/**/**/*.ts'",
     "tslint": "tslint -c tslint.json -p tsconfig.json",
     "precise-commits": "precise-commits --check-only"
@@ -53,7 +54,7 @@
     "typescript": "^3.9.5"
   },
   "dependencies": {
-    "axios": "^0.21.0",
+    "axios": "^0.21.1",
     "body-parser": "^1.19.0",
     "compression": "^1.7.4",
     "concurrent-queue": "^7.0.2",

@@ -20,6 +20,7 @@ import InvalidParamError from '../../../services/error/InvalidParamError';
 import GetTxHistoryByScriptHashOrAddressArray from '../../../services/use_cases/spends/GetTxHistoryByScriptHashOrAddressArray';
 import GetUtxoCountByScriptHashOrAddress from '../../../services/use_cases/spends/GetUtxoCountByScriptHashOrAddress';
 import GetUtxoCountByGroup from '../../../services/use_cases/spends/GetUtxoCountByGroup';
+import GetUnspentTxidsByScriptHash from '../../../services/use_cases/spends/GetUnspentTxidsByScriptHash';
 
 export default [
   {
@@ -1013,6 +1014,30 @@ export default [
             sendErrorWrapper(res, 404, error.toString());
             return;
           }
+          if (error instanceof AccessForbiddenError) {
+            sendErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
+    path: `${path}/txout/scripthash/unspentoutpoints/:scripthash`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetUnspentTxidsByScriptHash);
+          let data = await uc.run({
+            scripts: Req.params.scripthash,
+            accountContext: AccountContextHelper.getContext(Req)
+          });
+
+          sendResponseWrapper(Req, res, 200, data.result);
+
+        } catch (error) {
           if (error instanceof AccessForbiddenError) {
             sendErrorWrapper(res, 403, error.toString());
             return;

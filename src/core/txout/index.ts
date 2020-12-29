@@ -9,6 +9,26 @@ import ResourceNotFoundError from '../../services/error/ResourceNotFoundError';
 class TxoutModel {
   constructor(@Inject('db') private db: ContextFactory) {}
 
+  public async getUnspentTxidsByScriptHash(accountContext: IAccountContext, scripthash: string[]): Promise<string> {
+    const client = await this.db.getClient(accountContext);
+    let result: any;
+ 
+    let q = `
+    SELECT txout.txid, txout.index
+    FROM 
+      txout 
+    JOIN 
+      tx ON (txout.txid = tx.txid)
+    LEFT OUTER JOIN 
+      txin ON (txout.txid = txin.prevtxid AND txout.index = txin.previndex)
+    WHERE
+    scripthash = ANY($1::varchar[]) AND
+    tx.orphaned IS NOT TRUE 
+    AND txin.prevtxid IS NULL`;
+    result = await client.query(q, [ scripthash ]);
+    return result.rows;
+  }
+
   public async getTxoutByScriptHash(accountContext: IAccountContext, scripthash: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
     const client = await this.db.getClient(accountContext);
     let result: any;
@@ -344,7 +364,7 @@ class TxoutModel {
 
     if (fromblockheight) {
       const q = `
-      SELECT tx.txid, rawtx, h, i, completed, 
+      SELECT tx.txid, encode(tx.rawtx, 'hex') as rawtx, h, i, completed, 
       txout.index, encode(txout.script, 'hex') as script, txout.address, txout.scripthash, 
       txout.satoshis 
       FROM tx, txout
@@ -361,7 +381,7 @@ class TxoutModel {
       result = await client.query(q, [scripthashes, offset, limit]);
     } else {
       const q = `
-      SELECT tx.txid, rawtx, h, i, completed, 
+      SELECT tx.txid, encode(tx.rawtx, 'hex') as rawtx, h, i, completed, 
       txout.index, encode(txout.script, 'hex') as script, txout.address, txout.scripthash, 
       txout.satoshis 
       FROM tx, txout
