@@ -14,7 +14,7 @@ const config: IConfig = {
   env: process.env.NODE_ENV || 'development',
   api: {
     prefix: '/api',
-    port: process.env.PORT || 3000,
+    port: process.env.PORT || 8097,
     jwt: {
       secret: 'secret', // update before deployment
       expiresInHours: 24, // 24 hrs, update before deployment

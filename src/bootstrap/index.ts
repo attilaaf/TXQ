@@ -78,7 +78,8 @@ async function startServer() {
     });
   });
   server.listen(Config.api.port);
-
+  console.log('Listening on', Config.api.port);
+  
   process.on('unhandledRejection', handleExceptions);
   process.on('uncaughtException', handleExceptions);
   process.on('SIGINT', handleServerExit('SIGINT', server));
@@ -92,6 +93,7 @@ startServer();
  * Check ever N minutes for jobs that are in DB in 'pending' that may need to be enqueued
  */
 async function startPendingTaskPoller() {
+  console.log('sd');
   let enqInitialTxsForSync = Container.get(EnqInitialTxsForSyncAllProjects);
   enqInitialTxsForSync.run();
 }
@@ -100,5 +102,5 @@ setInterval(() => {
   startPendingTaskPoller();
 }, 5 * 60 * 1000);
 
- 
+ console.log('s');
 
