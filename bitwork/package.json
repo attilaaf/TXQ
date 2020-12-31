@@ -1,0 +1,47 @@
+{
+  "_from": "bitwork",
+  "_id": "bitwork@0.0.36",
+  "_inBundle": false,
+  "_integrity": "sha512-iSNfiEIfIay0oRyRCAv396ckowsvelsBieez/v9F9xhGsqvv294VqeexPB9/+0UbI4aNJZ53RtPdXr/7CegSJg==",
+  "_location": "/bitwork",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "tag",
+    "registry": true,
+    "raw": "bitwork",
+    "name": "bitwork",
+    "escapedName": "bitwork",
+    "rawSpec": "",
+    "saveSpec": null,
+    "fetchSpec": "latest"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/bitwork/-/bitwork-0.0.36.tgz",
+  "_shasum": "524ded882b35c564bb2571ddc0db52f6cc767e52",
+  "_spec": "bitwork",
+  "_where": "/Users/sauron/git/me/bitindex-api",
+  "author": {
+    "name": "unwriter@protonmail.com"
+  },
+  "bundleDependencies": false,
+  "dependencies": {
+    "JSONStream": "^1.3.5",
+    "b2p2p": "file:b2p2p",
+    "batch-stream": "^0.1.3",
+    "bitcoind-rpc": "^0.8.1",
+    "bpu": "0.0.10",
+    "bsv": "^1.2.0",
+    "event-stream": "^4.0.1",
+    "tail-stream": "^0.3.4",
+    "txo": "0.0.17"
+  },
+  "deprecated": false,
+  "description": "Bitcoin networking made simple",
+  "license": "Open BSV",
+  "main": "index.js",
+  "name": "bitwork",
+  "version": "0.0.36"
+}

@@ -19,7 +19,9 @@ import "../services/blockheader/index";
 import "../services/txfilter/index";
 import "../services/txstore/index";
 import "../services/txfiltermanager/index";
+import "../services/txfiltermatcher/index";
 import "../services/outpointmonitor/index";
+import "../services/stats/index";
 
 import "../services/helpers/MerchantRequestor";
 import "../services/use_cases/proxy/GetMapiTxStatus";
@@ -29,6 +31,7 @@ import "../services/use_cases/proxy/PushMapiTx";
 import "../services/use_cases/tx/GetTx";
 import "../services/use_cases/tx/SaveTxs";
 import "../services/use_cases/tx/SaveTxsFromBlock";
+import "../services/use_cases/tx/SaveTxsFromMempool";
 import "../services/use_cases/tx/SyncTxStatus";
 import "../services/use_cases/tx/GetTxsForSync";
 import "../services/use_cases/tx/GetTxsByChannel";
@@ -64,6 +67,7 @@ import "../services/use_cases/spends/GetUtxoCountByGroup";
 import "../services/use_cases/spends/GetUnspentTxidsByScriptHash";
 
 import "../services/use_cases/events/ConnectChannelClientSSE";
+import "../services/use_cases/events/ConnectMempoolClientSSE";
 import "../services/use_cases/txoutgroup/GetTxoutgroupByName";
 import "../services/use_cases/txoutgroup/GetTxoutgroupListByScriptid";
 import "../services/use_cases/txoutgroup/AddGroupScriptIds";
@@ -78,17 +82,22 @@ import "../services/use_cases/txstore/GetTxStore";
 import "../services/use_cases/txstore/GetTxStoreRevisions";
 import "../services/use_cases/txstore/SaveTxStore";
 
+import "../services/use_cases/stats/GetStats";
+
 import "../services/use_cases/agents/filteragent/IngestFilterBlock";
 import "../services/use_cases/agents/filteragent/ReorgFilterBlock";
 
 import EnqInitialTxsForSyncAllProjects from '../services/use_cases/tx/EnqInitialTxsForSyncAllProjects';
 import StartAssetAgent from '../services/use_cases/agents/StartAssetAgent';
 import StartFilterTrackerAgent from '../services/use_cases/agents/StartFilterTrackerAgent';
+ 
 console.log('process.env.NODE_ENV', process.env.NODE_ENV);
 SetTimeZone('UTC');
 
 import cfg from './../cfg';
 import { createExpress } from './express-factory';
+import StartMempoolFilterAgent from '../services/use_cases/agents/StartMempoolFilterAgent';
+
 
 async function startServer() {
   let app = await createExpress();
@@ -118,11 +127,12 @@ async function startPendingTaskPoller() {
   enqInitialTxsForSync.run();
 }
 
-setTimeout(() => {
-  startPendingTaskPoller();
- 
-}, 10 * 60 * 1000);
-
+if (process.env.ENABLE_DB_SYNC === 'true') {
+  console.log('ENABLE_DB_SYNC is true');
+  setTimeout(() => {
+    startPendingTaskPoller();
+  }, 3 * 60 * 1000);
+}
  
 if (cfg.enableAssetAgent) {
   console.log('enableAssetAgent is true');
@@ -138,4 +148,13 @@ if (cfg.enableFilterTrackerAgent) {
     let uc = Container.get(StartFilterTrackerAgent);
     uc.run();
   }, 1000);
+
 }
+
+console.log('enableMempoolFilters is true');
+setTimeout(() => {
+  let uc = Container.get(StartMempoolFilterAgent);
+  uc.run();
+}, 1000);
+
+ 

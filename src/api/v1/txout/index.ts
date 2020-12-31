@@ -277,6 +277,7 @@ export default [
             scripthash: Req.params.scripthash,
             limit: Req.query.limit ? Req.query.limit : 1000,
             offset: Req.query.offset ? Req.query.offset : 0,
+            order: Req.query.order ? Req.query.order : 'desc',
             accountContext: AccountContextHelper.getContext(Req)
           });
 
@@ -407,6 +408,7 @@ export default [
             scripthash: Req.params.scripthash,
             limit: Req.query.limit ? Req.query.limit : 1000,
             offset: Req.query.offset ? Req.query.offset : 0,
+            order: Req.query.order ? Req.query.order : 'desc',
             accountContext: AccountContextHelper.getContext(Req)
           });
 
@@ -605,6 +607,7 @@ export default [
             address: Req.params.address,
             limit: Req.query.limit ? Req.query.limit : 1000,
             offset: Req.query.offset ? Req.query.offset : 0,
+            order: Req.query.order ? Req.query.order : 'desc',
             accountContext: AccountContextHelper.getContext(Req)
           });
 
@@ -631,6 +634,7 @@ export default [
             address: Req.params.address,
             limit: Req.query.limit ? Req.query.limit : 1000,
             offset: Req.query.offset ? Req.query.offset : 0,
+            order: Req.query.order ? Req.query.order : 'desc',
             accountContext: AccountContextHelper.getContext(Req)
           });
 
@@ -788,6 +792,7 @@ export default [
             limit: Req.query.limit ? Req.query.limit : 1000,
             script: Req.query.script === '0' ? false : true,
             offset: Req.query.offset ? Req.query.offset : 0,
+            order: Req.query.order ? Req.query.order : 'desc',
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);
@@ -818,6 +823,7 @@ export default [
             limit: Req.query.limit ? Req.query.limit : 1000,
             script: Req.query.script === '0' ? false : true,
             offset: Req.query.offset ? Req.query.offset : 0,
+            order: Req.query.order ? Req.query.order : 'desc',
             accountContext: AccountContextHelper.getContext(Req)
           });
           sendResponseWrapper(Req, res, 200, data.result);

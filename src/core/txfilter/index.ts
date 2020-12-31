@@ -18,6 +18,7 @@ class TxfilterModel {
     DO UPDATE 
     SET 
     enabled = excluded.enabled, 
+    payload = excluded.payload, 
     updated_at = excluded.updated_at
     RETURNING id`, [
       name, payload, enabled, now, now
@@ -37,7 +38,14 @@ class TxfilterModel {
   public async getAll(accountContext: IAccountContext): Promise<string> {
     const client = await this.db.getClient(accountContext);
     let result: any = await client.query(`
-    SELECT * FROM txfilter WHERE enabled = true`);
+    SELECT * FROM txfilter ORDER BY name ASC`);
+    return result.rows;
+  }
+
+  public async getAllEnabled(accountContext: IAccountContext): Promise<string> {
+    const client = await this.db.getClient(accountContext);
+    let result: any = await client.query(`
+    SELECT * FROM txfilter WHERE enabled is true ORDER BY name ASC`);
     return result.rows;
   }
 }

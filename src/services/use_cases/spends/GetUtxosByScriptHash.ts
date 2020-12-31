@@ -12,8 +12,11 @@ export default class GetUtxosByScriptHash extends UseCase {
     super();
   }
 
-  public async run(params: { scripthash: string, script?: boolean, limit: any, offset: any, accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
-    let entities = await this.txoutService.getTxoutByScriptHash(params.accountContext, params.scripthash, params.offset, params.limit, params.script, true);
+  public async run(params: {
+    order?: any,
+    scripthash: string, script?: boolean, limit: any, offset: any, accountContext?: IAccountContext
+  }): Promise<UseCaseOutcome> {
+    let entities = await this.txoutService.getTxoutByScriptHash(params.accountContext, params.scripthash, params.offset, params.limit, params.script, true, params.order);
     let utxoFormatted = [];
     utxoFormatted = entities.map((e) => {
       return TxFormatter.formatTxoutWithEmbeddedStatusHeight(e);

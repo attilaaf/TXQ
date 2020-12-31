@@ -9,8 +9,9 @@ import TxstoreRoute from './v1/txstore/index';
 import SystemRoute from './system/status/index';
 import AssetRoute from './v1/assets/index';
 import BlockfilterRoute from './v1/txfilter/index';
+import StatsRoute from './v1/stats/index';
 
 export default [
     ...TxRoute, ...QueueRoute, ...TxoutRoute, ...ChannelRoute, ...SSERoute,
-    ...TxoutgroupRoute, ...MapiRoute, ...SystemRoute, ...TxstoreRoute, ...AssetRoute, ...BlockfilterRoute
+    ...TxoutgroupRoute, ...MapiRoute, ...SystemRoute, ...TxstoreRoute, ...AssetRoute, ...BlockfilterRoute, ...StatsRoute
 ];

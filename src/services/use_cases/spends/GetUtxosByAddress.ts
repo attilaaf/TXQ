@@ -14,8 +14,11 @@ export default class GetUtxosByAddress extends UseCase {
     super();
   }
 
-  public async run(params: { address: string, limit: any, script?: boolean, offset: any, accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
-    let entities = await this.txoutService.getTxoutByAddress(params.accountContext, params.address, params.offset, params.limit, params.script, true);
+  public async run(params: {
+    order?: any,
+    address: string, limit: any, script?: boolean, offset: any, accountContext?: IAccountContext
+  }): Promise<UseCaseOutcome> {
+    let entities = await this.txoutService.getTxoutByAddress(params.accountContext, params.address, params.offset, params.limit, params.script, true, params.order);
     let utxoFormatted: ITxOut[] = [];
     utxoFormatted = entities.map((e) => {
       return TxFormatter.formatTxoutWithEmbeddedStatusHeight(e);

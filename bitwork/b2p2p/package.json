@@ -1,0 +1,107 @@
+{
+  "_args": [
+    [
+      "b2p2p@0.0.1",
+      "/Users/sauron/git/me/bithook"
+    ]
+  ],
+  "_from": "b2p2p@0.0.1",
+  "_id": "b2p2p@0.0.1",
+  "_inBundle": false,
+  "_integrity": "sha512-G0cag9HnE/mmsmP0VHv4chiSaivT6hKaC4C4sNzg548xF63wtd92lbLHh8hbYzk9Oh4BVl3yHlW6q7GKAcFbcQ==",
+  "_location": "/b2p2p",
+  "_phantomChildren": {},
+  "_requested": {
+    "type": "version",
+    "registry": true,
+    "raw": "b2p2p@0.0.1",
+    "name": "b2p2p",
+    "escapedName": "b2p2p",
+    "rawSpec": "0.0.1",
+    "saveSpec": null,
+    "fetchSpec": "0.0.1"
+  },
+  "_requiredBy": [
+    "/bitwork"
+  ],
+  "_resolved": "https://registry.npmjs.org/b2p2p/-/b2p2p-0.0.1.tgz",
+  "_spec": "0.0.1",
+  "_where": "/Users/sauron/git/me/bithook",
+  "bugs": {
+    "url": "https://github.com/bitpay/bitcore-p2p/issues"
+  },
+  "contributors": [
+    {
+      "name": "Justin Langston",
+      "email": "justin@bitpay.com"
+    },
+    {
+      "name": "Yemel Jardi",
+      "email": "yemel@bitpay.com"
+    },
+    {
+      "name": "Braydon Fuller",
+      "email": "braydon@bitpay.com"
+    },
+    {
+      "name": "Ryan X. Charles",
+      "email": "ryan@bitpay.com"
+    },
+    {
+      "name": "Eric Martindale",
+      "email": "eric@bitpay.com"
+    },
+    {
+      "name": "Philip Hutchins",
+      "email": "philip@bitpay.com"
+    },
+    {
+      "name": "Manuel Araoz",
+      "email": "maraoz@bitpay.com"
+    },
+    {
+      "name": "Esteban Ordano",
+      "email": "eordano@gmail.com"
+    },
+    {
+      "name": "Elichai Turkel"
+    },
+    {
+      "name": "Chris Kleeschulte",
+      "email": "chrisk@bitpay.com"
+    }
+  ],
+  "dependencies": {
+    "bitcore-lib-cash": "^0.17.0",
+    "bloom-filter": "^0.2.0",
+    "buffers": "github:bitpay/node-buffers#v0.1.2-bitpay",
+    "socks5-client": "^0.3.6"
+  },
+  "description": "<img src=\"http://bitcore.io/css/images/bitcore-p2p.svg\" alt=\"bitcore payment protocol\" height=\"35\" width=\"102\">",
+  "devDependencies": {
+    "bitcore-build": "git://github.com/bitpay/bitcore-build.git",
+    "brfs": "^1.2.0",
+    "chai": "~1.10.0",
+    "gulp": "^3.8.10",
+    "sinon": "^1.12.2"
+  },
+  "homepage": "https://github.com/bitpay/bitcore-p2p#readme",
+  "keywords": [
+    "bitcoin",
+    "bitcore"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "name": "b2p2p",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitpay/bitcore-p2p.git"
+  },
+  "scripts": {
+    "build": "gulp",
+    "coverage": "gulp coverage",
+    "lint": "gulp lint",
+    "test": "gulp test:node"
+  },
+  "version": "0.0.1"
+}

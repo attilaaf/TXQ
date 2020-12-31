@@ -27,6 +27,14 @@ export default class TxService {
     return tx;
   }
 
+  public async getTxSendResponse(accountContext: IAccountContext, txid: string) {
+    let tx = await this.txModel.getTx(accountContext, txid, false);
+    if (!tx) {
+      throw new ResourceNotFoundError();
+    }
+    return tx;
+  }
+
   public async saveTxid(accountContext: IAccountContext, txid: string) {
     if (!txid) {
       throw new InvalidParamError();

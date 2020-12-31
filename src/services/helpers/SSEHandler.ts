@@ -82,8 +82,29 @@ export class SSEHandler extends EventEmitter {
             });
           });
         }
-    }
+    } else {
+      // Flush down cached mempool >= time
+      let time = req.query.time;
+      if (time) {
+        time = parseInt(time);
+        if (time && messageHistoryCallback) {
+          await messageHistoryCallback(lastEventId, lastGlobalId, (messages) => {
+            messages.map((message) => {
+              this.send(message, message.id);
+            });
+          });
 
+          await messageHistoryCallback(lastEventId, lastGlobalId, (messages) => {
+            messages.map((message) => {
+              if (message.time && message.time >= time) {
+                this.send(message, message.id);
+              }
+            });
+          });
+        }
+      }
+    }
+ 
     if (this.initial) {
       if (this.options.isSerialized) {
         this.serialize(this.initial);

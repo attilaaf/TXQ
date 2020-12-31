@@ -14,8 +14,8 @@ export default class TxoutService {
     return entity;
   } 
 
-  public async getTxoutByScriptHash(accountContext: IAccountContext, scripthash: string, offset: number, limit: number, script?: boolean, unspent?: boolean) {
-    let entity = await this.txoutModel.getTxoutByScriptHash(accountContext, scripthash, offset, limit, script, unspent);
+  public async getTxoutByScriptHash(accountContext: IAccountContext, scripthash: string, offset: number, limit: number, script?: boolean, unspent?: boolean, order?: any) {
+    let entity = await this.txoutModel.getTxoutByScriptHash(accountContext, scripthash, offset, limit, script, unspent, order);
     if (!entity) {
       throw new ResourceNotFoundError();
     }
@@ -30,15 +30,15 @@ export default class TxoutService {
     return entity;
   }
 
-  public async getTxoutByAddress(accountContext: IAccountContext, address: string, offset: number, limit: number, script?: boolean, unspent?: boolean) {
-    let entity = await this.txoutModel.getTxoutByAddress(accountContext, address, offset, limit, script, unspent);
+  public async getTxoutByAddress(accountContext: IAccountContext, address: string, offset: number, limit: number, script?: boolean, unspent?: boolean, order?: string) {
+    let entity = await this.txoutModel.getTxoutByAddress(accountContext, address, offset, limit, script, unspent, order);
     if (!entity) {
       throw new ResourceNotFoundError();
     }
     return entity;
   }
 
-  public async getTxoutsByGroup(accountContext: IAccountContext, params: { groupname: string, script?: boolean, limit: any, offset: any, unspent?: boolean}) {
+  public async getTxoutsByGroup(accountContext: IAccountContext, params: { groupname: string, script?: boolean, limit: any, offset: any, unspent?: boolean, order?: string}) {
     return this.txoutModel.getTxoutsByGroup(accountContext, params);
   }
 

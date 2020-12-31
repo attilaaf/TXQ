@@ -3,10 +3,14 @@ import { BitcoinRegex } from "./BitcoinRegex";
 export class StatusTxUtil {
 
     static isAcceptedStatus(statusObj: any): boolean {
-        const isValid = statusObj && statusObj.payload &&
-        statusObj.payload.returnResult === 'success' &&
-        statusObj.payload.blockHeight >= 0 &&
-        statusObj.payload.confirmations >= 0;
+        let payload = statusObj.payload;
+        if (statusObj && statusObj.payload && typeof statusObj.payload === 'string') {
+            payload = JSON.parse(statusObj.payload);
+        }
+        const isValid = payload &&
+        payload.returnResult === 'success' &&
+        payload.blockHeight >= 0 &&
+        payload.confirmations >= 0;
         return isValid;
     }
 
@@ -35,9 +39,9 @@ export class StatusTxUtil {
     static isAcceptedBeforePush(status: any): boolean {
         if (!status || !status.payload) {
             return false;
-        }
+        } // ERROR: 257: txn-already-known
         try {
-            const payload = JSON.parse(status.payload);
+            const payload = status.payload;
             const isValid = payload &&
                 payload.returnResult === 'failure' &&
                 (

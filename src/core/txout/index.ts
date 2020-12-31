@@ -29,7 +29,13 @@ class TxoutModel {
     return result.rows;
   }
 
-  public async getTxoutByScriptHash(accountContext: IAccountContext, scripthash: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
+  public async getTxoutByScriptHash(accountContext: IAccountContext, scripthash: string, offset: number, limit: number, script?: boolean, unspent?: boolean, order?: any): Promise<string> {
+    let orderClause = null;
+    if (order === 'asc') {
+      orderClause = ' ORDER BY tx.i ASC NULLS FIRST';
+    } else {
+      orderClause = ' ORDER BY tx.i DESC NULLS LAST';
+    }
     const client = await this.db.getClient(accountContext);
     let result: any;
     let split = scripthash.split(',');
@@ -47,6 +53,7 @@ class TxoutModel {
     scripthash = ANY($1::varchar[]) AND
     tx.orphaned IS NOT TRUE 
     ${unspent ? 'AND txin.prevtxid IS NULL' : ''}
+    ${orderClause ? orderClause : ''}
     OFFSET $2
     LIMIT $3`;
     result = await client.query(q, [ split, offset, limit ]);
@@ -73,7 +80,13 @@ class TxoutModel {
     return result.rows[0].utxos;
   }
 
-  public async getTxoutByAddress(accountContext: IAccountContext, address: string, offset: number, limit: number, script?: boolean, unspent?: boolean): Promise<string> {
+  public async getTxoutByAddress(accountContext: IAccountContext, address: string, offset: number, limit: number, script?: boolean, unspent?: boolean, order?: any): Promise<string> {
+    let orderClause = null;
+    if (order === 'asc') {
+      orderClause = ' ORDER BY tx.i ASC NULLS FIRST';
+    } else {
+      orderClause = ' ORDER BY tx.i DESC NULLS LAST';
+    }
     const client = await this.db.getClient(accountContext);
     let result: any;
     let split = address.split(',');
@@ -90,6 +103,7 @@ class TxoutModel {
     address = ANY($1::varchar[]) AND
     tx.orphaned IS NOT TRUE 
     ${unspent ? 'AND txin.prevtxid IS NULL' : ''}
+    ${orderClause ? orderClause : ''}
     OFFSET $2
     LIMIT $3`;
     result = await client.query(q, [ split, offset, limit ]);
@@ -131,7 +145,13 @@ class TxoutModel {
     return result.rows[0] ? result.rows[0].counter : 0;
   }
 
-  public async getTxoutsByGroup(accountContext: IAccountContext, params: { groupname: string, script?: boolean, limit: any, offset: any, unspent?: boolean}): Promise<any> {
+  public async getTxoutsByGroup(accountContext: IAccountContext, params: { groupname: string, script?: boolean, limit: any, offset: any, unspent?: boolean, order?: any}): Promise<any> {
+    let orderClause = null;
+    if (params.order === 'asc') {
+      orderClause = ' ORDER BY tx.i ASC NULLS FIRST';
+    } else {
+      orderClause = ' ORDER BY tx.i DESC NULLS LAST';
+    }
     const client = await this.db.getClient(accountContext);
     let result: any;
     let q = `
@@ -149,6 +169,7 @@ class TxoutModel {
     txoutgroup.groupname = $1 AND
     ${params.unspent ? 'AND txin.prevtxid IS NULL' : ''}
     AND tx.orphaned IS NOT TRUE
+    ${orderClause ? orderClause : ''}
     OFFSET $2
     LIMIT $3`;
 
@@ -159,7 +180,6 @@ class TxoutModel {
   public async getUtxoBalanceByScriptHashes(accountContext: IAccountContext, scripthashes: string[]): Promise<any> {
     const client = await this.db.getClient(accountContext);
     let result: any;
- 
     const str = `
       SELECT txout.scripthash, sum(satoshis) as balance, tx.completed
         FROM 

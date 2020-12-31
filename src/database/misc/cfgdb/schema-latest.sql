@@ -24,6 +24,7 @@ CREATE TABLE block_header (
 );
 
 CREATE UNIQUE INDEX idx_key_block_header_hash ON block_header USING btree (hash);
+CREATE UNIQUE INDEX idx_key_block_header_height ON block_header USING btree (height);
 
 CREATE TABLE project
 (

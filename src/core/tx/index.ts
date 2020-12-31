@@ -40,6 +40,116 @@ class TxModel {
     return !!result.rows[0];
   }
 
+  public async getTxStats(accountContext: IAccountContext, from?: number, to?: number): Promise<any> {
+    const client = await this.db.getClient(accountContext);
+    
+    let result: any = await client.query(`
+      SELECT 
+        count(*) as txcount
+      FROM 
+        tx 
+      WHERE 
+        created_at >= $1 AND 
+        created_at <= $2
+      `, [ from, to ]);
+
+    const txCount = result.rows[0].txcount;
+    let txSizeResult: any = await client.query(`
+      SELECT 
+        sum(size) as txsize
+      FROM 
+        tx 
+      WHERE 
+        created_at >= $1 AND 
+        created_at <= $2
+      `, [from, to ]);
+
+    const txSize = txSizeResult.rows[0].txsize;
+
+    let confirmedResult: any = await client.query(`
+      SELECT 
+        count(*) as confirmed
+      FROM 
+        tx 
+      WHERE 
+        created_at >= $1 AND 
+        created_at <= $2 AND 
+        completed IS TRUE
+      `, [from, to ]);
+
+    const confirmed = confirmedResult.rows[0].confirmed;
+
+    let unconfirmedResult: any = await client.query(`
+      SELECT 
+        count(*) as unconfirmed
+      FROM 
+        tx 
+      WHERE 
+        created_at >= $1 AND 
+        created_at <= $2 AND 
+        completed IS NOT TRUE
+      `, [from, to ]);
+
+    const unconfirmed = unconfirmedResult.rows[0].unconfirmed;
+
+    let expiredResult: any = await client.query(`
+      SELECT 
+        count(*) as expired
+      FROM 
+        tx 
+      WHERE 
+        created_at >= $1 AND 
+        created_at <= $2 AND 
+        completed IS NOT TRUE AND 
+        sync = -1
+    `, [from, to ]);
+
+    const expired = expiredResult.rows[0].expired;
+
+    let orphanedResult: any = await client.query(`
+      SELECT 
+        count(*) as orphaned
+      FROM 
+        tx 
+      WHERE 
+        created_at >= $1 AND 
+        created_at <= $2 AND
+        orphaned IS TRUE
+    `, [from, to ]);
+
+    const orphaned = orphanedResult.rows[0].orphaned;
+
+    return {
+      txCount: Number(txCount || 0),
+      txSize: Number(txSize || 0),
+      confirmed: Number(confirmed || 0),
+      unconfirmed: Number(unconfirmed || 0),
+      expired: Number(expired || 0),
+      orphaned: Number(orphaned || 0)
+    }
+  }
+  
+  public async getGlobalStats(accountContext: IAccountContext): Promise<any> {
+    const client = await this.db.getClient(accountContext);
+    let totalReslt: any = await client.query(`
+      SELECT 
+        count(*) as total
+      FROM 
+        tx 
+    `);
+    const totalTx = totalReslt.rows[0].total;
+    let sizeResult: any = await client.query(`
+      SELECT 
+        sum(size) as total
+      FROM 
+        tx
+    `);
+    const totalSize = sizeResult.rows[0].total;
+    return {
+      totalTx: Number(totalTx || 0),
+      totalSize: Number(totalSize || 0)
+    }
+  }
   public async getTx(accountContext: IAccountContext, txid: string, rawtx?: boolean): Promise<string> {
     const client = await this.db.getClient(accountContext);
     let result: any = await client.query(`
@@ -335,7 +445,18 @@ class TxModel {
     this.logger.debug('Start Timer', { startTime });
     await client.query('BEGIN');
 
-    const insertHeaderQ = `
+    /*
+    const checPrev = `
+      SELECT * FROM block_header WHERE hash = $1
+    `;
+    const resultBlock = await client.query(checPrev, [
+      params.block.hash
+    ]);
+    
+    if (resultBlock.rows && resultBlock.rows[0].hash) {
+      ; // Nothing to do
+    } else {
+      const q = `
       INSERT INTO block_header(height, hash, version, merkleroot, time, nonce, bits, difficulty, header, previousblockhash)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       ON CONFLICT (height)
@@ -349,19 +470,20 @@ class TxModel {
         difficulty = EXCLUDED.difficulty,
         previousblockhash = EXCLUDED.previousblockhash
       `;
-    await client.query(insertHeaderQ, [
-      params.height,
-      params.block.hash,
-      params.block.header.version,
-      params.block.header.merkleRoot.toString('hex'),
-      params.block.header.time,
-      params.block.header.nonce,
-      params.block.header.bits,
-      params.block.header.getDifficulty(),
-      params.block.header.toBuffer(),
-      Buffer.from(params.block.header.prevHash.toString('hex'), 'hex').reverse().toString('hex')
-    ]);
-    
+      await client.query(q, [
+        params.height,
+        params.block.hash,
+        params.block.header.version,
+        params.block.header.merkleRoot.toString('hex'),
+        params.block.header.time,
+        params.block.header.nonce,
+        params.block.header.bits,
+        params.block.header.getDifficulty(),
+        params.block.header.toBuffer(),
+        Buffer.from(params.block.header.prevHash.toString('hex'), 'hex').reverse().toString('hex')
+      ]);
+    }
+    */
     // Perform updates for each transaction in turn
     for (const txid in params.set) {
       if (!params.set.hasOwnProperty(txid)) {

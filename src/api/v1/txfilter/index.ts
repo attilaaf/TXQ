@@ -39,7 +39,7 @@ export default [
           let uc = Container.get(CreateTxFilter);
           const data = await uc.run({accountContext: AccountContextHelper.getContext(Req),
             name: Req.params.name,
-            payload: Req.body.payload ? Req.body.payload : 0,
+            payload: Req.body.payload ? Req.body.payload : null,
             enabled: Req.body.enabled && Req.body.enabled === true ? Req.body.enabled : false,
           });
           sendResponseWrapper(Req, res, 200, data.result);

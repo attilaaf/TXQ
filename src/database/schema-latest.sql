@@ -91,7 +91,8 @@ CREATE TABLE block_header (
 );
 
 CREATE UNIQUE INDEX idx_key_block_header_hash ON block_header USING btree (hash);
- 
+CREATE UNIQUE INDEX idx_key_block_header_height ON block_header USING btree (height);
+
 CREATE TABLE txoutgroup (
     groupname varchar NOT NULL,
     scriptid varchar NOT NULL,
@@ -167,4 +168,16 @@ CREATE INDEX idx_outpointmonitor_spend_height_index ON outpointmonitor USING btr
 
 INSERT INTO versions(version) VALUES ('202012080000');
 
-  
+CREATE TABLE mempool_filtered_txs (
+    id bigserial PRIMARY KEY,
+    txid varchar,
+    rawtx bytea NOT NULL,
+    session_id varchar NOT NULL,
+    created_at integer NOT NULL
+);
+
+CREATE UNIQUE INDEX uk_mempool_filtered_txs ON mempool_filtered_txs USING btree (txid, session_id);
+
+CREATE INDEX idx_mempool_filtered_txs_updated_at ON mempool_filtered_txs USING btree (created_at);
+ 
+INSERT INTO versions(version) VALUES ('202101070000');
