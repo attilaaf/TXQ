@@ -38,5 +38,7 @@ export default class TxfilterService {
   public async getAll(accountContext: IAccountContext) {
     return this.txfilterModel.getAll(accountContext);
   }
- 
+  public async getAllEnabled(accountContext: IAccountContext) {
+    return this.txfilterModel.getAllEnabled(accountContext);
+  }
 }

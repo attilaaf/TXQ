@@ -86,7 +86,7 @@ export default class TxfiltermanagerService {
         host: contexts[projectId].hosts[0]
       };
       // Build the filters
-      const filters = await this.txfilterModel.getAll(ctx);
+      const filters = await this.txfilterModel.getAllEnabled(ctx);
       txResultRequest.outputFilters[projectId] = txResultRequest.outputFilters[projectId] || [];
       for (const item of filters) {
         txResultRequest.outputFilters[projectId].push({
