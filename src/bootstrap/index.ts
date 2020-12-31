@@ -20,6 +20,7 @@ import "../services/txfilter/index";
 import "../services/txstore/index";
 import "../services/txfiltermanager/index";
 import "../services/outpointmonitor/index";
+import "../services/stats/index";
 
 import "../services/helpers/MerchantRequestor";
 import "../services/use_cases/proxy/GetMapiTxStatus";
@@ -77,6 +78,8 @@ import "../services/use_cases/assets/GetAssetHistoryByScriptHashOrAddressArray";
 import "../services/use_cases/txstore/GetTxStore";
 import "../services/use_cases/txstore/GetTxStoreRevisions";
 import "../services/use_cases/txstore/SaveTxStore";
+
+import "../services/use_cases/stats/GetStats";
 
 import "../services/use_cases/agents/filteragent/IngestFilterBlock";
 import "../services/use_cases/agents/filteragent/ReorgFilterBlock";
