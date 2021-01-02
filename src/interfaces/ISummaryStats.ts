@@ -10,5 +10,9 @@ export interface ISummaryStats {
       expired: number;
       orphaned: number;
     };
+  },
+  meta: {
+    totalTx: number;
+    totalSize: number;
   }
 }

@@ -12,8 +12,8 @@ export default class GetStats extends UseCase {
     super();
   }
 
-  public async run(params?: {accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
-    let result = await this.statsService.getSummaryStats(params.accountContext);
+  public async run(params?: {accountContext?: IAccountContext, from?: any, to?: any}): Promise<UseCaseOutcome> {
+    let result = await this.statsService.getSummaryStats(params.accountContext, params.from, params.to);
     return {
       success: true,
       result: result

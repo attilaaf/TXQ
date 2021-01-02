@@ -15,7 +15,11 @@ export default [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
           let uc = Container.get(GetStats);
-          const data = await uc.run({accountContext: AccountContextHelper.getContext(Req)});
+          const data = await uc.run({
+            accountContext: AccountContextHelper.getContext(Req),
+            from: Number(Req.query.from),
+            to: Number(Req.query.to)
+          });
           sendResponseWrapper(Req, res, 200, data.result);
         } catch (error) {
           if (error instanceof AccessForbiddenError) {
