@@ -150,13 +150,12 @@ if (cfg.enableFilterTrackerAgent) {
 
 }
 
-if (cfg.enableMempoolFilters) {
-  console.log('enableMempoolFilters is true');
-  setTimeout(() => {
-    let uc = Container.get(StartMempoolFilterAgent);
-    uc.run();
-  }, 1000);
-}  
+console.log('enableMempoolFilters is true');
+setTimeout(() => {
+  let uc = Container.get(StartMempoolFilterAgent);
+  uc.run();
+}, 1000);
+
 /*
 // Create bitcion listeners as backups
 // Deduplication of tx's happens at another layer.
