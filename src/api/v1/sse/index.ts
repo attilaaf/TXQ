@@ -137,4 +137,23 @@ export default [
       },
     ],
   },
+  {
+    path: `${ssePath}/mempool`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(ConnectMempoolClientSSE);
+          uc.run({
+            filter: Req.query.filter ? Req.query.filter : null, 
+            outputFilter: Req.query.outputFilter || '',
+            req: Req, 
+            res, 
+            accountContext: AccountContextHelper.getContext(Req)});
+        } catch (error) {
+          next(error);
+        }
+      },
+    ],
+  },
 ]
