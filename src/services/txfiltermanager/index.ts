@@ -8,12 +8,13 @@ import contextFactory from '../../bootstrap/middleware/di/diContextFactory';
 @Service('txfiltermanagerService')
 export default class TxfiltermanagerService {
   constructor(
-  @Inject('saveTxsFromBlock') private saveTxsFromBlock, 
-  @Inject('txfilterModel') private txfilterModel, 
-  @Inject('outpointmonitorService') private outpointmonitorService, 
-  @Inject('txService') private txService,
-  @Inject('logger') private logger, 
-  @Inject('db') private db: ContextFactory) {}
+    @Inject('saveTxsFromBlock') private saveTxsFromBlock, 
+    @Inject('saveTxsFromMempool') private saveTxsFromMempool, 
+    @Inject('txfilterModel') private txfilterModel, 
+    @Inject('outpointmonitorService') private outpointmonitorService, 
+    @Inject('txService') private txService,
+    @Inject('logger') private logger, 
+    @Inject('db') private db: ContextFactory) {}
 
   /**
    * Get all the projects known by this agent
@@ -117,8 +118,140 @@ export default class TxfiltermanagerService {
 
     return txResultRequest;
   }
-
+ 
   /**
+   * Filter txs for all projects and their filters
+   * 
+   * @param req Filter request for all projects
+   * @param txs txs to filter
+   */
+  public async filterTx(req: ITxFilterRequest, txs: bsv.Transaction[]) : Promise<ITxFilterResultSet> {
+     
+    const results: ITxFilterResultSet = {
+    };
+    // Create txid map
+    // Filter by txids (ie: check unconfirmed txs)
+    let txMap = {};
+
+    for (const projectId in req.ctxs) {
+      if (!req.ctxs.hasOwnProperty(projectId)) {
+        continue;
+      }
+      results[projectId] = results[projectId] || {
+        ctx: req.ctxs[projectId],
+        matchedMonitoredOutpointFilters: [],
+        matchedTxidFilters: [],
+        matchedOutputFilters: [],
+        newOutpointMonitorRecords: {}
+      }
+    }
+
+    for (const projectId in req.txidFilters) {
+      if (!req.txidFilters.hasOwnProperty(projectId)) {
+        continue;
+      }
+      
+      for (const filterRule of req.txidFilters[projectId]) {
+        txMap[filterRule.txid] = txMap[filterRule.txid] || {
+          projectIds: [],
+          filterRules: []
+        }
+        txMap[filterRule.txid].projectIds.push(projectId);
+        txMap[filterRule.txid].filterRules.push(filterRule);
+      }
+    }
+
+    for (const tx of txs) {
+
+      if (txMap[tx.hash]) {
+        for (let i = 0; i < txMap[tx.hash].projectIds.length; i++) {
+          const projectId = txMap[tx.hash].projectIds[i];
+          const filterRule = txMap[tx.hash].filterRules[i];
+          
+          results[projectId].matchedTxidFilters.push({
+            txid: tx.hash,
+            rawtx: tx.toString(), 
+          });
+        }
+      }
+      
+      // filter output pattern match, make sure to track spends in THIS block by updating the outpoint filter if trackSpends=true
+      let o = 0;
+
+      for (const output of tx.outputs) {
+        for (const projectId in req.outputFilters) {
+          if (!req.outputFilters.hasOwnProperty(projectId)) {
+            continue;
+          }
+          for (const filterRule of req.outputFilters[projectId]) {
+            if (output.script.toHex().indexOf(filterRule.payload) !== -1) {
+              results[projectId].matchedOutputFilters.push({
+                txid: tx.hash,
+                index: o,
+                rawtx: tx.toString(), 
+                payload: filterRule.payload,
+              });
+
+              // If this filter rule indicates to track spends of this output,
+              // Then add this output to be monitored for spends. Make sure below that it can be counted if the spend
+              // also appears in the same current block
+              if (filterRule.trackSpends) {
+                this.logger.debug('trackSpends', { projectId, txid: tx.hash, index: o});
+                req.monitoredOutpointFilters[projectId][`${tx.hash}${o}`] = { 
+                  txid: tx.hash,
+                  index: o,
+                };
+                results[projectId].newOutpointMonitorRecords = results[projectId].newOutpointMonitorRecords || {};
+                results[projectId].newOutpointMonitorRecords[`${tx.hash}${o}`] = {
+                  txid: tx.hash,
+                  index: o,
+                };
+              }
+            }
+          }
+        }
+        o++;
+      }
+           
+      // filter inputs for outpoint pattern match
+      // Note this must come after general filter output matching because we may track spends and must detect it
+      let i = 0;
+        for (const input of tx.inputs) {
+        for (const projectId in req.monitoredOutpointFilters) {
+          if (!req.monitoredOutpointFilters.hasOwnProperty(projectId)) {
+            continue;
+          }
+          const prevTxid = input.prevTxId.toString('hex');
+          const prevIndex = input.outputIndex;
+          const monFilter = req.monitoredOutpointFilters[projectId][`${prevTxid}${prevIndex}`];
+          if (monFilter) {
+            // Update the newOutpointMonitorRecords (this applies to when output is spent in same block as output matcher)
+            if (results[projectId] && results[projectId].newOutpointMonitorRecords && results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`]) {
+              this.logger.debug('spendDetectedCurrentSet', { projectId, txid: tx.hash, prevTxid, prevIndex });
+              results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`] = {
+                ...results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`],
+                spend_height: null,
+                spend_blockhash: null,
+                spend_txid: tx.hash,
+                spend_index: i
+              }
+            } else {
+              this.logger.debug('spendDetectedPrevSet', { projectId, txid: tx.hash, prevTxid, prevIndex });
+              results[projectId].newOutpointMonitorRecords[`${prevTxid}${prevIndex}`] = {
+                txid: monFilter.txid,
+                index: monFilter.index,
+              }
+            }
+          }
+        }
+        i++;
+      }
+    }
+
+    return results;
+  }
+
+   /**
    * Filter a block for all projects and their filters
    * 
    * @param req Filter request for all projects
@@ -146,7 +279,6 @@ export default class TxfiltermanagerService {
       }
     }
 
-    
     for (const projectId in req.txidFilters) {
       if (!req.txidFilters.hasOwnProperty(projectId)) {
         continue;
@@ -288,6 +420,46 @@ export default class TxfiltermanagerService {
       });
       console.log('perforrmProjectTenantUpdates saveTxsStartingDone', (new Date()).getTime() / 1000, projectId);
       results[projectId] = uc.result;
+    }
+    return results;
+  }
+
+  public async perforrmProjectTenantUpdatesForTx(filterRules: ITxFilterResultSet): Promise<any> {
+    const results = {};
+    let txToSaveCount = 0;
+    for (const projectId in filterRules) {
+      if (!filterRules.hasOwnProperty(projectId)) {
+        continue;
+      }
+      // Flatten duplicate transactions from results
+      const txsToSave = {};
+      for (const match of filterRules[projectId].matchedMonitoredOutpointFilters) {
+        txsToSave[match.txid] = {
+          rawtx: match.rawtx
+        };
+        txToSaveCount++;
+      }
+      for (const match of filterRules[projectId].matchedOutputFilters) {
+        txsToSave[match.txid] = {
+          rawtx: match.rawtx
+        };
+        txToSaveCount++;
+      }
+      for (const match of filterRules[projectId].matchedTxidFilters) {
+        txsToSave[match.txid] = {
+          rawtx: match.rawtx
+        };
+        txToSaveCount++;
+      }
+
+      if (txToSaveCount) {
+        const uc = await this.saveTxsFromMempool.run({
+          set: txsToSave, 
+          newOutpointMonitorRecords: filterRules[projectId].newOutpointMonitorRecords, // Save all new outpoints to monitor
+          accountContext: filterRules[projectId].ctx,
+        });
+        results[projectId] = uc.result;
+      }
     }
     return results;
   }

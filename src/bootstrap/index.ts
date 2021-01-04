@@ -31,6 +31,7 @@ import "../services/use_cases/proxy/PushMapiTx";
 import "../services/use_cases/tx/GetTx";
 import "../services/use_cases/tx/SaveTxs";
 import "../services/use_cases/tx/SaveTxsFromBlock";
+import "../services/use_cases/tx/SaveTxsFromMempool";
 import "../services/use_cases/tx/SyncTxStatus";
 import "../services/use_cases/tx/GetTxsForSync";
 import "../services/use_cases/tx/GetTxsByChannel";
