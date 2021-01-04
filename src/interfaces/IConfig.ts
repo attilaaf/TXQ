@@ -85,14 +85,25 @@ export interface IAccountContextsConfig {
   [key: string]: IAccountContextConfig;
 }
 
+export interface IBitcoind {
+   host: string;
+   port: number;
+   password: string;
+   user: string;
+   network: string;
+   peerPort: number;
+}
+ 
 export interface IConfig {
   appname?: string;
   network?: 'testnet' | 'mainnet' | 'livenet' | undefined;
   baseurl?: string;
+  bitcoinds?: IBitcoind[];
   enableDefault?: boolean;
   enableAssetAgent?: boolean;
   enableFilterTrackerAgent?: boolean;
   filterTrackerAgentStartHeight?: number;
+  enableMempoolFilters?: boolean;
   env?: string;
   enableUpdateLogging?: boolean;
   configMode?: string; // 'file' | 'database';

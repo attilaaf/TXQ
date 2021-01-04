@@ -19,6 +19,7 @@ import "../services/blockheader/index";
 import "../services/txfilter/index";
 import "../services/txstore/index";
 import "../services/txfiltermanager/index";
+import "../services/txfiltermatcher/index";
 import "../services/outpointmonitor/index";
 import "../services/stats/index";
 
@@ -65,6 +66,7 @@ import "../services/use_cases/spends/GetUtxoCountByGroup";
 import "../services/use_cases/spends/GetUnspentTxidsByScriptHash";
 
 import "../services/use_cases/events/ConnectChannelClientSSE";
+import "../services/use_cases/events/ConnectMempoolClientSSE";
 import "../services/use_cases/txoutgroup/GetTxoutgroupByName";
 import "../services/use_cases/txoutgroup/GetTxoutgroupListByScriptid";
 import "../services/use_cases/txoutgroup/AddGroupScriptIds";
@@ -87,11 +89,14 @@ import "../services/use_cases/agents/filteragent/ReorgFilterBlock";
 import EnqInitialTxsForSyncAllProjects from '../services/use_cases/tx/EnqInitialTxsForSyncAllProjects';
 import StartAssetAgent from '../services/use_cases/agents/StartAssetAgent';
 import StartFilterTrackerAgent from '../services/use_cases/agents/StartFilterTrackerAgent';
+ 
 console.log('process.env.NODE_ENV', process.env.NODE_ENV);
 SetTimeZone('UTC');
 
 import cfg from './../cfg';
 import { createExpress } from './express-factory';
+import StartMempoolFilterAgent from '../services/use_cases/agents/StartMempoolFilterAgent';
+
 
 async function startServer() {
   let app = await createExpress();
@@ -141,4 +146,34 @@ if (cfg.enableFilterTrackerAgent) {
     let uc = Container.get(StartFilterTrackerAgent);
     uc.run();
   }, 1000);
+
 }
+
+if (cfg.enableMempoolFilters) {
+  console.log('enableMempoolFilters is true');
+  setTimeout(() => {
+    let uc = Container.get(StartMempoolFilterAgent);
+    uc.run();
+  }, 1000);
+}  
+/*
+// Create bitcion listeners as backups
+// Deduplication of tx's happens at another layer.
+// Note: the modified bitwork library also reconnects if the connection is detected dead
+for (let bit of BitworkFactory.getBitworks()) {
+	console.log('Creating bitwork handler...');
+	bit.on('ready', async () => {
+		console.log('Bitwork ready...');
+		bit.on('mempool', (tx) => {
+			txFilterMatcher.notify(tx);
+		});
+		bit.on('block', (block) => {
+			notifyAllSSE(block.header);
+			txFilterMatcher.notifyBlockHeader(block.header);
+		});
+		setInterval(() => {
+			const status = bit.getPeer().status;
+			console.log('peer status', status);
+		}, 5000)
+	});
+}*/

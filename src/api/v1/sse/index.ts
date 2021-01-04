@@ -3,6 +3,7 @@ import { Container } from 'typedi';
 import { ssePath } from './../index';
 import ConnectChannelClientSSE from '../../../services/use_cases/events/ConnectChannelClientSSE';
 import { AccountContextHelper } from '../../account-context-helper';
+import ConnectMempoolClientSSE from '../../../services/use_cases/events/ConnectMempoolClientSSE';
 
 export default [
   {
@@ -116,5 +117,24 @@ export default [
         }
       },
     ],
-  }
-];
+  },
+  {
+    path: `${ssePath}/mempool/:filter`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(ConnectMempoolClientSSE);
+          uc.run({
+            filter: Req.params.filter || Req.query.filter ? Req.params.filter || Req.query.filter : null, 
+            outputFilter: Req.query.outputFilter || '',
+            req: Req, 
+            res, 
+            accountContext: AccountContextHelper.getContext(Req)});
+        } catch (error) {
+          next(error);
+        }
+      },
+    ],
+  },
+]
