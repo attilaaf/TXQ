@@ -130,40 +130,36 @@ const parallelRaceMultiSender = async (contentType: string, url: string, httpVer
   let validResponseWithSuccessPayload = null;
   let firstValidResponseWithAnyPayload = null;
   const promises = [];
+
   return new Promise(async (masterResolve, masterReject) => {
     let succeededAtLeastOne = false;
     for (let i = 0; i < endpoints.length; i++) {
-      const newPromise = new Promise(async (resolve, reject) => {
+        const options = {
+          headers: {
+          ...(endpoints[i].headers),
+          'content-type': contentType,
+          },
+          maxContentLength: 52428890,
+          maxBodyLength: 52428890
+        };
+        const newPromise = new Promise(async (resolve, reject) => {
         try {
-        let response = null;
+          let response = null;
           if (httpVerb === 'get') {
-            response = await axios.default.get(`${endpoints[i].url}${url}`, {
-              headers: {
-              ...(endpoints[i].headers),
-              'content-type': contentType,
-              },
-              maxContentLength: 52428890,
-              maxBodyLength: 52428890
-            });
+            response = await axios.default.get(`${endpoints[i].url}${url}`, options);
           }
           if (httpVerb === 'post') {
-            response = await axios.default.post(`${endpoints[i].url}${url}`, payload, {
-              headers: {
-                ...(endpoints[i].headers),
-                'content-type': contentType,
-                },
-                maxContentLength: 52428890,
-                maxBodyLength: 52428890
-            });
+            response = await axios.default.post(`${endpoints[i].url}${url}`, payload, options);
           }
           if (responseSaver) {
             await responseSaver(endpoints[i].name, eventType, response.data);
           }
-    
-          if (typeof response.data.payload === 'string') {
-            response.data.payload = JSON.parse(response.data.payload);
+          let parsedPayload = null;
+          if (response && response.data && typeof response.data.payload === 'string') {
+            parsedPayload = JSON.parse(response.data.payload);
+            // response.data.payload = JSON.parse(response.data.payload);
           }
-          if (response && response.data && response.data.payload && response.data.payload.returnResult === 'success') {
+          if (parsedPayload.returnResult === 'success') {
             const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
             responseReturnList.push(toSave);
             validResponseWithSuccessPayload = toSave;
@@ -174,7 +170,7 @@ const parallelRaceMultiSender = async (contentType: string, url: string, httpVer
               masterResolve(firstValidResponseWithAnyPayload);
             }
             return resolve(toSave);
-          } else if (response && response.data && response.data.payload) {
+          } else if (parsedPayload) {
             const toSave = {...(response.data), mapiName: endpoints[i].name, mapiEndpoint: endpoints[i].url, mapiStatusCode: 200};
             responseReturnList.push(toSave);
             if (!firstValidResponseWithAnyPayload) {
@@ -194,17 +190,31 @@ const parallelRaceMultiSender = async (contentType: string, url: string, httpVer
     }
   
     let promiseSettled =  null;
-    Promise.allSettled(promises).then((r) => {
+    await Promise.allSettled(promises).then((r) => {
       for (const item of r) {
-        if (item.status === 'fulfilled' && item.value && item.value.payload && item.value.payload.result === 'success') {
-          return masterResolve(item.value);
+        if (item.status === 'fulfilled') {
+          let parsedPayloadReturn = null;
+          if (typeof item.value.payload === 'string') {
+            parsedPayloadReturn = JSON.parse(item.value.payload);
+          }
+          if (parsedPayloadReturn && parsedPayloadReturn.returnResult === 'success') {
+            return masterResolve(item.value);
+          }
         }
       }
+
       for (const item of r) {
-        if (item.status === 'fulfilled' && item.value && item.value.payload && item.value.payload.result !== 'success') {
-          return masterResolve(item.value);
+        if (item.status === 'fulfilled') {
+          let parsedPayloadReturn = null;
+          if (typeof item.value.payload === 'string') {
+            parsedPayloadReturn = JSON.parse(item.value.payload);
+          }
+          if (parsedPayloadReturn && parsedPayloadReturn.returnResult === 'failure') {
+            return masterResolve(item.value);
+          }
         }
       }
+
       for (const item of r) {
         if (item.status === 'rejected') {
           return masterReject(item.reason);

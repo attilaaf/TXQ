@@ -55,7 +55,7 @@ export default class PushMapiTx extends UseCase {
       let p: any = params.rawtx;
       const send = await merchantRequestor.pushTx(p, contentType);
  
-      this.logger.debug({ ctx: params.accountContext, send});
+      this.logger.debug({ ctx: params.accountContext, txid: tx.hash, send});
        
       let txStatus = null;
       // If it's not accepted, check if it's because the miner already knows about the transaction
@@ -82,7 +82,7 @@ export default class PushMapiTx extends UseCase {
 
       // Conform to mapi spec
       if (send && send.payload) {
-        send.payload = JSON.stringify(send.payload);
+        send.payload = (typeof send.payload === 'string') ? send.payload : JSON.stringify(send.payload);
       }
       return {
         success: true,

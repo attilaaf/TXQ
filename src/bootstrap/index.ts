@@ -156,24 +156,4 @@ setTimeout(() => {
   uc.run();
 }, 1000);
 
-/*
-// Create bitcion listeners as backups
-// Deduplication of tx's happens at another layer.
-// Note: the modified bitwork library also reconnects if the connection is detected dead
-for (let bit of BitworkFactory.getBitworks()) {
-	console.log('Creating bitwork handler...');
-	bit.on('ready', async () => {
-		console.log('Bitwork ready...');
-		bit.on('mempool', (tx) => {
-			txFilterMatcher.notify(tx);
-		});
-		bit.on('block', (block) => {
-			notifyAllSSE(block.header);
-			txFilterMatcher.notifyBlockHeader(block.header);
-		});
-		setInterval(() => {
-			const status = bit.getPeer().status;
-			console.log('peer status', status);
-		}, 5000)
-	});
-}*/
+ 

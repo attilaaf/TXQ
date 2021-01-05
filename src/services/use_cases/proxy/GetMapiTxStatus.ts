@@ -45,8 +45,8 @@ export default class GetMapiTxStatus extends UseCase {
     try {
       const status = await this.merchantRequestor.statusTx(params.txid);
       // Conform to mapi spec
-      if (status.payload) {
-        status.payload = JSON.stringify(status.payload);
+      if (status && status.payload) {
+        status.payload = (typeof status.payload === 'string') ? status.payload : JSON.stringify(status.payload);
       }
       return {
         success: true,

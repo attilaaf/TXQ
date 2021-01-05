@@ -33,8 +33,8 @@ export default class GetMapiTxFeeQuote extends UseCase {
     try {
       const feeQuote = await merchantRequestor.feeQuote();
       // Conform to mapi spec
-      if (feeQuote.payload) {
-        feeQuote.payload = JSON.stringify(feeQuote.payload);
+      if (feeQuote && feeQuote.payload) {
+        feeQuote.payload = (typeof feeQuote.payload === 'string') ? feeQuote.payload : JSON.stringify(feeQuote.payload);
       }
       return {
         success: true,
