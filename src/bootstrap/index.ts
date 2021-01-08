@@ -22,6 +22,7 @@ import "../services/txfiltermanager/index";
 import "../services/txfiltermatcher/index";
 import "../services/outpointmonitor/index";
 import "../services/stats/index";
+import "../services/mempoolfiltertxs/index";
 
 import "../services/helpers/MerchantRequestor";
 import "../services/use_cases/proxy/GetMapiTxStatus";

@@ -54,6 +54,7 @@ export class ContextFactory {
     if (!ContextFactory.instance) {
       ContextFactory.instance = new ContextFactory();
       ContextFactory.instance.initConfigDb();
+      ContextFactory.instance.initCacheDb();
       ContextFactory.instance.initialize();
     }
     return ContextFactory.instance;
@@ -68,6 +69,7 @@ export class ContextFactory {
   private hostsMap: any = {};
   private contextsConfig: any;
   private dbCfgPool: any;
+  private dbCachePool : any;
   /**
    * The Singleton's constructor should always be private to prevent direct
    * construction calls with the `new` operator.
@@ -178,9 +180,23 @@ export class ContextFactory {
     }
   }
 
+  private initCacheDb() {
+    // Try to load from database if it's also set
+    if (cfg.enableMempoolDbCache) {
+      this.dbCachePool = new Pool(cfg.mempoolDbCacheConfig);
+    }  
+  }
+
   public getConfigDbClient() {
     if (this.dbCfgPool) {
       return this.dbCfgPool;
+    }
+    throw new InvalidConfigDbError();
+  }
+
+  public getCacheDbClient() {
+    if (this.dbCachePool) {
+      return this.dbCachePool;
     }
     throw new InvalidConfigDbError();
   }

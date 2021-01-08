@@ -32,9 +32,7 @@ export default class StartMempoolFilterAgent extends UseCase {
             this.txfiltermatcherService.notify(tx); 
             if (process.env.ENABLE_MEMPOOL_FILTERS === 'true') {
               const txFilterSet: ITxFilterRequest = this.getFilters();
-              if (!txFilterSet || !txFilterSet.ctxs) {
-                ;//
-              } else {
+              if (txFilterSet && txFilterSet.ctxs) {
                 const filterResultSet: ITxFilterResultSet = await this.txfiltermanagerService.filterTx(txFilterSet, [tx]);
                 this.txfiltermanagerService.perforrmProjectTenantUpdatesForTx(filterResultSet);
               }

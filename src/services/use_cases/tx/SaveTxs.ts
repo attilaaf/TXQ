@@ -44,6 +44,7 @@ export default class SaveTxs extends UseCase {
       }
       
       this.eventService.pushTxEvents(params.accountContext, cleanedChannel, persistResult.txEvents);
+      this.eventService.pushTxEvents(params.accountContext, 'updatelogs-', persistResult.txEvents);
       this.eventService.pushTxoutEvents(params.accountContext, persistResult.txoutEvents);
        
       /**

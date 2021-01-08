@@ -51,6 +51,7 @@ export default class SaveTxsFromBlock extends UseCase {
       } = await this.txModel.saveTxsForBlock(params.accountContext, params);
  
       this.eventService.pushTxEvents(params.accountContext, cleanedChannel, persistResult.txEvents);
+      this.eventService.pushTxEvents(params.accountContext, 'updatelogs-', persistResult.txEvents);
       this.eventService.pushTxoutEvents(params.accountContext, persistResult.txoutEvents);
 
       /**

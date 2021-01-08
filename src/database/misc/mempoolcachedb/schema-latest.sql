@@ -1,3 +1,4 @@
+
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
@@ -8,7 +9,7 @@ SET client_min_messages = warning;
 SET row_security = off;
 SET default_tablespace = '';
 SET default_with_oids = false;
-
+ 
 CREATE TABLE mempool_filtered_txs (
     id bigserial PRIMARY KEY,
     txid varchar,
@@ -23,4 +24,3 @@ CREATE INDEX idx_mempool_filtered_txs_updated_at ON mempool_filtered_txs USING b
  
 INSERT INTO versions(version) VALUES ('202101070000');
 
-  
