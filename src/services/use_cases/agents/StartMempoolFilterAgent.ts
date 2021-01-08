@@ -29,11 +29,15 @@ export default class StartMempoolFilterAgent extends UseCase {
         bit.on('ready', () => {
           this.logger.debug('Bitwork ready...');
           bit.on('mempool', async (tx) => {
-            this.txfiltermatcherService.notify(tx);
+            this.txfiltermatcherService.notify(tx); 
             if (process.env.ENABLE_MEMPOOL_FILTERS === 'true') {
               const txFilterSet: ITxFilterRequest = this.getFilters();
-              const filterResultSet: ITxFilterResultSet = await this.txfiltermanagerService.filterTx(txFilterSet, [tx]);
-              this.txfiltermanagerService.perforrmProjectTenantUpdatesForTx(filterResultSet);
+              if (!txFilterSet || !txFilterSet.ctxs) {
+                ;//
+              } else {
+                const filterResultSet: ITxFilterResultSet = await this.txfiltermanagerService.filterTx(txFilterSet, [tx]);
+                this.txfiltermanagerService.perforrmProjectTenantUpdatesForTx(filterResultSet);
+              }
             }
           });
           setInterval(() => {
