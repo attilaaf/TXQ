@@ -57,11 +57,13 @@ export default class ConnectMempoolClientSSE extends UseCase {
     res: Response,
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
-	  this.logger.debug("connectMempoolClient", params)
+	this.logger.debug("connectMempoolClient", params)
     const session = this.resolveOutputFilters(params.outputFilter)
 		.then((resolvedOutputFilter) => {
-			const sessionId = this.createSessionKey(params.filter, params.outputFilter);  
-			this.logger.debug('sessionId', { sessionId, filter: params.filter, resolvedOutputFilter });
+			const sessionPre = this.createSessionKey(params.filter, params.outputFilter);  
+			const sessionPreBuffer = Buffer.from(sessionPre, 'utf8');
+			const sessionId = bsv.crypto.Hash.sha256(sessionPreBuffer).toString('hex');
+			this.logger.debug('connectMempoolClient.sessionId', { sessionPre, sessionId, filter: params.filter, resolvedOutputFilter });
 			return this.txfiltermatcherService.createSession(sessionId, params.filter, resolvedOutputFilter, params.req, params.res);
 		})
 		.catch((err) => {

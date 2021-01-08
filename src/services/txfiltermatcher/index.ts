@@ -23,7 +23,7 @@ export class TxFilterMatcher {
 
 	public async createSession(sessionId, filter, resolvedOutputFilter, req, res) {
 		this.logger.debug('createSession', { sessionId, filter });
-		const newSession = new SSEHandler(['connected'], {});
+		const newSession = new SSEHandler(['connected'], { sessionId: sessionId});
 		let createdNewSession = false;
 		let sessionMapping = this.sseSessionMapping.get(sessionId);
 		if (!sessionMapping) {
