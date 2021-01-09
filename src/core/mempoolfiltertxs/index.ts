@@ -68,9 +68,8 @@ class MempoolfiltertxsModel {
   public async deleteExpiredOlderThan(olderThanSeconds: number): Promise<any> {
     const client = await this.db.getCacheDbClient();
     const now = Math.ceil(new Date().getTime() / 1000);
-    console.log('now - olderThanSeconds', now - olderThanSeconds);
     return client.query(`
-    DELETE FROM mempool_filtered_txs WHERE created_at <= $1
+      DELETE FROM mempool_filtered_txs WHERE created_at <= $1
     `, [ now - olderThanSeconds ]);
   }
 

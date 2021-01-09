@@ -295,8 +295,8 @@ export class TxFilterMatcher {
 	}
 
 	mempoolFilteredGarbageCollector() {
-		const CYCLE_TIME_SECONDS = 10;
-		const DELETE_FROM_CREATED_AT_TIME_DB = 60 * 60 * 2;
+		const CYCLE_TIME_SECONDS = 60;
+		const DELETE_FROM_CREATED_AT_TIME_DB = 60 * 60; // 1 hour
 		setTimeout(async () => {
 			try {
 				this.logger.debug("mempoolFilteredGarbageCollector");
