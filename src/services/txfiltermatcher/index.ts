@@ -21,7 +21,10 @@ export class TxFilterMatcher {
 		this.newLru = new lru.LRUMap(10000, []);
 		this.blockLru = new lru.LRUMap(100, []);
 		this.garbageCollector();
-		this.mempoolFilteredGarbageCollector();
+
+		if (process.env.ENABLE_MEMPOOL_ROUTES) {
+			this.mempoolFilteredGarbageCollector();
+		}
 	}
 
 	public async createSession(sessionId, filter, resolvedOutputFilter, req, res) {
@@ -55,7 +58,7 @@ export class TxFilterMatcher {
 		// Initialize this connection with the associated session id
 		// Note, we still must send down the history if the user requested with last-event-id or the query time param
 		sessionMapping.sseHandler.init(req, res);
-		this.sendMissedMessages(sessionMapping.sseHandler, sessionId, req.headers['last-event-id'], req.query.time );
+		await this.sendMissedMessages(sessionMapping.sseHandler, sessionId, req.headers['last-event-id'], req.query.time);
 	}
 
 	async sendMissedMessages(sseHandler, sessionId: string, lastEventId: any, time: any) {
@@ -265,9 +268,17 @@ export class TxFilterMatcher {
 		// When a filter (hex) is set and the outputFilter is set then both must match (AND)
 		const cleanedSessionIds = await this.dedupSessionMatches(toNotifyBaseFilterSessionIds, outputFilterMatchSessionIds);
 
-		this.notifyAllHandlers(this.getTxPayload(tx), cleanedSessionIds);
-		
-		if (m.length && n.length && o.length) {
+		let c = 0;
+		for (const p in cleanedSessionIds) {
+			if (!cleanedSessionIds.hasOwnProperty(p)) {
+				continue;
+			}
+			c++;
+		}
+		if (c) {
+			this.notifyAllHandlers(this.getTxPayload(tx), cleanedSessionIds);
+		}
+		if (c && (m.length || n.length || o.length)) {
 			this.logger.debug('notifyTx', { txid: tx.hash, m, n, o });
 			this.logger.debug('cleanedSessionIds', { cleanedSessionIds });
 		}

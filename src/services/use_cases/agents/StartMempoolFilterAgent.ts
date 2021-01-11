@@ -23,28 +23,32 @@ export default class StartMempoolFilterAgent extends UseCase {
     // Create bitcion listeners as backups
     // Deduplication of tx's happens at another layer.
     // Note: the modified bitwork library also reconnects if the connection is detected dead
-    if (process.env.ENABLE_MEMPOOL_ROUTES === 'true' || process.env.ENABLE_MEMPOOL_FILTERS === 'true') {
-      for (let bit of await BitworkFactory.getBitworks()) {
-        this.logger.debug('Creating bitwork handler...');
-        bit.on('ready', () => {
-          this.logger.debug('Bitwork ready...');
-          bit.on('mempool', async (tx) => {
-            this.txfiltermatcherService.notify(tx); 
-            if (process.env.ENABLE_MEMPOOL_FILTERS === 'true') {
-              const txFilterSet: ITxFilterRequest = this.getFilters();
-              if (txFilterSet && txFilterSet.ctxs) {
-                const filterResultSet: ITxFilterResultSet = await this.txfiltermanagerService.filterTx(txFilterSet, [tx]);
-                this.txfiltermanagerService.perforrmProjectTenantUpdatesForTx(filterResultSet);
-              }
-            }
-          });
-          setInterval(() => {
-            const status = bit.getPeer().status;
-            console.log('Bitcoind peer status: ', status);
-          }, 30000)
-        });
-      }   
+    if (process.env.ENABLE_MEMPOOL_ROUTES !== 'true' && process.env.ENABLE_FILTER_MEMPOOL_TRACKER_AGENT !== 'true') {
+      return;
     }
+
+    for (let bit of await BitworkFactory.getBitworks()) {
+      this.logger.debug('Creating bitwork handler...');
+      bit.on('ready', () => {
+        this.logger.debug('Bitwork ready...');
+        bit.on('mempool', async (tx) => {
+          if (process.env.ENABLE_MEMPOOL_ROUTES === 'true') {
+            this.txfiltermatcherService.notify(tx); 
+          }
+          if (process.env.ENABLE_FILTER_MEMPOOL_TRACKER_AGENT === 'true') {
+            const txFilterSet: ITxFilterRequest = this.getFilters();
+            if (txFilterSet && txFilterSet.ctxs) {
+              const filterResultSet: ITxFilterResultSet = await this.txfiltermanagerService.filterTx(txFilterSet, [tx]);
+              this.txfiltermanagerService.perforrmProjectTenantUpdatesForTx(filterResultSet);
+            }
+          }
+        });
+        setInterval(() => {
+          const status = bit.getPeer().status;
+          console.log('Bitcoind peer status: ', status);
+        }, 30000)
+      });
+    }   
     return {
       success: true,
       result: {}
