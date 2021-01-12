@@ -98,7 +98,7 @@ SetTimeZone('UTC');
 import cfg from './../cfg';
 import { createExpress } from './express-factory';
 import StartMempoolFilterAgent from '../services/use_cases/agents/StartMempoolFilterAgent';
-
+ 
 
 async function startServer() {
   let app = await createExpress();
@@ -151,10 +151,14 @@ if (cfg.enableFilterTrackerAgent) {
 
 }
 
-console.log('enableMempoolFilters is true');
-setTimeout(() => {
-  let uc = Container.get(StartMempoolFilterAgent);
-  uc.run();
-}, 1000);
+if (process.env.ENABLE_MEMPOOL_ROUTES !== 'true' && process.env.ENABLE_FILTER_MEMPOOL_TRACKER_AGENT !== 'true') {
+  console.log('enableMempoolFilters is true');
+
+  setTimeout(() => {
+    let uc = Container.get(StartMempoolFilterAgent);
+    uc.run();
+  }, 1000);
+}
+
 
  
