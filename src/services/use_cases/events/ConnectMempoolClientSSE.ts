@@ -16,7 +16,6 @@ export default class ConnectMempoolClientSSE extends UseCase {
     @Inject('logger') private logger) {
     super();
   }
-
   static getOutputFilterSanitize(outputFilter) {
 		const arr = outputFilter;
 		const listSanitize = [];
@@ -49,7 +48,7 @@ export default class ConnectMempoolClientSSE extends UseCase {
 		}
 		return [];
   }
-  
+ 
   public async run(params: {
     filter: any,
     outputFilter: any;
@@ -57,22 +56,22 @@ export default class ConnectMempoolClientSSE extends UseCase {
     res: Response,
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
-	this.logger.debug("connectMempoolClient", params)
+	this.logger.debug("connectMempoolClient", params.filter, params.outputFilter)
     const session = this.resolveOutputFilters(params.outputFilter)
-		.then((resolvedOutputFilter) => {
-			const sessionPre = this.createSessionKey(params.filter, params.outputFilter);  
-			const sessionPreBuffer = Buffer.from(sessionPre, 'utf8');
-			const sessionId = bsv.crypto.Hash.sha256(sessionPreBuffer).toString('hex');
-			this.logger.debug('connectMempoolClient.sessionId', { sessionPre, sessionId, filter: params.filter, resolvedOutputFilter });
-			return this.txfiltermatcherService.createSession(sessionId, params.filter, resolvedOutputFilter, params.req, params.res);
+	.then((resolvedOutputFilter) => {
+		const sessionPre = this.createSessionKey(params.filter, params.outputFilter);  
+		const sessionPreBuffer = Buffer.from(sessionPre, 'utf8');
+		const sessionId = bsv.crypto.Hash.sha256(sessionPreBuffer).toString('hex');
+		this.logger.debug('connectMempoolClient.sessionId', { sessionPre, sessionId, filter: params.filter, resolvedOutputFilter });
+		return this.txfiltermatcherService.createSession(sessionId, params.filter, resolvedOutputFilter, params.req, params.res);
+	})
+	.catch((err) => {
+		params.res.status(500).json({
+			success: false,
+			code: 500,
+			message: err.toString(),
 		})
-		.catch((err) => {
-			params.res.status(500).json({
-				success: false,
-				code: 500,
-				message: err.toString(),
-			})
-		});
+	});
     return {
       success: true,
       result: session

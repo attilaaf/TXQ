@@ -37,6 +37,16 @@ const config: IConfig = {
     max: process.env.DBCFG_MAX_CLIENTS || 2,
     idleTimeoutMillis: process.env.DBCFG_IDLE_TIMEOUT_MS || 10000
   },
+  enableMempoolDbCache: process.env.DB_MEMPOOL_ENABLED,
+  mempoolDbCacheConfig: {
+    host: process.env.DB_MEMPOOL_HOST,
+    user: process.env.DB_MEMPOOL_USER,
+    database: process.env.DB_MEMPOOL_DATABASE,
+    password: process.env.DB_MEMPOOL_PASSWORD,
+    port: process.env.DB_MEMPOOL_PORT || 5432,
+    max: process.env.DB_MEMPOOL_MAX_CLIENTS || 2,
+    idleTimeoutMillis: process.env.DB_MEMPOOL_IDLE_TIMEOUT_MS || 10000
+  },
   systemKey: process.env.SYSTEM_API_KEY || 'jsdfkj22494932secret',
   logs: {
     level: process.env.LOG_LEVEL || 'debug',

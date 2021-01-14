@@ -50,6 +50,7 @@ export default class SaveTxsFromMempool extends UseCase {
         txoutEvents: ITXOutput[]
       } = await this.txModel.saveTxs(params.accountContext, params);
 
+ 
       for (const item of persistResult.txEvents) {
         if (!item.nosync && !queue.nosync ) {
          this.queueService.enqTxStatus(params.accountContext, item.txid);
@@ -57,6 +58,7 @@ export default class SaveTxsFromMempool extends UseCase {
       }
 
       this.eventService.pushTxEvents(params.accountContext, cleanedChannel, persistResult.txEvents);
+      this.eventService.pushTxEvents(params.accountContext, 'updatelogs-', persistResult.txEvents);
       this.eventService.pushTxoutEvents(params.accountContext, persistResult.txoutEvents);
 
       /**

@@ -108,6 +108,8 @@ export interface IConfig {
   enableUpdateLogging?: boolean;
   configMode?: string; // 'file' | 'database';
   databaseModeConfig?: any;
+  mempoolDbCacheConfig?: any;
+  enableMempoolDbCache?: any;
   systemKey?: string;
   api?: IApi;
   logs?: ILog;

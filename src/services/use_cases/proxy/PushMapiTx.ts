@@ -72,7 +72,7 @@ export default class PushMapiTx extends UseCase {
       }
 
       const send = await merchantRequestor.pushTx(p, contentType);
-      this.logger.debug({ ctx: params.accountContext, txid: tx.hash, send});
+      this.logger.debug('PushMapiTx.send', { ctx: params.accountContext, txid: tx.hash, send});
       let txStatus = null;
       // If it's not accepted, check if it's because the miner already knows about the transaction
       if (!StatusTxUtil.isAcceptedStatus(send)) {

@@ -11,6 +11,7 @@ import TxAssetModel from './../../../core/txasset';
 import TxfilterModel from './../../../core/txfilter';
 import BlockheaderModel from './../../../core/blockheader';
 import OutpointmonitorModel from './../../../core/outpointmonitor';
+import MempoolfiltertxsModel from './../../../core/mempoolfiltertxs';
 
 export const statusDI = {
   TxModel,
@@ -25,5 +26,6 @@ export const statusDI = {
   TxAssetModel,
   TxfilterModel,
   BlockheaderModel,
-  OutpointmonitorModel
+  OutpointmonitorModel,
+  MempoolfiltertxsModel
 };

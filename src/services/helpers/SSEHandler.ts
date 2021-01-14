@@ -33,7 +33,7 @@ export class SSEHandler extends EventEmitter {
   /**
    * The SSE route handler
    */
-  async init(req, res, lastGlobalId: number, messageHistoryCallback?: Function) {
+  async init(req, res, lastGlobalId?: number, messageHistoryCallback?: Function) {
     req.socket.setTimeout(0);
     req.socket.setNoDelay(true);
     req.socket.setKeepAlive(true);
@@ -73,7 +73,7 @@ export class SSEHandler extends EventEmitter {
     this.on('serialize', serializeListener);
 
     let lastEventId = req.headers['last-event-id'] || 0;
-    if (lastEventId) {
+    if (lastEventId && lastGlobalId) {
         lastEventId = parseInt(lastEventId);
         if (lastEventId <= lastGlobalId && messageHistoryCallback) {
           await messageHistoryCallback(lastEventId, lastGlobalId, (messages) => {

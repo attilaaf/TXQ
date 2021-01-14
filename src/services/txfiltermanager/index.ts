@@ -424,7 +424,7 @@ export default class TxfiltermanagerService {
     return results;
   }
 
-  public async perforrmProjectTenantUpdatesForTx(filterRules: ITxFilterResultSet): Promise<any> {
+  public async performProjectTenantUpdatesForTx(filterRules: ITxFilterResultSet): Promise<any> {
     const results = {};
     let txToSaveCount = 0;
     for (const projectId in filterRules) {
@@ -453,6 +453,7 @@ export default class TxfiltermanagerService {
       }
 
       if (txToSaveCount) {
+        this.logger.debug('performProjectTenantUpdatesForTx', { txToSaveCount })
         const uc = await this.saveTxsFromMempool.run({
           set: txsToSave, 
           newOutpointMonitorRecords: filterRules[projectId].newOutpointMonitorRecords, // Save all new outpoints to monitor
