@@ -19,8 +19,8 @@ export default class MempoolfiltertxsService {
     return this.mempoolfiltertxsModel.createBatch(mempoolRecords);
   }
 
-  public deleteExpiredOlderThan(olderThanSeconds: number): Promise<any> {
-    return this.mempoolfiltertxsModel.deleteExpiredOlderThan(olderThanSeconds);
+  public deleteExpiredOlderThan(olrderThanMinutes: number): Promise<any> {
+    return this.mempoolfiltertxsModel.deleteExpiredOlderThan(olrderThanMinutes);
   }
 
   public getMessagesSince(sessionId: string, lastEventId: any, time: any): Promise<any> {

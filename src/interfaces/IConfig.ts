@@ -119,6 +119,7 @@ export interface IConfig {
   filterMempoolStreams?: {
     enabled: boolean;
     storage: string | 'database';
+    cleanupOlderTransactionsTimeMinutes?: number;
     database: {
       host: string;
       user: string;

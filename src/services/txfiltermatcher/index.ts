@@ -105,7 +105,7 @@ export class TxFilterMatcher {
 			if (session) {
 				const time = this.getTime();
  
-				session.lastId = Math.max(session.lastId, eventIdsMap[prop] && eventIdsMap[prop].id ? eventIdsMap[prop].id : 0) + 1,
+				session.lastId = Math.max(session.lastId, eventIdsMap[prop] && eventIdsMap[prop].id ? eventIdsMap[prop].id : 0),
 				session.lastTime = time;
 				const payloadWithTime = Object.assign({}, payload, { id: session.lastId, time: time } );
 				session.sseHandler.send(payloadWithTime, session.lastId);
@@ -313,7 +313,7 @@ export class TxFilterMatcher {
 
 	mempoolFilteredGarbageCollector() {
 		const CYCLE_TIME_SECONDS = 60;
-		const DELETE_FROM_CREATED_AT_TIME_DB = 30 * 60; 
+		const DELETE_FROM_CREATED_AT_TIME_DB = cfg.filterMempoolStreams.cleanupOlderTransactionsTimeMinutes || 10;
 		setTimeout(async () => {
 			try {
 				this.logger.debug("mempoolFilteredGarbageCollector");

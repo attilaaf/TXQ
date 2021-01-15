@@ -14,7 +14,7 @@ class MempoolfiltertxsModel {
     return result.rows;
   }
 
-  public async getAllAfterCreatedAt(createdAt: any): Promise<string> {
+  public async getAllAfterCreatedAt(createdAt?: any): Promise<string> {
     const client = await this.db.getCacheDbClient();
     let result: any = await client.query(`
     SELECT * FROM mempool_filtered_txs WHERE created_at >= $1
@@ -36,10 +36,10 @@ class MempoolfiltertxsModel {
           let result: any = await client.query(`
           INSERT INTO mempool_filtered_txs(txid, rawtx, session_id, created_at)
           VALUES
-          ($1, $2, $3, $4)
+          ($1, $2, $3, NOW())
           ON CONFLICT(txid, session_id) DO NOTHING
           RETURNING id
-          `, [ r.txid, r.rawtx, r.sessionId, now]);
+          `, [ r.txid, r.rawtx, r.sessionId]);
           if (result.rows && result.rows[0] && result.rows[0].id) {
             arrayIds.push({
               sessionId: r.sessionId,
@@ -65,12 +65,15 @@ class MempoolfiltertxsModel {
     });
   }
 
-  public async deleteExpiredOlderThan(olderThanSeconds: number): Promise<any> {
+  public async deleteExpiredOlderThan(olderThanMinutes?: number): Promise<any> {
+    let mins = 10;
+    if (olderThanMinutes) {
+      mins = olderThanMinutes
+    }
     const client = await this.db.getCacheDbClient();
-    const now = Math.ceil(new Date().getTime() / 1000);
     return client.query(`
-      DELETE FROM mempool_filtered_txs WHERE created_at <= $1
-    `, [ now - olderThanSeconds ]);
+      DELETE FROM mempool_filtered_txs WHERE created_at > NOW() - INTERVAL '${mins} minutes'
+    `);
   }
 
   public async getMessagesSince(sessionId: string, eventId: any, time: any): Promise<any> {
@@ -87,7 +90,7 @@ class MempoolfiltertxsModel {
         session_id = $1 AND
         id >= $2 AND 
         created_at >= $3
-        ORDER BY id
+        ORDER BY id ASC
         LIMIT 1000
         `, [
           sessionId, eventId, time
@@ -100,7 +103,7 @@ class MempoolfiltertxsModel {
         WHERE 
         session_id = $1 AND
         id >= $2
-        ORDER BY id
+        ORDER BY id ASC
         LIMIT 1000
         `, [
           sessionId, eventId
@@ -113,12 +116,13 @@ class MempoolfiltertxsModel {
         WHERE 
         session_id = $1 AND
         created_at >= $2
-        ORDER BY id
+        ORDER BY id ASC
         LIMIT 1000
         `, [
           sessionId, time
         ]);
     }
+    console.log('result', result.rows);
     return result.rows;
   }
 
