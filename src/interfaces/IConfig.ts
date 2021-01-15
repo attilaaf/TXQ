@@ -100,16 +100,35 @@ export interface IConfig {
   baseurl?: string;
   bitcoinds?: IBitcoind[];
   enableDefault?: boolean;
-  enableAssetAgent?: boolean;
-  enableFilterTrackerAgent?: boolean;
-  filterTrackerAgentStartHeight?: number;
-  enableMempoolFilters?: boolean;
   env?: string;
   enableUpdateLogging?: boolean;
   configMode?: string; // 'file' | 'database';
   databaseModeConfig?: any;
-  mempoolDbCacheConfig?: any;
-  enableMempoolDbCache?: any;
+  enableDbPollResync?: boolean;
+  filterBlockAgent?: {
+    enabled: boolean;
+    filterBlockAgentStartHeight: number;
+    pollTime: number;
+  },
+  filterMempoolAgent?: {
+    enabled: boolean;
+  },
+  assetFilterBlockAgent?: {
+    enabled: boolean;
+  },
+  filterMempoolStreams?: {
+    enabled: boolean;
+    storage: string | 'database';
+    database: {
+      host: string;
+      user: string;
+      database: string;
+      password: string;
+      port: number;
+      max: number;
+      idleTimeoutMillis: number;
+    }
+  },
   systemKey?: string;
   api?: IApi;
   logs?: ILog;

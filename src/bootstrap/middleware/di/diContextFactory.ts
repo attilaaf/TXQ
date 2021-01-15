@@ -182,8 +182,8 @@ export class ContextFactory {
 
   private initCacheDb() {
     // Try to load from database if it's also set
-    if (cfg.enableMempoolDbCache) {
-      this.dbCachePool = new Pool(cfg.mempoolDbCacheConfig);
+    if (cfg.filterMempoolStreams.enabled) {
+      this.dbCachePool = new Pool(cfg.filterMempoolStreams.database);
     }  
   }
 

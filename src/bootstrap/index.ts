@@ -127,23 +127,23 @@ async function startPendingTaskPoller() {
   enqInitialTxsForSync.run();
 }
 
-if (process.env.ENABLE_DB_SYNC === 'true') {
-  console.log('ENABLE_DB_SYNC is true');
+if (cfg.enableDbPollResync === 'true') {
+  console.log('enableDbPollResync is true');
   setTimeout(() => {
     startPendingTaskPoller();
   }, 3 * 60 * 1000);
 }
  
-if (cfg.enableAssetAgent) {
-  console.log('enableAssetAgent is true');
+if (cfg.enableAssetBlockAgent) {
+  console.log('enableAssetBlockAgent is true');
   setTimeout(() => {
     let uc = Container.get(StartAssetAgent);
     uc.run();
   }, 1000);
 }
  
-if (cfg.enableFilterTrackerAgent) {
-  console.log('enableFilterTrackerAgent is true');
+if (cfg.filterBlockAgent.enabled) {
+  console.log('cfg.filterBlockAgent.enabled is true');
   setTimeout(() => {
     let uc = Container.get(StartFilterTrackerAgent);
     uc.run();
@@ -151,8 +151,8 @@ if (cfg.enableFilterTrackerAgent) {
 
 }
 
-if (process.env.ENABLE_MEMPOOL_ROUTES !== 'true' && process.env.ENABLE_FILTER_MEMPOOL_TRACKER_AGENT !== 'true') {
-  console.log('enableMempoolFilters is true');
+if (cfg.filterMempoolStreams.enabled || cfg.filterMempoolAgent.enabled) {
+  console.log('cfg.filterMempoolStreams.enabled || cfg.filterMempoolAgent.enabled is true');
 
   setTimeout(() => {
     let uc = Container.get(StartMempoolFilterAgent);

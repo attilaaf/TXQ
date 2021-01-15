@@ -22,7 +22,7 @@ export default class StartFilterTrackerAgent extends UseCase {
   public async run(params?: {accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
      
     const getEarliestStartHeight = () => {
-      return cfg.filterTrackerAgentStartHeight;
+      return cfg.filterBlockAgent.filterBlockAgentStartHeight;
     };
 
     bitcoinAgent.start({
@@ -32,7 +32,7 @@ export default class StartFilterTrackerAgent extends UseCase {
         return new Promise((resolve, reject) => {
           return resolve({
             startHeight: getEarliestStartHeight(),
-            blockPollTime: process.env.BLOCK_POLL_TIME ? Number(process.env.BLOCK_POLL_TIME) : 10,
+            blockPollTime: cfg.filterBlockAgent.pollTime
           });
         });
       },

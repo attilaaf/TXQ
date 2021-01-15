@@ -21,7 +21,7 @@ export class TxFilterMatcher {
 		this.newLru = new lru.LRUMap(10000, []);
 		this.blockLru = new lru.LRUMap(100, []);
 		this.garbageCollector();
-		if (process.env.ENABLE_MEMPOOL_ROUTES) {
+		if (cfg.filterMempoolStreams.enabled) {
 			this.mempoolFilteredGarbageCollector();
 		}
 	}
@@ -313,7 +313,7 @@ export class TxFilterMatcher {
 
 	mempoolFilteredGarbageCollector() {
 		const CYCLE_TIME_SECONDS = 60;
-		const DELETE_FROM_CREATED_AT_TIME_DB = 60 * 60; // 1 hour
+		const DELETE_FROM_CREATED_AT_TIME_DB = 30 * 60; 
 		setTimeout(async () => {
 			try {
 				this.logger.debug("mempoolFilteredGarbageCollector");
@@ -326,7 +326,7 @@ export class TxFilterMatcher {
 	}
 
 	garbageCollector() {
-		const GARBAGE_CYCLE_TIME_SECONDS = 60 * 60;
+		const GARBAGE_CYCLE_TIME_SECONDS = 27 * 60;
 		setTimeout(() => {
 			try {
 				this.cleanExpiredFromMaps();
