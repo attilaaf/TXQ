@@ -167,7 +167,6 @@ export class ContextFactory {
   }
 
   private initConfigDb() {
-  
     // Try to load from database if it's also set
     if (cfg.configMode === 'database') {
       this.dbCfgPool = new Pool(cfg.databaseModeConfig);

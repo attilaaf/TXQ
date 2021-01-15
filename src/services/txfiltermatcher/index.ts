@@ -90,7 +90,7 @@ export class TxFilterMatcher {
 		let eventIdsArr: Array<{ id: any, sessionId: string }> = [];
 		let eventIdsMap: {  [sessionId: string] : { id: any, sessionId: string } } = {};
 		// Save this transaction into mempool db cache if enabled
-		if (cfg.enableMempoolDbCache) {
+		if (cfg.filterMempoolStreams.enabled) {
 			eventIdsArr = await this.mempoolfiltertxsService.createForSessionIds(payload.h, payload.rawtx, sessionIdsObj);
 		}
 		eventIdsArr.map((item) => {
