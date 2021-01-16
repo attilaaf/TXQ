@@ -36,7 +36,6 @@ class MempoolfiltertxsModel {
           SELECT count(*) as matches, id, created_at FROM mempool_filtered_txs WHERE txid = $1 AND session_id = $2 GROUP BY id;
           `, [ r.txid, r.sessionId ]);
 
-          console.log('isFound', isFound.rows);
           // Do not insert if exists
           if (isFound && isFound.rows && isFound.rows.length && isFound.rows[0].matches && parseInt(isFound.rows[0].matches) === 1) {
             arrayIds.push({
@@ -64,6 +63,7 @@ class MempoolfiltertxsModel {
               id: parseInt(result.rows[0].id)
             });
           } else {
+            this.logger.error("Not email to insert")
             arrayIds.push({
               sessionId: r.sessionId,
               id: null, // not set

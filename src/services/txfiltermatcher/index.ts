@@ -88,7 +88,6 @@ export class TxFilterMatcher {
 	}
 
 	async notifyAllHandlers(payload: { type: string, h: string, rawtx?: any, tx: string} | any, sessionIdsObj) {
-		console.log('notify handlers', payload);
 		// Create all the events in the mempool
 		let eventIdsArr: Array<{ id: any, sessionId: string, created_at: number, created_time: string }> = [];
 		let eventIdsMap: {  [sessionId: string] : { id: any, sessionId: string, created_at: number, created_time: string } } = {};
@@ -99,9 +98,6 @@ export class TxFilterMatcher {
 		eventIdsArr.map((item) => {
 			eventIdsMap[item.sessionId] = item;
 		});
- 
-		console.log('eventIdsArr', eventIdsArr, eventIdsMap, payload);
-
 		for (const prop in sessionIdsObj) {
 			if (!sessionIdsObj.hasOwnProperty(prop)) {
 				continue;
