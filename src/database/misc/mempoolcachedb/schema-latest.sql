@@ -15,7 +15,7 @@ CREATE TABLE mempool_filtered_txs (
     txid varchar,
     rawtx bytea NOT NULL,
     session_id varchar NOT NULL,
-    created_at TIMESTAMP NOT NULL
+    created_at TIMESTAMPTZ NOT NULL
 );
 
 CREATE UNIQUE INDEX uk_mempool_filtered_txs ON mempool_filtered_txs USING btree (txid, session_id);

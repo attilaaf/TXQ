@@ -52,23 +52,27 @@ class MempoolfiltertxsModel {
           VALUES
           ($1, $2, $3, NOW())
           ON CONFLICT(txid, session_id) DO NOTHING
-          RETURNING id, created_at 
-          `, [ r.txid, r.rawtx, r.sessionId]);
-          if (result.rows && result.rows[0] && result.rows[0].id) {
+          `, [ r.txid, Buffer.from(r.rawtx, 'hex'), r.sessionId]);
+          
+          let isFoundAgain: any = await client.query(`
+           SELECT count(*) as matches, id, created_at FROM mempool_filtered_txs WHERE txid = $1 AND session_id = $2 GROUP BY id;
+          `, [ r.txid, r.sessionId ]);
+
+          // Do not insert if exists
+          if (isFoundAgain && isFoundAgain.rows && isFoundAgain.rows.length && isFoundAgain.rows[0].matches && parseInt(isFoundAgain.rows[0].matches) === 1) {
             arrayIds.push({
               sessionId: r.sessionId,
-              time: (new Date(result.rows[0].created_at)).getTime(),
-              created_at: (new Date(result.rows[0].created_at)).getTime(),
-              created_time: result.rows[0].created_at,
-              id: parseInt(result.rows[0].id)
+              time: (new Date(isFoundAgain.rows[0].created_at)).getTime(),
+              created_at: (new Date(isFoundAgain.rows[0].created_at)).getTime(),
+              created_time: isFoundAgain.rows[0].created_at,
+              id: parseInt(isFoundAgain.rows[0].id)
             });
-          } else {
-            this.logger.error("Not email to insert")
-            arrayIds.push({
-              sessionId: r.sessionId,
-              id: null, // not set
-            });
+            continue;
           }
+          arrayIds.push({
+            sessionId: r.sessionId,
+            id: null, // not set
+          });
         }
         await client.query('COMMIT');
         return arrayIds;
@@ -94,24 +98,44 @@ class MempoolfiltertxsModel {
     `);
   }
 
+  public getDate(timeVariable: any): Date | null {
+    if (!timeVariable) {
+      return null;
+    }
+    let t: number = null;
+    try {
+      t = parseInt(timeVariable);
+      const len = timeVariable.toString().length;
+      if (len === 10) {
+        return new Date(t * 1000);
+      }
+      if (len === 13) {
+        return new Date(t);
+      }
+    } catch (err) {
+      return null;
+    }
+    return null;
+  }
   public async getMessagesSince(sessionId: string, eventId: any, time: any): Promise<any> {
     if (!eventId && !time) {
       return [];
     }
+    let queryTime = this.getDate(time);
     const client = await this.db.getCacheDbClient();
     let result = null;
-    if (eventId && time) {
+    if (eventId && queryTime) {
       result = await client.query(`
         SELECT id, txid, encode(rawtx, 'hex') as rawtx, session_id, created_at FROM 
         mempool_filtered_txs 
         WHERE 
         session_id = $1 AND
         id >= $2 AND 
-        created_at >= $3
+        created_at >= to_timestamp($3)
         ORDER BY id ASC
         LIMIT 1000
         `, [
-          sessionId, eventId, time
+          sessionId, eventId, queryTime.getTime() / 1000
         ]);
     }
     if (eventId) {
@@ -127,17 +151,17 @@ class MempoolfiltertxsModel {
           sessionId, eventId
         ]);
     }
-    if (time) {
+    if (queryTime) {
       result = await client.query(`
       SELECT id, txid, encode(rawtx, 'hex') as rawtx, session_id, created_at FROM 
         mempool_filtered_txs 
         WHERE 
         session_id = $1 AND
-        created_at >= $2
+        created_at >= to_timestamp($2)
         ORDER BY id ASC
         LIMIT 1000
         `, [
-          sessionId, time
+          sessionId, queryTime.getTime() / 1000
         ]);
     }
     return result.rows.map((item) => {

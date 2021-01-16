@@ -58,8 +58,7 @@ export class TxFilterMatcher {
 		if (filter) {
 			this.addBaseFilterForSession(filter, sessionId);
 		}
- 
-        this.logger.debug('createSession.sessionInit', { hasNewSessionMapping, lastId: sessionMapping.lastId} );
+        this.logger.debug('createSession.sessionInit', { hasNewSessionMapping, lastId: sessionMapping.lastId, lastEventIdFromHeader: req.headers['last-event-id'], queryTime: req.query.time } );
 		// Initialize this connection with the associated session id
 		// Note, we still must send down the history if the user requested with last-event-id or the query time param
 		sessionMapping.sseHandler.init(req, res);
@@ -67,6 +66,7 @@ export class TxFilterMatcher {
 	}
 
 	async sendMissedMessages(sseHandler, sessionId: string, lastEventId: any, time: any) {
+		this.logger.debug('sendMissedMessages.requested', { sessionId, lastEventId, time } );
 		const messages = await this.mempoolfiltertxsService.getMessagesSince(sessionId, lastEventId, time);
 		messages.map((message) => {
 			sseHandler.send(message, message.id);

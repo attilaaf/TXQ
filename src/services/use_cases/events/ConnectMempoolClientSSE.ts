@@ -57,6 +57,7 @@ export default class ConnectMempoolClientSSE extends UseCase {
     res: Response,
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
+	this.logger.debug("connectMempoolClient", {filter: params.filter, outputFilter: params.outputFilter })
 	if (!params.filter && !params.outputFilter) {
 		throw new InvalidParamError('Require base filter or output filters');
 	}
@@ -66,9 +67,14 @@ export default class ConnectMempoolClientSSE extends UseCase {
 	if (params.outputFilter && params.outputFilter.length < 4) {
 		throw new InvalidParamError('Output filter too short');
 	}
-	this.logger.debug("connectMempoolClient", params.filter, params.outputFilter)
+	if (params.outputFilter && params.outputFilter.length < 4) {
+		throw new InvalidParamError('Output filter too short');
+	}
+	 
+	this.logger.debug("connectMempoolClient.resolveOutputFilters", {filter: params.filter, outputFilter: params.outputFilter })
     const session = this.resolveOutputFilters(params.outputFilter)
 	.then((resolvedOutputFilter) => {
+		this.logger.debug("connectMempoolClient.resolveOutputFilters.resolved", {resolvedOutputFilter})
 		const sessionPre = this.createSessionKey(params.filter, params.outputFilter);  
 		const sessionPreBuffer = Buffer.from(sessionPre, 'utf8');
 		const sessionId = bsv.crypto.Hash.sha256(sessionPreBuffer).toString('hex');
@@ -76,10 +82,12 @@ export default class ConnectMempoolClientSSE extends UseCase {
 		return this.txfiltermatcherService.createSession(sessionId, params.filter, resolvedOutputFilter, params.req, params.res);
 	})
 	.catch((err) => {
+		this.logger.error("connectMempoolClient.Error", { err })
 		params.res.status(500).json({
 			success: false,
 			code: 500,
 			message: err.toString(),
+			stack: err.stack,
 		})
 	});
     return {
