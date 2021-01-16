@@ -32,17 +32,35 @@ class MempoolfiltertxsModel {
         await client.query('BEGIN');
         const arrayIds = [];
         for (const r of records) {
-          const now = Math.ceil(new Date().getTime() / 1000);
+          let isFound: any = await client.query(`
+          SELECT count(*) as matches, id, created_at FROM mempool_filtered_txs WHERE txid = $1 AND session_id = $2 GROUP BY id;
+          `, [ r.txid, r.sessionId ]);
+
+          console.log('isFound', isFound.rows);
+          // Do not insert if exists
+          if (isFound && isFound.rows && isFound.rows.length && isFound.rows[0].matches && parseInt(isFound.rows[0].matches) === 1) {
+            arrayIds.push({
+              sessionId: r.sessionId,
+              time: (new Date(isFound.rows[0].created_at)).getTime(),
+              created_at: (new Date(isFound.rows[0].created_at)).getTime(),
+              created_time: isFound.rows[0].created_at,
+              id: parseInt(isFound.rows[0].id)
+            });
+            continue;
+          }
           let result: any = await client.query(`
           INSERT INTO mempool_filtered_txs(txid, rawtx, session_id, created_at)
           VALUES
           ($1, $2, $3, NOW())
           ON CONFLICT(txid, session_id) DO NOTHING
-          RETURNING id
+          RETURNING id, created_at 
           `, [ r.txid, r.rawtx, r.sessionId]);
           if (result.rows && result.rows[0] && result.rows[0].id) {
             arrayIds.push({
               sessionId: r.sessionId,
+              time: (new Date(result.rows[0].created_at)).getTime(),
+              created_at: (new Date(result.rows[0].created_at)).getTime(),
+              created_time: result.rows[0].created_at,
               id: parseInt(result.rows[0].id)
             });
           } else {
@@ -72,7 +90,7 @@ class MempoolfiltertxsModel {
     }
     const client = await this.db.getCacheDbClient();
     return client.query(`
-      DELETE FROM mempool_filtered_txs WHERE created_at > NOW() - INTERVAL '${mins} minutes'
+      DELETE FROM mempool_filtered_txs WHERE created_at < (NOW() - INTERVAL '${mins} minutes')
     `);
   }
 
@@ -122,8 +140,14 @@ class MempoolfiltertxsModel {
           sessionId, time
         ]);
     }
-    console.log('result', result.rows);
-    return result.rows;
+    return result.rows.map((item) => {
+      return { 
+        ...item, 
+        time: (new Date(item.created_at)).getTime(),
+        created_at: (new Date(item.created_at)).getTime(),
+        created_time: item.created_at,
+      }
+    });
   }
 
 }

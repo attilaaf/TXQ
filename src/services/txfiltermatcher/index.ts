@@ -45,6 +45,10 @@ export class TxFilterMatcher {
 		} else {
 			sessionMapping.lastConnectedTime = (new Date()).getTime();
 		}
+		// Remove from map after connection closes
+		req.on('close', (e) => {
+			// this.sseSessionMapping.delete(sessionId);
+		});
 
 		if (resolvedOutputFilter && resolvedOutputFilter.length) {
 			this.addOutputFilter(resolvedOutputFilter, sessionId);
@@ -69,7 +73,6 @@ export class TxFilterMatcher {
 		});
 	}
 
- 
 	removeSession(sessionId) {
 		if (this.sseSessionMapping.get(sessionId)) {
 			this.sseSessionMapping.delete(sessionId)
@@ -84,11 +87,11 @@ export class TxFilterMatcher {
 		return Math.round((new Date()).getTime() / 1000);
 	}
 
- 
 	async notifyAllHandlers(payload: { type: string, h: string, rawtx?: any, tx: string} | any, sessionIdsObj) {
+		console.log('notify handlers', payload);
 		// Create all the events in the mempool
-		let eventIdsArr: Array<{ id: any, sessionId: string }> = [];
-		let eventIdsMap: {  [sessionId: string] : { id: any, sessionId: string } } = {};
+		let eventIdsArr: Array<{ id: any, sessionId: string, created_at: number, created_time: string }> = [];
+		let eventIdsMap: {  [sessionId: string] : { id: any, sessionId: string, created_at: number, created_time: string } } = {};
 		// Save this transaction into mempool db cache if enabled
 		if (cfg.filterMempoolStreams.enabled) {
 			eventIdsArr = await this.mempoolfiltertxsService.createForSessionIds(payload.h, payload.rawtx, sessionIdsObj);
@@ -97,6 +100,8 @@ export class TxFilterMatcher {
 			eventIdsMap[item.sessionId] = item;
 		});
  
+		console.log('eventIdsArr', eventIdsArr, eventIdsMap, payload);
+
 		for (const prop in sessionIdsObj) {
 			if (!sessionIdsObj.hasOwnProperty(prop)) {
 				continue;
@@ -107,7 +112,12 @@ export class TxFilterMatcher {
  
 				session.lastId = Math.max(session.lastId, eventIdsMap[prop] && eventIdsMap[prop].id ? eventIdsMap[prop].id : 0),
 				session.lastTime = time;
-				const payloadWithTime = Object.assign({}, payload, { id: session.lastId, time: time } );
+				const payloadWithTime = Object.assign({}, payload, {
+					id: session.lastId, 
+					time: eventIdsMap[prop] && eventIdsMap[prop].created_at ? eventIdsMap[prop].created_at : 0,
+					created_at: eventIdsMap[prop] && eventIdsMap[prop].created_at ? eventIdsMap[prop].created_at : 0,
+					created_time: eventIdsMap[prop] && eventIdsMap[prop].created_time ? eventIdsMap[prop].created_time : 0
+				});
 				session.sseHandler.send(payloadWithTime, session.lastId);
 			}
 		}
@@ -143,7 +153,6 @@ export class TxFilterMatcher {
 
 
  	getTxPayload(tx) : { type: string, h: string, rawtx?: any, tx: string} {
-
 		const rawtx = tx.toString();
 		let payload = {
 			type: 'tx',
@@ -279,6 +288,9 @@ export class TxFilterMatcher {
 			if (!cleanedSessionIds.hasOwnProperty(p)) {
 				continue;
 			}
+			if (!this.sseSessionMapping.get(p)) {
+				continue; // Skip sessions that were removed.
+			}
 			c++;
 		}
 		if (c) {
@@ -334,10 +346,10 @@ export class TxFilterMatcher {
 				this.garbageCollector();
 			}
 		}, 1000 * GARBAGE_CYCLE_TIME_SECONDS)
-	}
-
+	} 
+ 
 	cleanExpiredFromMaps() {
-		const AGE_SECONDS = 3600 * 24;// 24 hours
+		const AGE_SECONDS = 3600 * 24 * 3; // 3 days
  
 	    this.sseSessionMapping.forEach((value, key, map) => {
 			if (value.lastConnectedTime < (new Date()).getTime() - (1000 * AGE_SECONDS)) {

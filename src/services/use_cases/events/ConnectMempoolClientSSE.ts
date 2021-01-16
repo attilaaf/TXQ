@@ -5,6 +5,7 @@ import { Response, Request } from 'express';
 import { IAccountContext } from '@interfaces/IAccountContext';
 
 import * as bsv from 'bsv'
+import InvalidParamError from '../../../services/error/InvalidParamError';
 
 const ADDRESS_REGEX = new RegExp(/^[135nm][1-9A-Za-z][^OIl]{20,40}/); // added '.' wildcard to match testnet too
 
@@ -56,6 +57,15 @@ export default class ConnectMempoolClientSSE extends UseCase {
     res: Response,
     accountContext?: IAccountContext
   }): Promise<UseCaseOutcome> {
+	if (!params.filter && !params.outputFilter) {
+		throw new InvalidParamError('Require base filter or output filters');
+	}
+	if (params.filter && params.filter.length < 3) {
+		throw new InvalidParamError('Base filter too short');
+	}
+	if (params.outputFilter && params.outputFilter.length < 4) {
+		throw new InvalidParamError('Output filter too short');
+	}
 	this.logger.debug("connectMempoolClient", params.filter, params.outputFilter)
     const session = this.resolveOutputFilters(params.outputFilter)
 	.then((resolvedOutputFilter) => {

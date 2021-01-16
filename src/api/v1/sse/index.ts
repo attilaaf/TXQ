@@ -4,6 +4,8 @@ import { ssePath } from './../index';
 import ConnectChannelClientSSE from '../../../services/use_cases/events/ConnectChannelClientSSE';
 import { AccountContextHelper } from '../../account-context-helper';
 import ConnectMempoolClientSSE from '../../../services/use_cases/events/ConnectMempoolClientSSE';
+import InvalidParamError from '../../../services/error/InvalidParamError';
+import { sendMapiErrorWrapper } from '../../../util/sendMapiErrorWrapper';
 
 export default [
   {
@@ -124,15 +126,31 @@ export default [
     handler: [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
+          let filter = Req.params.filter || Req.query.filter ? Req.params.filter || Req.query.filter : null;
+          let outputFilter = Req.query.outputFilter || '';
+
+          if (!filter && !outputFilter) {
+            throw new InvalidParamError('Require base filter or output filters');
+          }
+          if (filter && filter.length < 3) {
+            throw new InvalidParamError('Base filter too short');
+          }
+          if (outputFilter && outputFilter.length < 4) {
+            throw new InvalidParamError('Output filter too short');
+          } 
+
           let uc = Container.get(ConnectMempoolClientSSE);
           uc.run({
-            filter: Req.params.filter || Req.query.filter ? Req.params.filter || Req.query.filter : null, 
-            outputFilter: Req.query.outputFilter || '',
+            filter: filter,
+            outputFilter: outputFilter,
             req: Req, 
             res, 
             accountContext: AccountContextHelper.getContext(Req)});
         } catch (error) {
-          next(error);
+          if (error instanceof InvalidParamError) {
+            sendMapiErrorWrapper(res, 422, error.toString());
+            return;
+          }
         }
       },
     ],
@@ -143,15 +161,31 @@ export default [
     handler: [
       async (Req: Request, res: Response, next: NextFunction) => {
         try {
+          let filter = Req.params.filter || Req.query.filter ? Req.params.filter || Req.query.filter : null;
+          let outputFilter = Req.query.outputFilter || '';
+
+          if (!filter && !outputFilter) {
+            throw new InvalidParamError('Require base filter or output filters');
+          }
+          if (filter && filter.length < 3) {
+            throw new InvalidParamError('Base filter too short');
+          }
+          if (outputFilter && outputFilter.length < 4) {
+            throw new InvalidParamError('Output filter too short');
+          } 
+
           let uc = Container.get(ConnectMempoolClientSSE);
           uc.run({
-            filter: Req.query.filter ? Req.query.filter : null, 
-            outputFilter: Req.query.outputFilter || '',
+            filter: filter,
+            outputFilter: outputFilter,
             req: Req, 
             res, 
             accountContext: AccountContextHelper.getContext(Req)});
         } catch (error) {
-          next(error);
+          if (error instanceof InvalidParamError) {
+            sendMapiErrorWrapper(res, 422, error.toString());
+            return;
+          }
         }
       },
     ],
