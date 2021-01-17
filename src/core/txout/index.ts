@@ -32,9 +32,9 @@ class TxoutModel {
   public async getTxoutByScriptHash(accountContext: IAccountContext, scripthash: string, offset: number, limit: number, script?: boolean, unspent?: boolean, order?: any): Promise<string> {
     let orderClause = null;
     if (order === 'asc') {
-      orderClause = ' ORDER BY tx.i ASC NULLS FIRST';
+      orderClause = ' ORDER BY tx.i ASC NULLS LAST';
     } else {
-      orderClause = ' ORDER BY tx.i DESC NULLS LAST';
+      orderClause = ' ORDER BY tx.i DESC NULLS FIRST';
     }
     const client = await this.db.getClient(accountContext);
     let result: any;
@@ -83,9 +83,9 @@ class TxoutModel {
   public async getTxoutByAddress(accountContext: IAccountContext, address: string, offset: number, limit: number, script?: boolean, unspent?: boolean, order?: any): Promise<string> {
     let orderClause = null;
     if (order === 'asc') {
-      orderClause = ' ORDER BY tx.i ASC NULLS FIRST';
+      orderClause = ' ORDER BY tx.i ASC NULLS LAST';
     } else {
-      orderClause = ' ORDER BY tx.i DESC NULLS LAST';
+      orderClause = ' ORDER BY tx.i DESC NULLS FIRST';
     }
     const client = await this.db.getClient(accountContext);
     let result: any;
@@ -148,9 +148,9 @@ class TxoutModel {
   public async getTxoutsByGroup(accountContext: IAccountContext, params: { groupname: string, script?: boolean, limit: any, offset: any, unspent?: boolean, order?: any}): Promise<any> {
     let orderClause = null;
     if (params.order === 'asc') {
-      orderClause = ' ORDER BY tx.i ASC NULLS FIRST';
+      orderClause = ' ORDER BY tx.i ASC NULLS LAST';
     } else {
-      orderClause = ' ORDER BY tx.i DESC NULLS LAST';
+      orderClause = ' ORDER BY tx.i DESC NULLS FIRST';
     }
     const client = await this.db.getClient(accountContext);
     let result: any;
