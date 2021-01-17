@@ -326,7 +326,7 @@ export class TxFilterMatcher {
 	}
 
 	garbageCollector() {
-		const GARBAGE_CYCLE_TIME_SECONDS = 27 * 60;
+		const GARBAGE_CYCLE_TIME_SECONDS = 300 * 60;
 		setTimeout(() => {
 			try {
 				this.cleanExpiredFromMaps();
