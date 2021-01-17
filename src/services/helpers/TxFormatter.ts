@@ -1,4 +1,5 @@
 import { ITxOut } from "@interfaces/ITxOut";
+import * as bsv from 'bsv';
 
 export class TxFormatter {
     static formatTxoutWithEmbeddedStatusHeight(e: any): ITxOut {
@@ -27,4 +28,30 @@ export class TxFormatter {
             return this.formatTxoutWithEmbeddedStatusHeight(e);
         });
     }
+
+    static getTxPayload(tx: bsv.Transaction) : { type: string, txid?: string, rawtx?: any, url: string} {
+		const rawtx = tx.toString();
+		let payload = {
+			type: 'tx',
+			txid: tx.hash,
+			rawtx: rawtx,
+			url: 'https://media.bitcoinfiles.org/rawtx/' + tx.hash,
+		}
+		return payload;
+    }
+    /*
+    static getTxPayloadFromDb(payload) : { type: string, h: string, rawtx?: any, path: string, url: string} {
+		 
+		let payload2 = {
+            ...payload,
+			type: 'tx',
+			 
+			path: '/api/v1/tx/' + tx.hash + '?rawtx=1',
+			url: 'https://media.bitcoinfiles.org/rawtx/' + tx.hash,
+		}
+		if (rawtx.length <= 100000) {
+			payload.rawtx = rawtx;
+		}
+		return payload;
+	}*/
 }

@@ -3,13 +3,13 @@ import * as lru from './lru'
 import { Inject, Service } from "typedi";
 import { SSEHandler } from '../../services/helpers/SSEHandler';
 import cfg from '../../cfg';
+import { TxFormatter } from '../../services/helpers/TxFormatter';
+import * as bsv from 'bsv';
  
-const bsv = require('bsv')
-
 @Service('txfiltermatcherService')
 export class TxFilterMatcher {
 	private baseFilterMapping;
-	private sseSessionMapping;
+	private sseSessionMapping: Map<string, { sseHandler?: any, baseFilter: string, lastId: any, hasOutputfilter: any, lastConnectedTime: any}>;
 	private outputFilterMapping;
 	private newLru;
 	private blockLru;
@@ -40,7 +40,6 @@ export class TxFilterMatcher {
 				lastConnectedTime: (new Date()).getTime()
 			});
 			hasNewSessionMapping = true;
- 
 			sessionMapping = this.sseSessionMapping.get(sessionId);
 		} else {
 			sessionMapping.lastConnectedTime = (new Date()).getTime();
@@ -69,7 +68,15 @@ export class TxFilterMatcher {
 		this.logger.debug('sendMissedMessages.requested', { sessionId, lastEventId, time } );
 		const messages = await this.mempoolfiltertxsService.getMessagesSince(sessionId, lastEventId, time);
 		messages.map((message) => {
-			sseHandler.send(message, message.id);
+			const b = new bsv.Transaction(message.rawtx); 
+			const payloadWithTime = Object.assign({}, TxFormatter.getTxPayload(b), {
+				id: message.id,
+				time: message.created_at,
+				created_at: message.created_at,
+				created_time: message.created_time,
+			});
+ 
+			sseHandler.send(payloadWithTime, message.id);
 		});
 	}
 
@@ -105,10 +112,10 @@ export class TxFilterMatcher {
 			const session = this.getSession(prop);
 			if (session) {
 				const time = this.getTime();
- 
 				session.lastId = Math.max(session.lastId, eventIdsMap[prop] && eventIdsMap[prop].id ? eventIdsMap[prop].id : 0),
-				session.lastTime = time;
-				const payloadWithTime = Object.assign({}, payload, {
+				session.lastConnectedTime = time;
+				const tx = new bsv.Transaction(payload.rawtx);
+				const payloadWithTime = Object.assign({}, TxFormatter.getTxPayload(tx), {
 					id: session.lastId, 
 					time: eventIdsMap[prop] && eventIdsMap[prop].created_at ? eventIdsMap[prop].created_at : 0,
 					created_at: eventIdsMap[prop] && eventIdsMap[prop].created_at ? eventIdsMap[prop].created_at : 0,
@@ -146,22 +153,7 @@ export class TxFilterMatcher {
 			blockheader: blockheader
 		};
 	}
-
-
- 	getTxPayload(tx) : { type: string, h: string, rawtx?: any, tx: string} {
-		const rawtx = tx.toString();
-		let payload = {
-			type: 'tx',
-			h: tx.hash,
-			rawtx: rawtx,
-			tx: '/api/v1/tx/' + tx.hash + '?rawtx=1'
-		}
-		if (rawtx.length <= 10000) {
-			payload.rawtx = rawtx;
-		}
-		return payload;
-	}
-
+ 
 	static isMatchedFilter(tx, filter){
 		if (!filter) {
 			return true;
@@ -290,7 +282,7 @@ export class TxFilterMatcher {
 			c++;
 		}
 		if (c) {
-			this.notifyAllHandlers(this.getTxPayload(tx), cleanedSessionIds);
+			this.notifyAllHandlers(TxFormatter.getTxPayload(tx), cleanedSessionIds);
 		}
 		if (c && (m.length || n.length || o.length)) {
 			this.logger.debug('notifyTx', { txid: tx.hash, m, n, o });

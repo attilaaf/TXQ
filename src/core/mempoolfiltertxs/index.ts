@@ -47,7 +47,7 @@ class MempoolfiltertxsModel {
             });
             continue;
           }
-          let result: any = await client.query(`
+          await client.query(`
           INSERT INTO mempool_filtered_txs(txid, rawtx, session_id, created_at)
           VALUES
           ($1, $2, $3, NOW())
