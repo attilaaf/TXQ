@@ -137,8 +137,7 @@ class MempoolfiltertxsModel {
         `, [
           sessionId, eventId, queryTime.getTime() / 1000
         ]);
-    }
-    if (eventId) {
+    } else if (eventId) {
       result = await client.query(`
       SELECT id, txid, encode(rawtx, 'hex') as rawtx, session_id, created_at FROM 
         mempool_filtered_txs 
@@ -150,8 +149,7 @@ class MempoolfiltertxsModel {
         `, [
           sessionId, eventId
         ]);
-    }
-    if (queryTime) {
+    } else if (queryTime) {
       result = await client.query(`
       SELECT id, txid, encode(rawtx, 'hex') as rawtx, session_id, created_at FROM 
         mempool_filtered_txs 
@@ -163,6 +161,9 @@ class MempoolfiltertxsModel {
         `, [
           sessionId, queryTime.getTime() / 1000
         ]);
+    }
+    if (!result && !result.rows) {
+      return [];
     }
     return result.rows.map((item) => {
       return { 

@@ -22,5 +22,14 @@ CREATE UNIQUE INDEX uk_mempool_filtered_txs ON mempool_filtered_txs USING btree 
 
 CREATE INDEX idx_mempool_filtered_txs_updated_at ON mempool_filtered_txs USING btree (created_at);
  
-INSERT INTO mempool_version(version) VALUES ('mempool202101070000');
+
+CREATE TABLE versions (
+    version_id SERIAL PRIMARY KEY,
+    version text NOT NULL
+);
+
+CREATE UNIQUE INDEX idx_uk_versions_version ON versions USING btree (version);
+ 
+
+INSERT INTO versions(version) VALUES ('mempool202101070000');
 
