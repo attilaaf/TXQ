@@ -281,9 +281,9 @@ export class TxFilterMatcher {
 			}
 			c++;
 		}
-		if (c) {
-			this.notifyAllHandlers(TxFormatter.getTxPayload(tx), cleanedSessionIds);
-		}
+		 
+	    this.notifyAllHandlers(TxFormatter.getTxPayload(tx), cleanedSessionIds);
+	 
 		if (c && (m.length || n.length || o.length)) {
 			this.logger.debug('notifyTx', { txid: tx.hash, m, n, o });
 			this.logger.debug('cleanedSessionIds', { cleanedSessionIds });
@@ -313,7 +313,7 @@ export class TxFilterMatcher {
 
 	mempoolFilteredGarbageCollector() {
 		const CYCLE_TIME_SECONDS = 60;
-		const DELETE_FROM_CREATED_AT_TIME_DB = cfg.filterMempoolStreams.cleanupOlderTransactionsTimeMinutes || 10;
+		const DELETE_FROM_CREATED_AT_TIME_DB = cfg.filterMempoolStreams.cleanupOlderTransactionsTimeMinutes || 300;
 		setTimeout(async () => {
 			try {
 				this.logger.debug("mempoolFilteredGarbageCollector");
