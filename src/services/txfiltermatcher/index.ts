@@ -116,7 +116,7 @@ export class TxFilterMatcher {
 				session.lastConnectedTime = time;
 				const tx = new bsv.Transaction(payload.rawtx);
 				const payloadWithTime = Object.assign({}, TxFormatter.getTxPayload(tx), {
-					id: session.lastId, 
+					id: eventIdsMap[prop].id,
 					time: eventIdsMap[prop] && eventIdsMap[prop].created_at ? eventIdsMap[prop].created_at : 0,
 					created_at: eventIdsMap[prop] && eventIdsMap[prop].created_at ? eventIdsMap[prop].created_at : 0,
 					created_time: eventIdsMap[prop] && eventIdsMap[prop].created_time ? eventIdsMap[prop].created_time : 0

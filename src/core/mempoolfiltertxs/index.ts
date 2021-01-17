@@ -47,13 +47,26 @@ class MempoolfiltertxsModel {
             });
             continue;
           }
-          await client.query(`
+          let insertedQuery = await client.query(`
           INSERT INTO mempool_filtered_txs(txid, rawtx, session_id, created_at)
           VALUES
           ($1, $2, $3, NOW())
           ON CONFLICT(txid, session_id) DO NOTHING
+          RETURNING id, created_at
           `, [ r.txid, Buffer.from(r.rawtx, 'hex'), r.sessionId]);
           
+          // Do not insert if exists
+          if (insertedQuery && insertedQuery.rows && insertedQuery.rows.length && parseInt(insertedQuery.rows[0].id)) {
+            arrayIds.push({
+              sessionId: r.sessionId,
+              time: (new Date(insertedQuery.rows[0].created_at)).getTime(),
+              created_at: (new Date(insertedQuery.rows[0].created_at)).getTime(),
+              created_time: insertedQuery.rows[0].created_at,
+              id: parseInt(insertedQuery.rows[0].id)
+            });
+            continue;
+          }
+
           let isFoundAgain: any = await client.query(`
            SELECT count(*) as matches, id, created_at FROM mempool_filtered_txs WHERE txid = $1 AND session_id = $2 GROUP BY id;
           `, [ r.txid, r.sessionId ]);
@@ -74,6 +87,7 @@ class MempoolfiltertxsModel {
             id: null, // not set
           });
         }
+        
         await client.query('COMMIT');
         return arrayIds;
       } catch (e) {

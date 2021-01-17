@@ -39,19 +39,5 @@ export class TxFormatter {
 		}
 		return payload;
     }
-    /*
-    static getTxPayloadFromDb(payload) : { type: string, h: string, rawtx?: any, path: string, url: string} {
-		 
-		let payload2 = {
-            ...payload,
-			type: 'tx',
-			 
-			path: '/api/v1/tx/' + tx.hash + '?rawtx=1',
-			url: 'https://media.bitcoinfiles.org/rawtx/' + tx.hash,
-		}
-		if (rawtx.length <= 100000) {
-			payload.rawtx = rawtx;
-		}
-		return payload;
-	}*/
+     
 }
