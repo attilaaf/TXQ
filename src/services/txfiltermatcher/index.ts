@@ -338,7 +338,7 @@ export class TxFilterMatcher {
  
 	cleanExpiredFromMaps() {
 		const AGE_SECONDS = 3600 * 24 * 3; // 3 days
- 
+		/*
 	    this.sseSessionMapping.forEach((value, key, map) => {
 			if (value.lastConnectedTime < (new Date()).getTime() - (1000 * AGE_SECONDS)) {
 				this.logger.debug('cleanExpiredFromMaps.sseSessionMapping', { key });
@@ -370,7 +370,7 @@ export class TxFilterMatcher {
 				this.logger.debug('cleanExpiredFromMaps.outputFilterMapping.value.size', { key } );
 				map.delete(key);
 			}
-		});
+		});*/
 	}
 }
  

@@ -236,11 +236,14 @@ export default class EventService {
     this.logger.info('cleanExpiredFromMaps', {
       map: this.channelMapEvents
     });
-		const AGE_SECONDS = 3600 * 3; // 3 hours
+	/*	const AGE_SECONDS = 3600 * 3; // 3 hours
 	  this.channelMapEvents.forEach((value, key, map) => {
 			if (value.time < (new Date()).getTime() - (1000 * AGE_SECONDS)) {
         // Only delete channel if there are no sse handlers non-expired
 				if (!value.sseHandlers.length) {
+          this.logger.info('cleanExpiredFromMaps.noSseHandlers', {
+            key: key
+          });
           map.delete(key);
         }
 			}
@@ -251,6 +254,9 @@ export default class EventService {
 			for (const handler of value.sseHandlers) {
 				if (handler.time < (new Date()).getTime() - (1000 * AGE_SECONDS)) {
           ; // Do nothing, skip because it's expired
+          this.logger.info('cleanExpiredFromMaps.time', {
+            key: key
+          });
           continue;
         }
         cleanedHandlers.push(handler);
@@ -262,6 +268,6 @@ export default class EventService {
         });
         value.sseHandlers = cleanedHandlers;
 			}
-		});
+		});*/
   }
 }

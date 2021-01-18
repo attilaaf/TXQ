@@ -33,7 +33,9 @@ export default class StartMempoolFilterAgent extends UseCase {
       bit.on('ready', () => {
         this.logger.debug('Bitwork ready...');
         bit.on('mempool', async (tx) => {
+          console.log('m', tx.hash);
           if (cfg.filterMempoolStreams.enabled) {
+
             this.txfiltermatcherService.notify(tx); 
           }
           if (cfg.filterMempoolAgent.enabled) {
