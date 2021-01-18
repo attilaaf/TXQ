@@ -42,7 +42,7 @@ const config: IConfig = {
     idleTimeoutMillis: process.env.DBCFG_IDLE_TIMEOUT_MS || 10000
   },
 
-  enableDbPollResync: process.env.ENABLE_DB_POLL_SYNC === 'true' || true,
+  enableDbPollResync: process.env.ENABLE_DB_POLL_SYNC === 'true' ? true : false,
 
   // Experimental Settings below
   filterBlockAgent: {

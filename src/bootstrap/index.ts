@@ -126,8 +126,8 @@ async function startPendingTaskPoller() {
   let enqInitialTxsForSync = Container.get(EnqInitialTxsForSyncAllProjects);
   enqInitialTxsForSync.run();
 }
-
-if (cfg.enableDbPollResync === 'true') {
+ 
+if (cfg.enableDbPollResync) {
   console.log('enableDbPollResync is true');
   setTimeout(() => {
     startPendingTaskPoller();
