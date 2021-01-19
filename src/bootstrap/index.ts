@@ -131,7 +131,7 @@ if (cfg.enableDbPollResync) {
   console.log('enableDbPollResync is true');
   setTimeout(() => {
     startPendingTaskPoller();
-  }, 3 * 60 * 1000);
+  }, 10 * 60 * 1000);
 }
  
 if (cfg.enableAssetBlockAgent) {
@@ -148,7 +148,6 @@ if (cfg.filterBlockAgent.enabled) {
     let uc = Container.get(StartFilterTrackerAgent);
     uc.run();
   }, 1000);
-
 }
 
 if (cfg.filterMempoolStreams.enabled || cfg.filterMempoolAgent.enabled) {
