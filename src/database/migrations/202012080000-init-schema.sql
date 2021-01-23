@@ -37,6 +37,7 @@ CREATE INDEX idx_tx_sync ON tx USING btree (sync);
 CREATE INDEX idx_tx_dlq ON tx USING btree (dlq);
 CREATE INDEX idx_tx_orphaned ON tx USING btree (orphaned);
 CREATE INDEX idx_tx_completed_index ON tx USING btree (completed);
+CREATE INDEX idx_tx_id ON tx USING btree (id);
 
 CREATE TABLE txin (
     txid varchar NOT NULL,
