@@ -36,8 +36,8 @@ CREATE INDEX idx_tx_time ON tx USING btree (time);
 CREATE INDEX idx_tx_sync ON tx USING btree (sync);
 CREATE INDEX idx_tx_dlq ON tx USING btree (dlq);
 CREATE INDEX idx_tx_orphaned ON tx USING btree (orphaned);
-CREATE INDEX idx_tx_completed_index ON tx USING btree (completed);
 CREATE INDEX idx_tx_id ON tx USING btree (id);
+CREATE INDEX idx_tx_created_at ON tx USING btree (created_at);
 
 CREATE TABLE txin (
     txid varchar NOT NULL,
@@ -92,6 +92,7 @@ CREATE TABLE block_header (
 );
 
 CREATE UNIQUE INDEX idx_key_block_header_hash ON block_header USING btree (hash);
+CREATE UNIQUE INDEX idx_key_block_header_height ON block_header USING btree (height);
 
 CREATE TABLE txoutgroup (
     groupname varchar NOT NULL,
@@ -143,11 +144,13 @@ CREATE TABLE txfilter (
     id SERIAL PRIMARY KEY,
     name varchar NOT NULL,
     payload varchar NOT NULL,
+    enabled boolean NULL,
     created_at integer NOT NULL,
     updated_at integer NOT NULL
 );
 
 CREATE INDEX idx_txfilter_id ON txfilter USING btree (id);
+CREATE INDEX idx_txfilter_enabled ON txfilter USING btree (enabled);
 CREATE UNIQUE INDEX idx_txfilter_name ON txfilter USING btree (name);
 
 CREATE TABLE outpointmonitor (

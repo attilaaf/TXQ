@@ -117,61 +117,62 @@ class TxmetaModel {
       default:
         break;
     }
-
-    result = await client.query(
-      `SELECT 
-        txmeta.id
-        ,${rawtx ?  `encode(tx.rawtx, 'hex') as rawtx, `: '' } tx.txid
-        ,i
-        ,h
-        ,tx.send
-        ,status
-        ,completed
-        ,tx.updated_at
-        ,tx.created_at
-        ,channel
-        ,metadata
-        ,tags
-        ,extracted 
-        ,tx.dlq 
-        ,(
-          SELECT 
-            ARRAY_AGG(txout.address) as addresses 
-          FROM 
-            txout 
-          WHERE 
-            txid = tx.txid 
-        )
-        ,(
-          SELECT 
-            ARRAY_AGG(txout.scripthash) as scripthashes 
-          FROM 
-            txout 
-          WHERE 
-            txid = tx.txid 
-        )
-      FROM 
-        tx 
-      INNER JOIN 
-        txmeta ON (tx.txid = txmeta.txid) 
-      WHERE 
-        ${
-          afterId 
-          ? `txmeta.id ${order === 'DESC' ? '<' : '>'} $1 AND channel = $2 ` 
-          : `channel = $1 `
-        } 
-        ${fromCondition} 
-        ${toCondition} 
-        ${addressesCondition} 
-        ${scriptHashesCondition} 
-        ${statusCondition} 
-      ORDER BY 
-        txmeta.created_at ${order} 
+    const q1 = `SELECT 
+      txmeta.id
+      ,${rawtx ?  `encode(tx.rawtx, 'hex') as rawtx, `: '' } tx.txid
+      ,i
+      ,h
+      ,tx.send
+      ,status
+      ,completed
+      ,tx.updated_at
+      ,tx.created_at
+      ,channel
+      ,metadata
+      ,tags
+      ,extracted 
+      ,tx.dlq 
+      ,(
+        SELECT 
+          ARRAY_AGG(txout.address) as addresses 
+        FROM 
+          txout 
+        WHERE 
+          txid = tx.txid 
+      )
+      ,(
+        SELECT 
+          ARRAY_AGG(txout.scripthash) as scripthashes 
+        FROM 
+          txout 
+        WHERE 
+          txid = tx.txid 
+      )
+    FROM 
+      tx 
+    INNER JOIN 
+      txmeta ON (tx.txid = txmeta.txid) 
+    WHERE 
       ${
         afterId 
-        ? `LIMIT $3` 
-        : `LIMIT $2` 
-      }`, 
+        ? `txmeta.id ${order === 'DESC' ? '<' : '>'} $1 AND channel = $2 ` 
+        : `channel = $1 `
+      } 
+      ${fromCondition} 
+      ${toCondition} 
+      ${addressesCondition} 
+      ${scriptHashesCondition} 
+      ${statusCondition} 
+    ORDER BY 
+      txmeta.created_at ${order} 
+    ${
+      afterId 
+      ? `LIMIT $3` 
+      : `LIMIT $2` 
+    }`;
+    console.log(q1, afterId, channelStr, limit);
+    result = await client.query(
+      q1, 
       afterId 
       ? [ afterId, channelStr, limit ] 
       : [ channelStr, limit ]

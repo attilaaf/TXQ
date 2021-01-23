@@ -36,8 +36,8 @@ CREATE INDEX idx_tx_time ON tx USING btree (time);
 CREATE INDEX idx_tx_sync ON tx USING btree (sync);
 CREATE INDEX idx_tx_dlq ON tx USING btree (dlq);
 CREATE INDEX idx_tx_orphaned ON tx USING btree (orphaned);
-CREATE INDEX idx_tx_completed_index ON tx USING btree (completed);
 CREATE INDEX idx_tx_id ON tx USING btree (id);
+CREATE INDEX idx_tx_created_at ON tx USING btree (created_at);
 
 CREATE TABLE txin (
     txid varchar NOT NULL,
@@ -77,6 +77,7 @@ CREATE TABLE txmeta (
 );
 
 CREATE UNIQUE INDEX idx_uk_txmeta_txid_channel ON txmeta USING btree (txid, channel);
+CREATE INDEX idx_txmeta_created_at ON txmeta USING btree (created_at);
 
 CREATE TABLE block_header (
     height int PRIMARY KEY,
@@ -143,8 +144,8 @@ CREATE UNIQUE INDEX idx_uk_versions_version ON versions USING btree (version);
 CREATE TABLE txfilter (
     id SERIAL PRIMARY KEY,
     name varchar NOT NULL,
-    enabled boolean NULL,
     payload varchar NOT NULL,
+    enabled boolean NULL,
     created_at integer NOT NULL,
     updated_at integer NOT NULL
 );
@@ -169,3 +170,4 @@ CREATE INDEX idx_outpointmonitor_spend_height_index ON outpointmonitor USING btr
 
 INSERT INTO versions(version) VALUES ('202012080000');
 
+  
