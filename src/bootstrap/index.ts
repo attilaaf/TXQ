@@ -42,6 +42,7 @@ import "../services/use_cases/tx/UpdateTxDlq";
 
 import "../services/use_cases/system/GetSystemStatus";
 import "../services/use_cases/txfilters/GetTxFilters";
+import "../services/use_cases/txfilters/GetTxFiltersByGroupName";
 import "../services/use_cases/txfilters/CreateTxFilter";
 
 import "../services/use_cases/queue/GetTxsDlq";

@@ -23,10 +23,10 @@ export interface ISessionSSEHandler {
 }
 
 export interface ISessionSSEData {
-    largestId: number;  // track the most recent event id
-    time: number; // Track last used time (to be used to delete sseHandlers when expired)
-    sseHandlers: ISessionSSEHandler[]; // All SSE sessions for this channel
-    events: ISessionSSEPayload[]; // Events buffered to serve for last-event-id and history
+  largestId: number;  // track the most recent event id
+  time: number; // Track last used time (to be used to delete sseHandlers when expired)
+  sseHandlers: ISessionSSEHandler[]; // All SSE sessions for this channel
+  events: ISessionSSEPayload[]; // Events buffered to serve for last-event-id and history
 }
 
 @Service('eventService')
@@ -40,7 +40,6 @@ export default class EventService {
     this.initialize();
   }
 
-  
   /**
    * 
    * @param accountContext Ctx this is for

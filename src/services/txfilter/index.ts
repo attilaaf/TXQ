@@ -8,7 +8,7 @@ export default class TxfilterService {
   constructor(@Inject('txfilterModel') private txfilterModel, @Inject('logger') private logger) {}
  
   public async create(accountContext: IAccountContext, params: {
-    name: string, payload: string, enabled: boolean
+    name: string, payload: string, enabled: boolean, groupname?: string
   }) {
 
     if (!params.name || !params.payload) {
@@ -22,7 +22,8 @@ export default class TxfilterService {
     return this.txfilterModel.create(accountContext,
       params.name,
       params.payload,
-      params.enabled
+      params.enabled,
+      params.groupname
     );
   }
 
@@ -38,7 +39,16 @@ export default class TxfilterService {
   public async getAll(accountContext: IAccountContext) {
     return this.txfilterModel.getAll(accountContext);
   }
+
   public async getAllEnabled(accountContext: IAccountContext) {
     return this.txfilterModel.getAllEnabled(accountContext);
+  }
+
+  public async getByGroupName(accountContext: IAccountContext, groupname?: string) {
+    return this.txfilterModel.getByGroupName(accountContext, groupname);
+  }
+
+  public async getByGroupNameEnabled(accountContext: IAccountContext, groupname?: string) {
+    return this.txfilterModel.getByGroupNameEnabled(accountContext, groupname);
   }
 }

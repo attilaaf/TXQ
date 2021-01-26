@@ -17,7 +17,8 @@ export default class CreateTXFilter extends UseCase {
   public async run(params?: { accountContext?: IAccountContext, 
     name: string,
     payload?: string,
-    enabled?: boolean
+    enabled?: boolean,
+    groupname?: string,
   }): Promise<UseCaseOutcome> {
     // try to convert from address
     try {

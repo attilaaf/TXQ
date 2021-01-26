@@ -5,6 +5,7 @@ import { sendResponseWrapper } from '../../../util/sendResponseWrapper';
 import { sendMapiErrorWrapper } from '../../../util/sendMapiErrorWrapper';
 import AccessForbiddenError from '../../../services/error/AccessForbiddenError';
 import GetTxFilters from '../../../services/use_cases/txfilters/GetTxFilters';
+import GetTxFiltersByGroupName from '../../../services/use_cases/txfilters/GetTxFiltersByGroupName';
 import { AccountContextHelper } from '../../account-context-helper';
 import CreateTxFilter from '../../../services/use_cases/txfilters/CreateTxFilter';
 import InvalidParamError from '../../../services/error/InvalidParamError';
@@ -31,6 +32,28 @@ export default [
     ],
   },
   {
+    path: `${path}/txfilter/groupname/:groupname`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let uc = Container.get(GetTxFiltersByGroupName);
+          const data = await uc.run({
+            accountContext: AccountContextHelper.getContext(Req),
+            groupname: Req.params.groupname ? Req.params.groupname : null,
+          });
+          sendResponseWrapper(Req, res, 200, data.result);
+        } catch (error) {
+          if (error instanceof AccessForbiddenError) {
+            sendMapiErrorWrapper(res, 403, error.toString());
+            return;
+          }
+          next(error);
+        }
+      },
+    ],
+  },
+  {
     path: `${path}/txfilter/:name`,
     method: 'post',
     handler: [
@@ -40,6 +63,7 @@ export default [
           const data = await uc.run({accountContext: AccountContextHelper.getContext(Req),
             name: Req.params.name,
             payload: Req.body.payload ? Req.body.payload : null,
+            groupname: Req.body.groupname ? Req.body.groupname : null,
             enabled: Req.body.enabled && Req.body.enabled === true ? Req.body.enabled : false,
           });
           sendResponseWrapper(Req, res, 200, data.result);
