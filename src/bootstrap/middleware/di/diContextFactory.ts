@@ -207,7 +207,7 @@ export class ContextFactory {
       try {
         const constructedConfigContext = {};
         const projects = await this.dbCfgPool.query('SELECT * FROM project');
-        console.log('Project rows', projects.rows.length);
+        console.log('Projects found from DB: ', projects.rows.length);
         let c = 0;
         for (const project of projects.rows) {
           if (!project.service_txq_db ||

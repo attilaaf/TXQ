@@ -171,6 +171,7 @@ CREATE INDEX idx_outpointmonitor_spend_height_index ON outpointmonitor USING btr
 INSERT INTO versions(version) VALUES ('202012080000');
 
 ALTER TABLE txfilter ADD COLUMN groupname varchar NULL;
+CREATE INDEX idx_txfilter_groupname ON txfilter USING btree (groupname);
 
 -- Insert versions bootstrap
 INSERT INTO versions(version) VALUES ('202101260000');

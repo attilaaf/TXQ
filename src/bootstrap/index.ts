@@ -88,6 +88,7 @@ import "../services/use_cases/stats/GetStats";
 
 import "../services/use_cases/agents/filteragent/IngestFilterBlock";
 import "../services/use_cases/agents/filteragent/ReorgFilterBlock";
+import "../services/use_cases/utils/CheckAndUpgradeDbs";
 
 import EnqInitialTxsForSyncAllProjects from '../services/use_cases/tx/EnqInitialTxsForSyncAllProjects';
 import StartAssetAgent from '../services/use_cases/agents/StartAssetAgent';
@@ -99,6 +100,7 @@ SetTimeZone('UTC');
 import cfg from './../cfg';
 import { createExpress } from './express-factory';
 import StartMempoolFilterAgent from '../services/use_cases/agents/StartMempoolFilterAgent';
+import CheckAndUpgradeDbs from '../services/use_cases/utils/CheckAndUpgradeDbs';
 
 async function startServer() {
   let app = await createExpress();
@@ -161,5 +163,11 @@ if (cfg.filterMempoolStreams.enabled || cfg.filterMempoolAgent.enabled) {
 }
 
  
+if (false) {
 
+  setTimeout(() => {
+    let uc = Container.get(CheckAndUpgradeDbs);
+    uc.run();
+  }, 5000);
  
+}
