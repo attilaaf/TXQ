@@ -132,7 +132,7 @@ if (cfg.enableDbPollResync) {
   console.log('enableDbPollResync is true');
   setTimeout(() => {
     startPendingTaskPoller();
-  }, 10 * 60 * 1000);
+  }, process.env.ENABLE_DB_POLL_SYNC_TIME ? parseInt(process.env.ENABLE_DB_POLL_SYNC_TIME) * 1000 : 300 * 1000)
 }
  
 if (cfg.enableAssetBlockAgent) {

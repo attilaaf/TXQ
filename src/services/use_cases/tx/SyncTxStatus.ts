@@ -25,8 +25,18 @@ export default class SyncTxStatus extends UseCase {
   * @param status
   */
   public isStatusSuccess(status: any): boolean {
-    if (status && status.payload && (status.payload.blockHash && status.payload.blockHash.trim() !== '') &&
-      (status.payload.blockHeight) && status.payload.returnResult === 'success') {
+
+    if (!status) {
+      return false;
+    }
+
+    let parsedStatus = status.payload;
+    if (typeof status.payload === 'string') {
+      parsedStatus = JSON.parse(status.payload);
+    }
+
+    if (parsedStatus && (parsedStatus.blockHash && parsedStatus.blockHash.trim() !== '') &&
+      (parsedStatus.blockHeight) && parsedStatus.returnResult === 'success') {
       return true;
     }
     return false;
@@ -42,9 +52,14 @@ export default class SyncTxStatus extends UseCase {
     let blockhash = null;
     let blockheight = null;
 
-    if (status && status.payload.blockHash && status.payload.blockHeight && status.payload.returnResult === 'success') {
-      blockhash = status.payload.blockHash;
-      blockheight = status.payload.blockHeight;
+    let parsedStatus = status.payload;
+    if (typeof status.payload === 'string') {
+      parsedStatus = JSON.parse(status.payload);
+    }
+
+    if (parsedStatus && parsedStatus.blockHash && parsedStatus.blockHeight && parsedStatus.returnResult === 'success') {
+      blockhash = parsedStatus.blockHash;
+      blockheight = parsedStatus.blockHeight;
       await this.txService.saveTxStatus(accountContext, txid, status, blockhash, blockheight);
       await this.txService.setTxCompleted(accountContext, txid);
     } else {
@@ -59,7 +74,8 @@ export default class SyncTxStatus extends UseCase {
   }): Promise<UseCaseOutcome> {
     this.logger.debug('sync', {
       txid: params.txid,
-      trace: 1
+      trace: 1,
+      projectId: params.accountContext.projectId
     });
     let txsync = await this.txsyncService.getTxsync(params.accountContext, params.txid);
     let tx = await this.txService.getTx(params.accountContext, params.txid, false);
@@ -67,13 +83,15 @@ export default class SyncTxStatus extends UseCase {
     this.logger.debug('sync', {
       txid: params.txid,
       txsync: txsync.sync,
-      trace: 2
+      trace: 2,
+      projectId: params.accountContext.projectId
     });
     if (!tx || !txsync) {
       this.logger.error('sync', {
         txid: params.txid,
         txsync: txsync.sync,
         info: 'ResourceNotFoundError',
+        projectId: params.accountContext.projectId
       });
       throw new ResourceNotFoundError();
     }
@@ -85,6 +103,7 @@ export default class SyncTxStatus extends UseCase {
         txid: params.txid,
         txsync: txsync.sync,
         info: 'already_completed',
+        projectId: params.accountContext.projectId
       });
       // It should be a 2 for sync_success
       if (txsync.sync !== 2) {
@@ -110,12 +129,12 @@ export default class SyncTxStatus extends UseCase {
 
     let status = await merchantRequestor.statusTx(params.txid);
     await this.saveTxStatus(params.accountContext, params.txid, status);
-
     if (this.isStatusSuccess(status)) {
       this.logger.debug('sync', {
         txid: params.txid,
         info: 'status_success',
         txsync: txsync.sync,
+        projectId: params.accountContext.projectId
       });
       if (txsync.sync !== 2) {
         await this.txService.setTxCompleted(params.accountContext, tx.txid);

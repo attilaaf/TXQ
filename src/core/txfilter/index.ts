@@ -60,7 +60,7 @@ class TxfilterModel {
   public async getAllEnabled(accountContext: IAccountContext): Promise<string> {
     const client = await this.db.getClient(accountContext);
     let result: any = await client.query(`
-    SELECT * FROM txfilter WHERE enabled is true ORDER BY groupname ASC, name ASC`);
+    SELECT * FROM txfilter WHERE enabled is true ORDER BY name ASC`);
     return result.rows;
   }
 }
