@@ -136,7 +136,7 @@ export default class QueueService {
           }
         }
       );
-      this.logger.info('sync_complete', { backoffResponse, projectId: accountContext.projectId });
+      this.logger.info('sync_complete', backoffResponse);
       this.tasks[queueId].delete(task.id);
     } catch (e) {
       this.logger.error('sync_expired', {

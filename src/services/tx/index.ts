@@ -18,7 +18,6 @@ export default class TxService {
     return this.txModel.getUnconfirmedTxids(accountContext);
   }
 
- 
   public async getTx(accountContext: IAccountContext, txid: string, rawtx?: boolean) {
     let tx = await this.txModel.getTx(accountContext, txid, rawtx);
     if (!tx) {

@@ -148,63 +148,89 @@ export default class SyncTxStatus extends UseCase {
       txid: params.txid,
       trace: 3,
       txsync: txsync.sync,
+      projectId: params.accountContext.projectId,
+      status
     });
+
+    let parsedStatus = status.payload;
+    if (typeof status.payload === 'string') {
+      parsedStatus = JSON.parse(status.payload);
+    }
+
     // Check various error conditions and check whether we need to resend or halt
-    if (status && status.payload && status.payload.returnResult === 'failure' &&
-      status.payload.resultDescription === 'ERROR: No such mempool or blockchain transaction. Use gettransaction for wallet transactions.') {
+    if (parsedStatus && parsedStatus.returnResult === 'failure' &&
+      parsedStatus.resultDescription === 'ERROR: No such mempool or blockchain transaction. Use gettransaction for wallet transactions.') {
         this.logger.debug('sync', {
           txid: params.txid,
           trace: 4,
           txsync: txsync.sync,
+          projectId: params.accountContext.projectId
         });
       // Now load rawtx
       tx = await this.txService.getTx(params.accountContext, params.txid, true);
+
       if (tx.rawtx) {
         this.logger.debug('send', {
           txid: tx.txid,
           txsync: txsync.sync,
+          projectId: params.accountContext.projectId
         });
         let response;
         this.logger.debug('sync', {
           txid: params.txid,
           trace: 5,
           txsync: txsync.sync,
+          projectId: params.accountContext.projectId
         });
         try {
           const b = Buffer.from(tx.rawtx, 'hex');
           response = await merchantRequestor.pushTx(b, 'application/octet-stream');
-          this.logger.info('sync', {
+          this.logger.info('synctxStatus.push', {
             txid: params.txid,
             trace: 6,
             txsync: txsync.sync,
-            response
+            response,
+            projectId: params.accountContext.projectId
           });
+
         } catch (err) {
           this.logger.error('push_error', {
             err: JSON.stringify(err),
             stack: err.stack,
             txid: params.txid,
             txsync: txsync.sync,
+            projectId: params.accountContext.projectId
           });
           throw err;
         }
         this.logger.debug('send_result', {
-          response
+          response,
+          projectId: params.accountContext.projectId
         });
         await this.txService.saveTxSend(params.accountContext, params.txid, response);
 
-        if (response.payload.returnResult === 'failure') {
-          if (response.payload.resultDescription !== 'ERROR: No such mempool or blockchain transaction. Use gettransaction for wallet transactions.') {
+        let parsedSend = response.payload;
+        if (typeof response.payload === 'string') {
+          parsedSend = JSON.parse(response.payload);
+        }
+        // An error can occur if the tx no long has valid inputs (double spent)
+        // Mark the task as -1 or dead
+
+
+        if (parsedSend.returnResult === 'failure') {
+          if (parsedSend.resultDescription !== 'ERROR: No such mempool or blockchain transaction. Use gettransaction for wallet transactions.') {
             this.logger.error('send_error', {
               txid: tx.txid,
               sendPayload: response.payload,
               txsync: txsync.sync,
+              projectId: params.accountContext.projectId
             });
    
             this.logger.error('Updating_tx_sync_fail', {
               txid: params.txid,
               txsync: txsync.sync,
-              response
+              response,
+              projectId: params.accountContext.projectId
             });
             // Something bad, cannot recover
             await this.txsyncService.updateTxsync(params.accountContext, params.txid, sync_state.sync_fail);
@@ -217,7 +243,8 @@ export default class SyncTxStatus extends UseCase {
             this.logger.debug('Updating_race_condition_recovered', {
               txid: params.txid,
               txsync: txsync.sync,
-              response
+              response,
+              projectId: params.accountContext.projectId
             });
           }
         }
@@ -234,6 +261,7 @@ export default class SyncTxStatus extends UseCase {
           txid: params.txid,
           txsync: txsync.sync,
           info: 'TransactionDataMissingError',
+          projectId: params.accountContext.projectId
         });
         throw new TransactionDataMissingError();
       }
@@ -243,6 +271,7 @@ export default class SyncTxStatus extends UseCase {
       status: status,
       txsync: txsync.sync,
       info: 'TransactionStillProcessing',
+      projectId: params.accountContext.projectId
     });
 
     // Transaction has not setled
