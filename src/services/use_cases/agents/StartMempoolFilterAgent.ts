@@ -2,11 +2,11 @@ import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
-import BitworkFactory from '../../../services/helpers/BitworkFactory'
 import { ITxFilterRequest, ITxFilterResultSet } from '@interfaces/ITxFilterSet';
 import cfg from '../../../cfg';
- 
- 
+import * as zmq from 'zeromq';
+import * as bsv from 'bsv';
+
 @Service('startMempoolFilterAgent')
 export default class StartMempoolFilterAgent extends UseCase {
 
@@ -28,30 +28,42 @@ export default class StartMempoolFilterAgent extends UseCase {
     if (!cfg.filterMempoolStreams.enabled && !cfg.filterMempoolAgent.enabled) {
       return;
     }
-    for (let bit of await BitworkFactory.getBitworks()) {
-      this.logger.debug('Creating bitwork handler...');
-      bit.on('ready', () => {
-        this.logger.debug('Bitwork ready...');
-        bit.on('mempool', async (tx) => {
-          console.log('m', tx.hash);
-          if (cfg.filterMempoolStreams.enabled) {
 
-            this.txfiltermatcherService.notify(tx); 
-          }
-          if (cfg.filterMempoolAgent.enabled) {
-            const txFilterSet: ITxFilterRequest = this.getFilters();
-            if (txFilterSet && txFilterSet.ctxs) {
-              const filterResultSet: ITxFilterResultSet = await this.txfiltermanagerService.filterTx(txFilterSet, [tx]);
-              this.txfiltermanagerService.performProjectTenantUpdatesForTx(filterResultSet);
-            }
-          }
-        });
-        setInterval(() => {
-          const status = bit.getPeer().status;
-          console.log('Bitcoind peer status: ', status);
-        }, 30000)
+    let instances = 1;
+    if (process.env.BITCOIND_HOST_COUNT && parseInt(process.env.BITCOIND_HOST_COUNT) > 1) {
+      instances = parseInt(process.env.BITCOIND_HOST_COUNT);
+    }
+    const listeners = [];
+    listeners.push({
+      host: process.env.BITCOIND_HOST,
+      port: process.env.BITCOIND_ZMQ_LISTENER_PORT,
+    });
+
+    for (let i = 1; i < instances; i++) {
+      listeners.push({
+        host: process.env['BITCOIND_HOST_' + (i + 1) ],
+          port: process.env['BITCOIND_ZMQ_LISTENER_PORT_' + (i + 1) ],
       });
-    }   
+    }
+    for (const listener of listeners) {
+      const sock = new zmq.Subscriber
+      sock.subscribe("rawtx");
+      sock.connect(`tcp://${listener.host}:${listener.port}`)
+      for await (const [topic, msg] of sock) {
+        const tx = new bsv.Transaction(msg); 
+        console.log("txid", tx.hash);
+        if (cfg.filterMempoolStreams.enabled) {
+          this.txfiltermatcherService.notify(tx); 
+        }
+        if (cfg.filterMempoolAgent.enabled) {
+          const txFilterSet: ITxFilterRequest = this.getFilters();
+          if (txFilterSet && txFilterSet.ctxs) {
+            const filterResultSet: ITxFilterResultSet = await this.txfiltermanagerService.filterTx(txFilterSet, [tx]);
+            this.txfiltermanagerService.performProjectTenantUpdatesForTx(filterResultSet);
+          }
+        }
+      }
+    }
     return {
       success: true,
       result: {}
