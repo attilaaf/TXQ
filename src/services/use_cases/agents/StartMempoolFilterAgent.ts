@@ -1,4 +1,3 @@
-import { IAccountContext } from '@interfaces/IAccountContext';
 import { Service, Inject } from 'typedi';
 import { UseCase } from '../UseCase';
 import { UseCaseOutcome } from '../UseCaseOutcome';
@@ -7,6 +6,13 @@ import cfg from '../../../cfg';
 import * as zmq from 'zeromq';
 import * as bsv from 'bsv';
 
+/**
+ * The mempool agent handles streaming via ZMQ from 1 or more bitcoinsv 1.0.7+ nodes.
+ * 
+ * Note that the mempool is not authoritative, but can merely be used as a notification system. 
+ * 
+ * Responsible for filtering the mempool for either generic filter or output pattern match.
+ */
 @Service('startMempoolFilterAgent')
 export default class StartMempoolFilterAgent extends UseCase {
 
@@ -17,18 +23,13 @@ export default class StartMempoolFilterAgent extends UseCase {
     @Inject('txfiltermanagerService') private txfiltermanagerService,
     @Inject('logger') private logger) {
     super();
-  
-    this.reloadFiltersEventLoop();
+    this.refetchFiltersEventLoop();
   }
   
-  public async run(params?: {accountContext?: IAccountContext}): Promise<UseCaseOutcome> {
-    // Create bitcion listeners as backups
-    // Deduplication of tx's happens at another layer.
-    // Note: the modified bitwork library also reconnects if the connection is detected dead
-    if (!cfg.filterMempoolStreams.enabled && !cfg.filterMempoolAgent.enabled) {
-      return;
-    }
-
+  /**
+   * Get 1 or more BSV ZMQ listener connections.
+   */
+  private getListeners() {
     let instances = 1;
     if (process.env.BITCOIND_HOST_COUNT && parseInt(process.env.BITCOIND_HOST_COUNT) > 1) {
       instances = parseInt(process.env.BITCOIND_HOST_COUNT);
@@ -45,24 +46,42 @@ export default class StartMempoolFilterAgent extends UseCase {
           port: process.env['BITCOIND_ZMQ_LISTENER_PORT_' + (i + 1) ],
       });
     }
-    for (const listener of listeners) {
-      const sock = new zmq.Subscriber
-      sock.subscribe("rawtx");
-      sock.connect(`tcp://${listener.host}:${listener.port}`)
-      for await (const [topic, msg] of sock) {
-        const tx = new bsv.Transaction(msg); 
-        console.log("txid", tx.hash);
-        if (cfg.filterMempoolStreams.enabled) {
-          this.txfiltermatcherService.notify(tx); 
-        }
-        if (cfg.filterMempoolAgent.enabled) {
-          const txFilterSet: ITxFilterRequest = this.getFilters();
-          if (txFilterSet && txFilterSet.ctxs) {
-            const filterResultSet: ITxFilterResultSet = await this.txfiltermanagerService.filterTx(txFilterSet, [tx]);
-            this.txfiltermanagerService.performProjectTenantUpdatesForTx(filterResultSet);
-          }
+    return listeners;
+  }
+
+  public async connect(host, port): Promise<void> {
+    const sock = new zmq.Subscriber;
+    sock.subscribe("rawtx");
+    sock.connect(`tcp://${host}:${port}`)
+    for await (const [topic, msg] of sock) {
+      const tx = new bsv.Transaction(msg); 
+      console.log("mempooltx", tx.hash, host);
+      // Filters genericly any pattern (not necessarily a txfilter saved for the project, but just transient SSE connection) 
+      if (cfg.filterMempoolStreams.enabled) {
+        this.txfiltermatcherService.notify(tx); 
+      }
+      // Filters for all txfilters
+      if (cfg.filterMempoolAgent.enabled) {
+        const txFilterSet: ITxFilterRequest = this.getFilters();
+        if (txFilterSet && txFilterSet.ctxs) {
+          const filterResultSet: ITxFilterResultSet = await this.txfiltermanagerService.filterTx(txFilterSet, [tx]);
+          this.txfiltermanagerService.performProjectTenantUpdatesForTx(filterResultSet);
         }
       }
+    }
+    return;
+  }
+
+  public async run(): Promise<UseCaseOutcome> {
+    // Only process and connect ZMQ mempool listener if the settings are enabled
+    if (!cfg.filterMempoolStreams.enabled && !cfg.filterMempoolAgent.enabled) {
+      return;
+    }
+    // Create multiple listeners
+    // Deduplication of tx's happens at another layer.
+    for (const listener of this.getListeners()) {
+      console.log('Connect listener', listener);
+      this.connect(listener.host, listener.port);
     }
     return {
       success: true,
@@ -75,18 +94,16 @@ export default class StartMempoolFilterAgent extends UseCase {
   }
 
   /**
-   * Clean up old sessions
+   * Reload all filters from all tenant projects
    */
-  private async reloadFiltersEventLoop() {
+  private async refetchFiltersEventLoop() {
     const CYCLE_TIME_SECONDS = 10;
     this.txFilterSet = await this.txfiltermanagerService.getAllFilters();
 		setTimeout(async () => {
 			try {
-        console.log('fetchedFilterSet', 'monitoredOutpointFilters', this.txFilterSet.monitoredOutpointFilters.length);
         this.txFilterSet = await this.txfiltermanagerService.getAllFilters();
-
 			} finally {
-				this.reloadFiltersEventLoop();
+				this.refetchFiltersEventLoop();
 			}
 		}, 1000 * CYCLE_TIME_SECONDS);
   }
