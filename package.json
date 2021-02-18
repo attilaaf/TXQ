@@ -83,7 +83,9 @@
     "swagger-ui-express": "^4.0.6",
     "typedi": "^0.8.0",
     "url-join": "^4.0.1",
+    "uuidv4": "^6.2.6",
     "winston": "^3.2.1",
+    "ws": "^7.4.3",
     "zeromq": "^6.0.0-beta.6"
   },
   "husky": {

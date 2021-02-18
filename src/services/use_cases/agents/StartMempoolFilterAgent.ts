@@ -19,7 +19,7 @@ export default class StartMempoolFilterAgent extends UseCase {
   private txFilterSet: ITxFilterRequest = null;;
 
   constructor(
-    @Inject('txfiltermatcherService') private txfiltermatcherService,
+    @Inject('mempoolMatcherService') private mempoolMatcherService,
     @Inject('txfiltermanagerService') private txfiltermanagerService,
     @Inject('logger') private logger) {
     super();
@@ -58,7 +58,7 @@ export default class StartMempoolFilterAgent extends UseCase {
       console.log("mempooltx", tx.hash, host);
       // Filters genericly any pattern (not necessarily a txfilter saved for the project, but just transient SSE connection) 
       if (cfg.filterMempoolStreams.enabled) {
-        this.txfiltermatcherService.notify(tx); 
+        this.mempoolMatcherService.notify(tx); 
       }
       // Filters for all txfilters
       if (cfg.filterMempoolAgent.enabled) {

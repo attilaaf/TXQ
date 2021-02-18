@@ -57,14 +57,14 @@ CREATE TABLE txout (
     script bytea NOT NULL,
     address varchar NULL,
     scripthash varchar NOT NULL,
-    satoshis bigint NOT NULL
+    satoshis bigint NOT NULL 
 );
 
 -- Do not need index on txid because we always query with (txid, channel)
 CREATE UNIQUE INDEX idx_uk_txout_txid_index ON txout USING btree (txid, index);
 CREATE INDEX idx_txout_address_index ON txout USING btree (address);
 CREATE INDEX idx_txout_scripthash_index ON txout USING btree (scripthash);
-
+ 
 CREATE TABLE txmeta (
     id bigserial PRIMARY KEY,
     txid varchar NOT NULL,

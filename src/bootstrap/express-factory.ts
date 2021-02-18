@@ -3,6 +3,8 @@ import 'reflect-metadata';
 import * as express from 'express';
 import * as SetTimeZone from 'set-tz';
 import { middlewareLoader } from './middleware';
+ 
+
 import "../services/tx/index";
 import "../services/txsync/index";
 import "../services/txout/index";
@@ -17,6 +19,7 @@ import "../services/blockheader/index";
 import "../services/txfilter/index";
 import "../services/txstore/index";
 import "../services/txfiltermanager/index";
+import "../services/mempoolmatcher/index";
 import "../services/outpointmonitor/index";
 
 import "../services/helpers/MerchantRequestor";
@@ -66,7 +69,7 @@ const createExpressInstance = async () => {
       hello: 'world'
     });
   });
-
+ 
   return app;
 }
 

@@ -10,7 +10,7 @@ if (!envFound) {
 const config: IConfig = {
   appname: 'txq',
   network: process.env.NETWORK === 'testnet' ? 'testnet' : 'livenet',
-  baseurl: process.env.BASEURL || 'http://localhost:8097',
+  baseurl: process.env.BASEURL || 'http://localhost:3000',
   env: process.env.NODE_ENV || 'development',
   api: {
     prefix: '/api',

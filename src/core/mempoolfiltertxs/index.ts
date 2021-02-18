@@ -133,10 +133,11 @@ class MempoolfiltertxsModel {
     return null;
   }
   public async getMessagesSince(sessionId: string, eventId: any, time: any): Promise<any> {
+    console.log('getMessagesSince', sessionId, eventId, time);
     if (!eventId && !time) {
       return [];
     }
-    let queryTime = this.getDate(time);
+    let queryTime = time;
     const client = await this.db.getCacheDbClient();
     let result = null;
     if (eventId && queryTime) {
@@ -150,7 +151,7 @@ class MempoolfiltertxsModel {
         ORDER BY id ASC
         LIMIT 1000
         `, [
-          sessionId, eventId, queryTime.getTime() / 1000
+          sessionId, eventId, queryTime 
         ]);
     } else if (eventId) {
       result = await client.query(`
@@ -174,10 +175,10 @@ class MempoolfiltertxsModel {
         ORDER BY id ASC
         LIMIT 1000
         `, [
-          sessionId, queryTime.getTime() / 1000
+          sessionId, queryTime
         ]);
     }
-    if (!result && !result.rows) {
+    if (!result || !result.rows) {
       return [];
     }
     return result.rows.map((item) => {

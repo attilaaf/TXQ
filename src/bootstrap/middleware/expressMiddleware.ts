@@ -5,6 +5,7 @@ import * as compression from 'compression';
 import { handleHelmet } from './helmetMiddleware';
 import { HandleLogger } from './logger';
 import * as pretty from 'express-prettify';
+
 const handleCors = (router: Router) => {
   // For mapi proxy we must set it in express-factory
   router.use(cors({
@@ -22,7 +23,7 @@ function defaultContentTypeMiddleware (req, res, next) {
 
 const handleBodyRequestParsing = (router: Router) => {
   router.use(defaultContentTypeMiddleware);
-  router.use(parser.urlencoded({ extended: true, limit: '100mb'}));
+  router.use(parser.urlencoded({ extended: true, limit: '100mb' }));
   router.use(parser.json({limit: '100mb'}));
   router.use(parser.raw({limit: '100mb'}));
   router.use(pretty({ query: 'pretty' }));

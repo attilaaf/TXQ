@@ -4,7 +4,7 @@ import * as SetTimeZone from 'set-tz';
 import { handleServerExit, handleExceptions } from './middleware/errorMiddleware';
 import { Container } from 'typedi';
 import Config from './../cfg';
-
+import * as ws from 'ws';
 import "../services/tx/index";
 import "../services/txsync/index";
 import "../services/txout/index";
@@ -68,6 +68,8 @@ import "../services/use_cases/spends/GetUtxoCountByScriptHashOrAddress";
 import "../services/use_cases/spends/GetUtxoCountByGroup";
 import "../services/use_cases/spends/GetUnspentTxidsByScriptHash";
 
+
+import ConnectMempoolClientWebSocket from "../services/use_cases/events/ConnectMempoolClientWebSocket";
 import "../services/use_cases/events/ConnectChannelClientSSE";
 import "../services/use_cases/events/ConnectMempoolClientSSE";
 import "../services/use_cases/txoutgroup/GetTxoutgroupByName";
@@ -101,11 +103,11 @@ import cfg from './../cfg';
 import { createExpress } from './express-factory';
 import StartMempoolFilterAgent from '../services/use_cases/agents/StartMempoolFilterAgent';
 import CheckAndUpgradeDbs from '../services/use_cases/utils/CheckAndUpgradeDbs';
-
+ 
 async function startServer() {
   let app = await createExpress();
   let server = createServer(app);
-
+ 
   app.get('/', function(req, res) {
     res.json({
       hello: 'world'
@@ -117,6 +119,29 @@ async function startServer() {
   process.on('uncaughtException', handleExceptions);
   process.on('SIGINT', handleServerExit('SIGINT', server));
   process.on('SIGTERM', handleServerExit('SIGTERM', server));
+  // Set up a headless websocket server that prints any
+  // events that come in.
+  function noop() {}
+  function heartbeat() {
+    this.isAlive = true;
+  }
+  const wss = new ws.Server({ noServer: true });
+  wss.on('connection', (socket, req) => {
+    let uc = Container.get(ConnectMempoolClientWebSocket);
+    uc.run(
+      {
+        req, 
+        socket
+      }
+    );
+  });
+
+  server.on('upgrade', (request, socket, head) => {
+    wss.handleUpgrade(request, socket, head, socket => {
+      wss.emit('connection', socket, request);
+    });
+  });
+  
   return app;
 }
 

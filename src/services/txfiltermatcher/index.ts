@@ -12,14 +12,12 @@ export class TxFilterMatcher {
 	private sseSessionMapping: Map<string, { sseHandler?: any, baseFilter: string, lastId: any, hasOutputfilter: any, lastConnectedTime: any}>;
 	private outputFilterMapping;
 	private newLru;
-	private blockLru;
-
+ 
 	constructor(@Inject('logger') private logger, @Inject('mempoolfiltertxsService') private mempoolfiltertxsService) {
 		this.sseSessionMapping = new Map();
 		this.baseFilterMapping = new Map();
 		this.outputFilterMapping = new Map();
 		this.newLru = new lru.LRUMap(10000, []);
-		this.blockLru = new lru.LRUMap(100, []);
 		this.garbageCollector();
 		if (cfg.filterMempoolStreams.enabled) {
 			this.mempoolFilteredGarbageCollector();
@@ -289,28 +287,7 @@ export class TxFilterMatcher {
 			this.logger.debug('cleanedSessionIds', { cleanedSessionIds });
 		}
 	}
-
-	notifyBlockHeader(header) {
-		// Do not send duplicates
-		if (this.blockLru.get(header)) {
-			return;
-		}
-		this.blockLru.set(header, true);
-
-		const toNotifySessionIds = {};
-		for (const filter of this.baseFilterMapping.keys()) {
-			this.baseFilterMapping.get(filter).forEach((item) => {
-				toNotifySessionIds[item] = true;
-			})
-		}
-		for (const outputFilter of this.outputFilterMapping.keys()) {
-			this.outputFilterMapping.get(outputFilter).forEach((item) => {
-				toNotifySessionIds[item] = true;
-			})
-		}
-		this.notifyAllHandlers(this.getBlockPayload(header), toNotifySessionIds);
-	}
-
+ 
 	mempoolFilteredGarbageCollector() {
 		const CYCLE_TIME_SECONDS = 60;
 		const DELETE_FROM_CREATED_AT_TIME_DB = cfg.filterMempoolStreams.cleanupOlderTransactionsTimeMinutes || 300;
