@@ -1539,6 +1539,32 @@ data: {
 
 ```
 
+### Ad-hoc Mempool Filter Stream
+
+Filter mempool stream by output address or output script hex pattern. Note: Requires a BSV 1.0.6+ Node enabled with ZMQ and the following settings:
+
+```
+ENABLE_FILTER_MEMPOOL_STREAMS=true
+ENABLE_FILTER_MEMPOOL_STREAMS_STORAGE=database
+DB_MEMPOOL_STREAMS_HOST=localhost
+DB_MEMPOOL_STREAMS_USER=postgres
+DB_MEMPOOL_STREAMS_DATABASE=mempool_stream_db
+DB_MEMPOOL_STREAMS_PASSWORD=postgres
+DB_MEMPOOL_STREAMS_PORT=5432
+DB_MEMPOOL_STREAMS_MAX_CLIENTS=5
+DB_MEMPOOL_STREAMS_IDLE_TIMEOUT_MS=10000
+```
+
+`GET /sse/mempool?outputFilter=131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW,131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW,123123` (SSE)
+
+Example: <a href='https://public.app.mattercloud.io/sse/mempool?outputFilter=131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW' target="_blank">Mempool with output filter address</a>
+
+
+```javascript
+ 
+
+```
+
 
 ## Merchant API Proxy (mapi)
 

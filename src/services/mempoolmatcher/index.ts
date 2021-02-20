@@ -25,6 +25,7 @@ export class MempoolMatcherService {
  
 	constructor(@Inject('logger') private logger, @Inject('mempoolfiltertxsService') private mempoolfiltertxsService) {
 		this.newLru = new lru.LRUMap(10000, []);
+		this.mempoolFilteredGarbageCollector()
 	}
 
 	public async connectClientFromSSE(filter, outputFilter, req, res) {
@@ -173,6 +174,19 @@ export class MempoolMatcherService {
 		}
 		this.newLru.set(tx.hash, true);
 		this.filterAndSendNotifications(tx);
+	}
+
+	private mempoolFilteredGarbageCollector() {
+		const CYCLE_TIME_SECONDS = 60;
+		const DELETE_FROM_CREATED_AT_TIME_DB = cfg.filterMempoolStreams.cleanupOlderTransactionsTimeMinutes || 7200;
+		setTimeout(async () => {
+			try {
+				this.logger.debug("mempoolFilteredGarbageCollector");
+				await this.mempoolfiltertxsService.deleteExpiredOlderThan(DELETE_FROM_CREATED_AT_TIME_DB);
+			} finally {
+				this.mempoolFilteredGarbageCollector();
+			}
+		}, 1000 * CYCLE_TIME_SECONDS)
 	}
 
 	private async filterAndSendNotifications(tx: bsv.Transaction) {

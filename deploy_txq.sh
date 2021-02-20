@@ -11,6 +11,12 @@ HOSTNAME=ec2-34-213-90-153.us-west-2.compute.amazonaws.com
 echo "Starting deploy to server... $HOSTNAME"
 rsync -rav -e "ssh -i $KEYFILEPATH"  --progress --exclude-from='./excludefiles.txt' ./ ubuntu@$HOSTNAME:~/txq
  
+HOSTNAME=ec2-18-236-176-59.us-west-2.compute.amazonaws.com
+echo "Starting deploy to server... $HOSTNAME"
+rsync -rav -e "ssh -i $KEYFILEPATH"  --progress --exclude-from='./excludefiles.txt' ./ ubuntu@$HOSTNAME:~/txq
+ 
+ 
+
 echo "\nDone. Bye..."
 exit
 

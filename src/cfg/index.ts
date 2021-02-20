@@ -62,7 +62,7 @@ const config: IConfig = {
   filterMempoolStreams: {
     enabled: process.env.ENABLE_FILTER_MEMPOOL_STREAMS === 'true' ? true : false,
     storage: process.env.ENABLE_FILTER_MEMPOOL_STREAMS_STORAGE || 'memory', // If 'null' used, then uses internal in memory array for SSE event tracking
-    cleanupOlderTransactionsTimeMinutes: process.env.MEMPOOL_STREAMS_CLEANUP_MINS ? parseInt(process.env.MEMPOOL_STREAMS_CLEANUP_MINS) : 300,
+    cleanupOlderTransactionsTimeMinutes: process.env.MEMPOOL_STREAMS_CLEANUP_MINS ? parseInt(process.env.MEMPOOL_STREAMS_CLEANUP_MINS) : 7200,
     database: {
       host: process.env.DB_MEMPOOL_STREAMS_HOST,
       user: process.env.DB_MEMPOOL_STREAMS_USER,

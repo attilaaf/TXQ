@@ -47,21 +47,35 @@ export default class ConnectMempoolClientWebSocket extends UseCase {
 		req: Request,
 		socket: any
 	}): Promise<UseCaseOutcome> {
-
+		const extractFilterRegex = new RegExp('(\/sse)?\/mempool\/(.+)\\?');
+		const matches = params.req.url.match(extractFilterRegex);
+		let filter = null;
+		if (matches.length && matches[1]) {
+			filter = matches[1];
+		} else {
+			// Try it when there is no ? at the end
+			const extractFilterRegexWithoutQ = new RegExp('(\/sse)?\/mempool\/(.+)$');
+			const matches = params.req.url.match(extractFilterRegexWithoutQ);
+			if (matches.length && matches[1]) {
+				filter = matches[1];
+			} 
+		}
 		const urlParams: any = getJsonFromUrl(params.req.url);
-		this.logger.debug("ConnectMempoolClientWebSocket", {url: params.req.url, urlParams})
-		
-		if (!urlParams.filter && !urlParams.outputFilter) {
+		this.logger.debug("ConnectMempoolClientWebSocket", {url: params.req.url, urlParams});
+		if (urlParams.filter) {
+			filter = urlParams.filter;
+		}
+		if (!filter && !urlParams.outputFilter) {
 			throw new InvalidParamError('Require base filter or output filters');
 		}
-		if (urlParams.filter && urlParams.filter.length < 3) {
+		if (filter && filter.length < 3) {
 			throw new InvalidParamError('Base filter too short');
 		}
 		if (urlParams.outputFilter && urlParams.outputFilter.length < 4) {
 			throw new InvalidParamError('Output filter too short');
 		} 
 		this.mempoolMatcherService.connectClientFromWebSocket(
-			urlParams.filter || null,
+			filter || null,
 			urlParams.outputFilter || null, 
 			params.req.headers['last-event-id'], 
 			urlParams.time || null, 

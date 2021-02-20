@@ -19,7 +19,6 @@ import "../services/blockheader/index";
 import "../services/txfilter/index";
 import "../services/txstore/index";
 import "../services/txfiltermanager/index";
-import "../services/txfiltermatcher/index";
 import "../services/outpointmonitor/index";
 import "../services/stats/index";
 import "../services/mempoolfiltertxs/index";
@@ -187,7 +186,7 @@ if (cfg.filterMempoolStreams.enabled || cfg.filterMempoolAgent.enabled) {
   }, 1000);
 }
 
- 
+/*
 if (false) {
 
   setTimeout(() => {
@@ -196,3 +195,4 @@ if (false) {
   }, 5000);
  
 }
+*/

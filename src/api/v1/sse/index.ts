@@ -190,4 +190,74 @@ export default [
       },
     ],
   },
+  {
+    path: `/mempool/:filter`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let filter = Req.params.filter || Req.query.filter ? Req.params.filter || Req.query.filter : null;
+          let outputFilter = Req.query.outputFilter || '';
+
+          if (!filter && !outputFilter) {
+            throw new InvalidParamError('Require base filter or output filters');
+          }
+          if (filter && filter.length < 3) {
+            throw new InvalidParamError('Base filter too short');
+          }
+          if (outputFilter && outputFilter.length < 4) {
+            throw new InvalidParamError('Output filter too short');
+          } 
+
+          let uc = Container.get(ConnectMempoolClientSSE);
+          uc.run({
+            filter: filter,
+            outputFilter: outputFilter,
+            req: Req, 
+            res, 
+            accountContext: AccountContextHelper.getContext(Req)});
+        } catch (error) {
+          if (error instanceof InvalidParamError) {
+            sendMapiErrorWrapper(res, 422, error.toString());
+            return;
+          }
+        }
+      },
+    ],
+  },
+  {
+    path: `/mempool`,
+    method: 'get',
+    handler: [
+      async (Req: Request, res: Response, next: NextFunction) => {
+        try {
+          let filter = Req.params.filter || Req.query.filter ? Req.params.filter || Req.query.filter : null;
+          let outputFilter = Req.query.outputFilter || '';
+
+          if (!filter && !outputFilter) {
+            throw new InvalidParamError('Require base filter or output filters');
+          }
+          if (filter && filter.length < 3) {
+            throw new InvalidParamError('Base filter too short');
+          }
+          if (outputFilter && outputFilter.length < 4) {
+            throw new InvalidParamError('Output filter too short');
+          } 
+
+          let uc = Container.get(ConnectMempoolClientSSE);
+          uc.run({
+            filter: filter,
+            outputFilter: outputFilter,
+            req: Req, 
+            res, 
+            accountContext: AccountContextHelper.getContext(Req)});
+        } catch (error) {
+          if (error instanceof InvalidParamError) {
+            sendMapiErrorWrapper(res, 422, error.toString());
+            return;
+          }
+        }
+      },
+    ],
+  },
 ]
