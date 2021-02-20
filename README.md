@@ -5,12 +5,13 @@
 >
 > <a href='https://matterpool.io'>matterpool.io</a>
 
-#### LIVE OPEN PUBLIC (US-WEST-2) SERVER: <a target="_blank" href='https://public.txq-app.com/api/v1/tx/dc7bed6c302c08b7bafd94bfb1086883a134861fe9f212fc8052fcaadcde2293?pretty=1'>PUBLIC.TXQ-APP.COM
+#### LIVE OPEN PUBLIC (US-WEST-2) SERVER: <a target="_blank" href='https://public.app.mattercloud.io/mapi/feQuote'>MAPI Call Test
 </a>
 
 ![TXQ](https://github.com/MatterPool/TXQ/blob/master/preview.png "Bitcoin Transaction Storage Queue Service")
+ 
 
-- [Motivation](#motivation)
+ - [Motivation](#motivation)
 - [Installation & Getting Started](#installation---getting-started)
 - [Database](#database)
 - [Configuration](#configuration)
@@ -57,6 +58,10 @@
   * [Address Updates Stream](#address-updates-stream)
   * [Scripthash Updates Stream](#scripthash-updates-stream)
   * [Output Group Updates Stream](#output-group-updates-stream)
+  * [Ad-hoc Mempool Filter Stream](#ad-hoc-mempool-filter-stream)
+  * [Ad-hoc WebSockets Filter Stream](#ad-hoc-websockets-filter-stream)
+    + [ping](#ping)
+    + [getMessages](#getmessages)
 - [Merchant API Proxy (mapi)](#merchant-api-proxy--mapi-)
   * [Storing `channel`, `metadata`, and `tags`](#storing--channel----metadata---and--tags-)
   * [Query Primary Miner Merchant API](#query-primary-miner-merchant-api)
@@ -64,8 +69,7 @@
   * [Query by Index of Miner Merchant API](#query-by-index-of-miner-merchant-api)
 - [Database Schema and Design](#database-schema-and-design)
 - [Additional Resources](#additional-resources)
-
-
+ 
 ## Motivation
 
 In order for Bitcoin SV apps to scale efficiently as traditional web services, apps must communicate directly with each other where possible and not rely on extra intermediaries.
@@ -1557,14 +1561,120 @@ DB_MEMPOOL_STREAMS_IDLE_TIMEOUT_MS=10000
 
 `GET /sse/mempool?outputFilter=131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW,131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW,123123` (SSE)
 
-Example: <a href='https://public.app.mattercloud.io/sse/mempool?outputFilter=131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW' target="_blank">Mempool with output filter address</a>
+Examples:
 
+<a href='https://public.app.mattercloud.io/sse/mempool?outputFilter=131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW' target="_blank">Mempool with output filter address</a>
 
-```javascript
- 
+<a href='https://public.app.mattercloud.io/sse/mempool/123123?outputFilter=131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW' target="_blank">Mempool with base filter match for pattern in output</a>
+
+<a href='https://public.app.mattercloud.io/sse/mempool?outputFilter=131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW&time=1613798153786' target="_blank">Mempool with output filter address replay from time</a>
+
+Example output:
+
+```
+// Note you can use last-event-id HTTP header to replay from a specific id
+// You  can also use `time` to reply from a specific time.
+$ curl -N https://public.app.mattercloud.io/mempool/68656c6c6f?\&time=1613508847  -H "last-event-id: 1838"
+id: -1
+data: ["connected"]
+
+id: 216925
+data: {"type":"tx","txid":"7d9fb6e892c3f2ec174ceba6d077bf49a32f898f49b7c29648fc15952a3538a3","rawtx":"0100000001e90484bcc078811efd6c3efb4f8a4ea064a9895049a70c393942411faaf9eed6010000006b4830450221009fb347c87f14cdd961fb3a1b6f7889c33d8faa7e630f315a1124f8b1e20c43a902206e9d14ae84fac7a6f7a89e60b428a752e8fd7b403b832f17942b9839b4dd8d3a4121038dd2b2f66d86a0bb4c307e0be2dbd273462bbe4eda84f6e25f016b4141532040ffffffff02000000000000000019006a026d0213706f737420746f2068656c6c6f206d656d6f2186ac0800000000001976a914131135fb156fa4414714dbcf4cf9ac39a3f0e4a088ac00000000","url":"https://media.bitcoinfiles.org/rawtx/7d9fb6e892c3f2ec174ceba6d077bf49a32f898f49b7c29648fc15952a3538a3","id":"216925","time":1613798153786,"created_at":1613798153786,"created_time":"2021-02-20T05:15:53.786Z"}
 
 ```
 
+### Ad-hoc WebSockets Filter Stream
+
+Filter mempool stream by output address or output script hex pattern. Note: Requires a BSV 1.0.6+ Node enabled with ZMQ and the following settings:
+
+```
+ENABLE_FILTER_MEMPOOL_STREAMS=true
+ENABLE_FILTER_MEMPOOL_STREAMS_STORAGE=database
+DB_MEMPOOL_STREAMS_HOST=localhost
+DB_MEMPOOL_STREAMS_USER=postgres
+DB_MEMPOOL_STREAMS_DATABASE=mempool_stream_db
+DB_MEMPOOL_STREAMS_PASSWORD=postgres
+DB_MEMPOOL_STREAMS_PORT=5432
+DB_MEMPOOL_STREAMS_MAX_CLIENTS=5
+DB_MEMPOOL_STREAMS_IDLE_TIMEOUT_MS=10000
+```
+
+ 
+`ws://public.app.mattercloud.io/mempool?outputFilter=131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW,131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW` (Web Socket)
+
+Examples:
+
+`ws://public.app.mattercloud.io/mempool?outputFilter=131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW,131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW&time=1613798153781` (Match output filters and replay from specific time)
+
+`ws://public.app.mattercloud.io/mempool?outputFilter=131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW,131xY3twRUJ1Y9Z9jJFKGLUa4SAdRJppcW&id=5432` (Match output filters and replay from specific id)
+ 
+#### ping
+
+You may use the `ping` built-in websocket option to echo back a response from the server (any payload message format). This can be used to check if the connection is alive.
+
+#### getMessages
+
+After the connection is established you may call `getMessages` to replay events by `id` or `time`
+
+
+```
+{
+  method: 'getMessages',
+  // Matches the hex string anywhere in a transaction output
+  // filter: '68656c6c6f',
+  // Matches output filter, can seperate by commas for multiple addresses or scripthashes
+  outputFilter: '12jpTUdqZcVhwJ7M8oXrZ7rrLvkFvYbEra',
+  // Can be used to replay messages for the filter and outputFilter for the last `id`
+  lastEventId: 4324,
+  // Can be used to replay messages for the filter and outputFilter since time (unixtime)
+  time: 1613841278332
+}
+```
+
+Example response:
+
+```
+{"type":"tx","txid":"7c81c0cc0194b8ed6215ceb555750e3deaffb896a1b96da991d75b5271ee3e58","rawtx":"0100000001455fdadf3f322e8167671569a9d595ca571762de2684107498c64b73d5574696010000006a473044022037155f7d066631da4b82f61ab5f3a20d14dcb7dbe6270b7c67a1984b093344cb02200251b91f18da48cc6db94e2473e7c19572d4e7d5432676199c2f2681646e4d3f4121038dd2b2f66d86a0bb4c307e0be2dbd273462bbe4eda84f6e25f016b4141532040ffffffff02000000000000000019006a026d0213706f737420746f2068656c6c6f206d656d6f2176aa0800000000001976a914131135fb156fa4414714dbcf4cf9ac39a3f0e4a088ac00000000","url":"https://media.bitcoinfiles.org/rawtx/7c81c0cc0194b8ed6215ceb555750e3deaffb896a1b96da991d75b5271ee3e58","id":"6855","time":1613841278332,"created_at":1613841278332,"created_time":"2021-02-20T17:14:38.332Z"}
+```
+
+
+```javascript
+const ws = require('ws');
+// const client = new ws('ws://public.app.mattercloud.io/mempool/?outputFilter=12jpTUdqZcVhwJ7M8oXrZ7rrLvkFvYbEra&time=2432');
+// const client = new ws('ws://public.app.mattercloud.io/mempool?outputFilter=12jpTUdqZcVhwJ7M8oXrZ7rrLvkFvYbEra&time=2432');
+const client = new ws('ws://public.app.mattercloud.iomempool/68656c6c6f?outpudtFilter=12jpTUdqZcVhwJ7M8oXrZ7rrLvkFvYbEra&time=2432');
+client.on('open', () => {
+  client.on('message', (e) => {
+    console.log('message received: ', e);
+  });
+  client.on('pong', (e) => {
+    console.log('Pong received: ', e.toString('utf8'));
+  });
+  const inter = setInterval(function timeout() {
+    console.log('sending ping...');
+    client.ping(JSON.stringify({
+        method: 'ping',
+        time: new Date()
+    }));
+
+    client.send(JSON.stringify({
+        method: 'getMessages',
+        // Matches the hex string anywhere in a transaction output
+        // filter: '68656c6c6f',
+        // Matches output filter, can seperate by commas for multiple addresses or scripthashes
+        outputFilter: '12jpTUdqZcVhwJ7M8oXrZ7rrLvkFvYbEra',
+        // Can be used to replay messages for the filter and outputFilter for the last `id`
+        lastEventId: 4324,
+        // Can be used to replay messages for the filter and outputFilter since time (unixtime)
+        time: 1613841278332
+    })); 
+
+  }, 2000);
+});
+
+
+
+```
 
 ## Merchant API Proxy (mapi)
 

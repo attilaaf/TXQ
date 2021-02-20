@@ -1,8 +1,7 @@
 const ws = require('ws');
-// const client = new ws('ws://localhost:3000/mempool/?outputFilter=12jpTUdqZcVhwJ7M8oXrZ7rrLvkFvYbEra&time=2432');
+// const client = new ws('ws://public.app.mattercloud.io/mempool/?outputFilter=12jpTUdqZcVhwJ7M8oXrZ7rrLvkFvYbEra&time=2432');
 // const client = new ws('ws://public.app.mattercloud.io/mempool?outputFilter=12jpTUdqZcVhwJ7M8oXrZ7rrLvkFvYbEra&time=2432');
-// 68656c6c6f
-const client = new ws('ws://localhost:3000/mempool/68656c6c6f?outpudtFilter=12jpTUdqZcVhwJ7M8oXrZ7rrLvkFvYbEra&time=2432');
+const client = new ws('ws://public.app.mattercloud.iomempool/68656c6c6f?outpudtFilter=12jpTUdqZcVhwJ7M8oXrZ7rrLvkFvYbEra&time=2432');
 client.on('open', () => {
   client.on('message', (e) => {
     console.log('message received: ', e);
@@ -12,7 +11,6 @@ client.on('open', () => {
   });
   const inter = setInterval(function timeout() {
     console.log('sending ping...');
- 
     client.ping(JSON.stringify({
         method: 'ping',
         time: new Date()
