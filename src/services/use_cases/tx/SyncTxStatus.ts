@@ -129,7 +129,7 @@ export default class SyncTxStatus extends UseCase {
     });
     // Check various error conditions and check whether we need to resend or halt
     if (status && status.payload && status.payload.returnResult === 'failure' &&
-      status.payload.resultDescription === 'ERROR: No such mempool or blockchain transaction. Use gettransaction for wallet transactions.') {
+      status.payload.resultDescription.includes('No such mempool or blockchain transaction. Use gettransaction for wallet transactions.')) {
         this.logger.info('sync', {
           txid: params.txid,
           trace: 4

@@ -41,8 +41,8 @@ export class StatusTxUtil {
             const isValid = payload &&
                 payload.returnResult === 'failure' &&
                 (
-                    payload.resultDescription === 'ERROR: Transaction already in the mempool' ||
-                    payload.resultDescription  === 'ERROR: 257: txn-already-known'
+                    payload.resultDescription.includes('Transaction already in the mempool') ||
+                    payload.resultDescription.includes('257: txn-already-known')
                 )
             return isValid;
         } catch (err) {
